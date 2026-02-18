@@ -1,0 +1,54 @@
+{
+  "pages": {
+    "/AMR_Test": {
+      "title": "",
+      "viewPath": "Page/Home"
+    },
+    "/alarms": {
+      "viewPath": "Page/Alarms"
+    },
+    "/charts": {
+      "viewPath": "Page/Charts"
+    }
+  },
+  "sharedDocks": {
+    "cornerPriority": "top-bottom",
+    "left": [
+      {
+        "anchor": "fixed",
+        "autoBreakpoint": 768,
+        "content": "push",
+        "handle": "hide",
+        "iconUrl": "",
+        "id": "menu",
+        "modal": false,
+        "resizable": false,
+        "show": "auto",
+        "size": 210,
+        "viewParams": {},
+        "viewPath": "Docks/Menu"
+      }
+    ],
+    "top": [
+      {
+        "anchor": "fixed",
+        "autoBreakpoint": 480,
+        "content": "push",
+        "handle": "hide",
+        "iconUrl": "",
+        "id": "",
+        "modal": false,
+        "resizable": false,
+        "show": "visible",
+        "size": 58,
+        "viewParams": {
+          "breakpointLarge": "768",
+          "breakpointMedium": "500",
+          "params": {},
+          "path": "Header/Header"
+        },
+        "viewPath": "Framework/Breakpoint"
+      }
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "onTagChange.py"
+  ],
+  "attributes": {
+    "changeTypes": [
+      "ValueChange"
+    ],
+    "lastModificationSignature": "624bbde25c5608de98870a715824b5b0d771c3705b2f64a148f16056854b0310",
+    "paths": [
+      "[Otto_FleetManager]Triggers/Missions/Create/create_WF1_RV2"
+    ],
+    "lastModification": {
+      "actor": "FAS",
+      "timestamp": "2026-02-16T20:25:21Z"
+    },
+    "enabled": true
+  }
+}

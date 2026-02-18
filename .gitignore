@@ -1,0 +1,10 @@
+# Ignition/Jython generated artifacts
+**/__pycache__/
+**/*.pyc
+**/*$py.class
+
+# OS/editor noise
+**/.DS_Store
+**/Thumbs.db
+**/.idea/
+**/.vscode/

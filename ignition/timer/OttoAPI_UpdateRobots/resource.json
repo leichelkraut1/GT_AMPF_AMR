@@ -1,0 +1,20 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "handleTimerEvent.py"
+  ],
+  "attributes": {
+    "sharedThread": true,
+    "delay": 10000,
+    "lastModificationSignature": "10e835b290fb88a51e7f82974bb9cb0a2e9685961200db418cab86bbe0a00551",
+    "fixedDelay": true,
+    "lastModification": {
+      "actor": "FAS",
+      "timestamp": "2026-02-18T16:32:40Z"
+    },
+    "enabled": true
+  }
+}

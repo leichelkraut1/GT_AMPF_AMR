@@ -1,0 +1,25 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "onTagChange.py"
+  ],
+  "attributes": {
+    "changeTypes": [
+      "ValueChange",
+      "QualityChange",
+      "TimestampChange"
+    ],
+    "lastModificationSignature": "b1d265b76518bee8979c3ca32db68fcbef52611a2dc6f8d0a0a9b7225ce0b4ff",
+    "paths": [
+      "[Otto_FleetManager]Triggers/SystemUpdates/updateWorkflows"
+    ],
+    "lastModification": {
+      "actor": "FAS",
+      "timestamp": "2026-02-16T20:27:56Z"
+    },
+    "enabled": true
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "onTagChange.py"
+  ],
+  "attributes": {
+    "changeTypes": [
+      "ValueChange"
+    ],
+    "lastModificationSignature": "0bf9b0a53dea1beb958812233877b8268083864f586802a930ea6c75de7758ba",
+    "paths": [
+      "[Otto_FleetManager]Triggers/SystemUpdates/updateMaps"
+    ],
+    "lastModification": {
+      "actor": "FAS",
+      "timestamp": "2026-02-16T20:27:59Z"
+    },
+    "enabled": true
+  }
+}

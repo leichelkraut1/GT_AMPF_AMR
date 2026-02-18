@@ -1,0 +1,6 @@
+{
+  "title": "GT AMR Test",
+  "description": "Georgia Tech AMPF - Otto/Fanuc AMR Test Controller",
+  "enabled": true,
+  "inheritable": false
+}

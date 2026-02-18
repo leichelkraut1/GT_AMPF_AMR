@@ -1,0 +1,23 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "onTagChange.py"
+  ],
+  "attributes": {
+    "changeTypes": [
+      "ValueChange"
+    ],
+    "lastModificationSignature": "a1b227050f8804b0d85a41234a66952a4932515e9382231c087e9f7236570cb2",
+    "paths": [
+      "[Otto_FleetManager]Triggers/Missions/Finalize/finalize_RV3"
+    ],
+    "lastModification": {
+      "actor": "FAS",
+      "timestamp": "2026-02-16T20:27:46Z"
+    },
+    "enabled": true
+  }
+}

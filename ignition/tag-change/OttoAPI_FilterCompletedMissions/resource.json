@@ -1,0 +1,23 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "onTagChange.py"
+  ],
+  "attributes": {
+    "changeTypes": [
+      "ValueChange"
+    ],
+    "lastModificationSignature": "65e2353554ff10ab2da90a0ac3ad8dca4836fddc0ddf358f2380e016e98c6e56",
+    "paths": [
+      "[Otto_FleetManager]Missions/filterCompletedMissions"
+    ],
+    "lastModification": {
+      "actor": "FAS",
+      "timestamp": "2026-02-16T20:27:34Z"
+    },
+    "enabled": true
+  }
+}
