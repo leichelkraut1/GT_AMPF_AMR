@@ -4,7 +4,7 @@ import uuid
 
 def getServerStatus():
 	"""
-	Gets Fleet Manager server state
+	Gets Fleet Manager server states
 	"""
 	#--- Config ---
 	url = system.tag.read("[Otto_FleetManager]Url_ApiBase").value + "/system/state/"

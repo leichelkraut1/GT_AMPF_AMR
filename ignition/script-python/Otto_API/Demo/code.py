@@ -29,7 +29,7 @@ def _getNextEnabledWorkflow():
 
     maxIndex = len(WORKFLOW_IDS)
 
-													 
+
     for offset in range(maxIndex):
         wfId = current + offset
         if wfId > maxIndex:
@@ -39,7 +39,7 @@ def _getNextEnabledWorkflow():
         enabled = system.tag.readBlocking([enablePath])[0].value
 
         if enabled is True:
-																 
+
             nextIndex = wfId + 1
             if nextIndex > maxIndex:
                 nextIndex = 1
@@ -47,7 +47,7 @@ def _getNextEnabledWorkflow():
             system.tag.writeBlocking([indexPath], [nextIndex])
             return wfId
 
-						  
+
     return None
 
 
@@ -211,7 +211,7 @@ def _handleStarvedPhase(rvId):
             logger.info("Attachment demo complete for {0}; set DemoCompleteAck".format(token))
         return True
 
-																		 
+
     # --- If running, do nothing (avoid retriggering) ---
     if runningVal is True:
         return False
@@ -222,7 +222,7 @@ def _handleStarvedPhase(rvId):
         logger.info("STARVED detected for {0}; latched RunDemo".format(token))
 
     return False
-   
+
 
 
 def finalizeStarvedMissions():
@@ -230,7 +230,7 @@ def finalizeStarvedMissions():
     Scans Active mission UDT instances and responds to STARVED missions.
 
     Behavior:
-    - Robots WITHOUT extended demo enabled: immediately latch finalize_RV#
+    - Robots WITHOUT extended demo enabled: immediately latch finalize_RV# Test
     - Robots WITH extended demo enabled:
         - Run attachment phase handshake (RunDemo/DemoRunning/DemoComplete/DemoCompleteAck)
         - Only latch finalize_RV# after DemoComplete is observed (and Ack is set)
@@ -258,7 +258,7 @@ def finalizeStarvedMissions():
 
             if statusQV.value != "STARVED":
                 continue
-                
+
             logger.info("Starved Mission Detected: '{0}'".format(missionName))
             rvId = _extractRobotIdFromMissionName(missionName)
             logger.info("Extracted rvId={0} from missionName='{1}'".format(rvId, missionName))
@@ -269,7 +269,7 @@ def finalizeStarvedMissions():
 
             # --- Resolve robot from mission name ---
             rvId = _extractRobotIdFromMissionName(missionName)
-															   
+
 
             if rvId is None:
                 logger.warn("STARVED mission has no RV mapping: {0}".format(missionName))
@@ -279,7 +279,7 @@ def finalizeStarvedMissions():
             if _isExtendedDemoEnabled(rvId):
                 if not _handleStarvedPhase(rvId):
                     continue  # block finalize until attachment phase completes
-							
+
 
             # --- Latch finalize trigger for this RV ---
             finalizePath = finalizeBase + "/finalize_RV" + str(rvId)
