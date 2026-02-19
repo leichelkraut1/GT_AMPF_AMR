@@ -3,8 +3,6 @@ import time
 import uuid
 from Otto_API.Get import sanitizeTagName
 
-now = system.date.now
-
 def createMission(templateTagPath, robotTagPath, missionName):
 	"""
 	Posts a mission to the OTTO Fleet Manager using the mission templates and robot ID specified by tag paths.
@@ -103,17 +101,12 @@ def createMission(templateTagPath, robotTagPath, missionName):
 		except Exception as e:
 			lastResponse = "Fleet Manager returned non-JSON response: {}".format(str(e))
 			ottoLogger.error(lastResponse)
+		system.tag.writeAsync(responseTag, lastResponse)
 
 	except Exception as e:
 		msg = "Error posting mission: {}".format(str(e))
 		ottoLogger.error(msg)
-
-
-import json
-import time
-
-import json
-import time
+		system.tag.writeAsync(responseTag, msg)
 
 def finalizeMission(robotName):
 	"""

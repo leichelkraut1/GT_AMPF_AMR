@@ -262,21 +262,15 @@ def finalizeStarvedMissions():
             logger.info("Starved Mission Detected: '{0}'".format(missionName))
             rvId = _extractRobotIdFromMissionName(missionName)
             logger.info("Extracted rvId={0} from missionName='{1}'".format(rvId, missionName))
-            enabled = False
-            if rvId is not None:
-    			enabled = _isExtendedDemoEnabled(rvId)
-			logger.info("Extended enabled check: rvId={0}, enabled={1}".format(rvId, enabled))
-
-            # --- Resolve robot from mission name ---
-            rvId = _extractRobotIdFromMissionName(missionName)
-
-
             if rvId is None:
                 logger.warn("STARVED mission has no RV mapping: {0}".format(missionName))
                 continue
 
+            enabled = _isExtendedDemoEnabled(rvId)
+            logger.info("Extended enabled check: rvId={0}, enabled={1}".format(rvId, enabled))
+
             # --- If extended demo enabled for this robot, gate finalize ---
-            if _isExtendedDemoEnabled(rvId):
+            if enabled:
                 if not _handleStarvedPhase(rvId):
                     continue  # block finalize until attachment phase completes
 
