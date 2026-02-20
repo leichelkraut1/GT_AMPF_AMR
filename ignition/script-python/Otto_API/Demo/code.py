@@ -298,6 +298,7 @@ def finalizeStarvedMissions():
 # ---------------------------------------------------------------------------
 
 def run():
+    """Run one demo assignment cycle using round-robin robot/workflow selection."""
     logger = system.util.getLogger("Otto_DemoMode")
 
     try:

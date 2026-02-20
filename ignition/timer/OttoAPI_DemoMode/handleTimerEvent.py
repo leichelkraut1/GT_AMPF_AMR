@@ -1,4 +1,5 @@
 def handleTimerEvent():
+	"""Handle Ignition timer event for this resource."""
 	ottoLogger = system.util.getLogger("Otto_DemoMode")
 	ottoLogger.info("Running Demo.run Cycle")
 	try:

@@ -1,4 +1,5 @@
 def onTagChange(initialChange, newValue, previousValue, event, executionCount):
+	"""Handle Ignition tag-change event for this resource."""
 	from java.util import Date
 	
 	logger = system.util.getLogger("Otto_MissionFilter")

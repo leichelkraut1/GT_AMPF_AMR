@@ -1,4 +1,5 @@
 def doGet(request, session):
+	"""Handle HTTP GET requests for this Web Dev resource."""
 	import json
 	
 	url=system.tag.read("[default]AMR_FM/AMR_FM_URL").value + "api/fleet/v2/system/state/"

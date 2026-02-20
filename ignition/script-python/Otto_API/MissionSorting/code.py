@@ -223,6 +223,7 @@ def cleanup_completed(logger, debug=False):
         enriched.append((fullPath, name, createdDate))
 
     def sort_key(item):
+        """Sort by Created timestamp, falling back to current time for missing values."""
         return item[2] if item[2] else now
 
     enriched_sorted = sorted(enriched, key=sort_key)

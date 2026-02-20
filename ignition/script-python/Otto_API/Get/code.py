@@ -687,7 +687,8 @@ def updateMaps():
 
 def updateWorkflows():
     """
-    Gets Workflows (called Mission Templates in the API documentation) from Otto and creates tags in /Workflows/ for each one.
+    Gets Workflows (called Mission Templates in the API documentation) from Otto
+    and creates tags in /Workflows/ for each one.
     The full mission JSON (including tasks) is stored in jsonString for later reconstruction.
     """
 
@@ -776,7 +777,7 @@ def updateWorkflows():
 
 
 def sanitizeTagName(text):
-    # Convert mission or tag names into valid Ignition tag names
+    """Convert mission/tag names into a safe Ignition tag name."""
     if text is None:
         return "None"
     return (
