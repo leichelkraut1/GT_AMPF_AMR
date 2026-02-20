@@ -10,7 +10,7 @@ def getServerStatus():
 	url = system.tag.read("[Otto_FleetManager]Url_ApiBase").value + "/system/state/"
 	headers = {"Accept": "application/json", "Content-Type": "application/json"}
 	ottoLogger = system.util.getLogger("Otto_API_Logger")
-	
+
 	try:
 		response = system.net.httpGet(url=url, bypassCertValidation=True, headerValues=headers)
 		if response:
@@ -304,7 +304,7 @@ def updateChargeLevels():
     url = baseUrl + "/robots/batteries/?fields=percentage,robot"
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
     ottoLogger = system.util.getLogger("Otto_API_Logger")
-    
+
     try:
         response = system.net.httpGet(url=url, bypassCertValidation=True, headerValues=headers)
         if not response:
@@ -330,7 +330,7 @@ def updateChargeLevels():
                 except Exception as e:
                     ottoLogger.warn("Failed to read .ID for robot tag: " + robotPath + " - " + str(e))
             else:
-            	ottoLogger.warn("Found a non-UDT tag in [Otto_FleetManager]Robots")
+                ottoLogger.warn("Found a non-UDT tag in [Otto_FleetManager]Robots")
 
         # Update .ChargeLevel for each battery entry
         for battery in batteryData.get("results", []):
@@ -352,8 +352,8 @@ def updateChargeLevels():
 
     except Exception as e:
         ottoLogger.error("Otto API - Failed to update charge levels - " + str(e))
-        
-        
+
+
 def updateActivityStates():
     """
     Updates the .ActivityState tag for all vehicles in [Otto_FleetManager]Robots
@@ -445,13 +445,13 @@ def updatePlaces():
     url = system.tag.read("[Otto_FleetManager]Url_ApiBase").value + "/places/"
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
     ottoLogger = system.util.getLogger("Otto_API_Logger")
-    
+
     ottoLogger.info("Otto API - Updating /Places/")
-    
+
     try:
         response = system.net.httpGet(url=url, bypassCertValidation=True, headerValues=headers)
         system.tag.write("[Otto_FleetManager]System/lastResponse", response)
-        
+
         if response:
             try:
                 data = json.loads(response)
@@ -580,7 +580,7 @@ def updateMaps():
     try:
         response = system.net.httpGet(url=url, bypassCertValidation=True, headerValues=headers)
         system.tag.write("[Otto_FleetManager]Maps/updateResponse", response)
-        
+
         if response:
             try:
                 data = json.loads(response)
