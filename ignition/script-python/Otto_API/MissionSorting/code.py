@@ -53,7 +53,7 @@ def _debug_enabled():
     """
     try:
         return bool(system.tag.read(DEBUG_TAG_PATH).value)
-    except:
+    except Exception:
         return False
 
 
@@ -77,7 +77,7 @@ def parse_date(val):
 
     try:
         return system.date.parse(str(val))
-    except:
+    except Exception:
         return None
 
 
@@ -162,7 +162,7 @@ def remove_instance(path, logger=None, debug=False, reason=None):
                 logger.info("Deleted {} ({})".format(path, reason))
             else:
                 logger.info("Deleted {}".format(path))
-    except:
+    except Exception:
         pass
 
 
@@ -177,7 +177,7 @@ def browse_instances(folderPath):
             if str(t.get("tagType")) == "UdtInstance":
                 out.append((str(t.get("fullPath")), t.get("name")))
         return out
-    except:
+    except Exception:
         return []
 
 

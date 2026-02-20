@@ -258,7 +258,7 @@ def updateSystemStates():
                     ts = OffsetDateTime.parse(
                         created
                     ).toInstant().toEpochMilli()
-                except:
+                except Exception:
                     ts = 0
 
                 return (priority, -ts)
