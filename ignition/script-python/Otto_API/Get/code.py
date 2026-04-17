@@ -2,16 +2,15 @@ import json
 import calendar
 import re
 import time
+from Otto_API.HttpHelpers import httpGet
+from Otto_API.HttpHelpers import jsonHeaders
 from Otto_API.ResultHelpers import buildOperationResult
 from Otto_API.TagHelpers import readOptionalTagValue
 from Otto_API.TagHelpers import readRequiredTagValue
 
 
 def _jsonHeaders():
-    return {
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-    }
+    return jsonHeaders()
 
 
 def _buildSyncResult(ok, level, message, records=None, writes=None, data=None):
@@ -497,11 +496,7 @@ def getServerStatus():
     ottoLogger = system.util.getLogger("Otto_API_Logger")
 
     try:
-        response = system.net.httpGet(
-            url=url,
-            bypassCertValidation=True,
-            headerValues=_jsonHeaders()
-        )
+        response = httpGet(url=url, headerValues=_jsonHeaders())
         if response:
             status = parseServerStatus(response)
             system.tag.writeAsync("[Otto_FleetManager]System/ServerStatus", status)
@@ -536,11 +531,7 @@ def getMissions(logger, debug, mission_status=None, limit=None):
                 )
             )
 
-        response = system.net.httpGet(
-            url,
-            bypassCertValidation=True,
-            headerValues=_jsonHeaders()
-        )
+        response = httpGet(url=url, headerValues=_jsonHeaders())
 
         results = parseMissionResults(response)
 
@@ -576,11 +567,7 @@ def updateRobots():
     ottoLogger.info("Otto API - Updating /Robots/ Tags")
 
     try:
-        response = system.net.httpGet(
-            url=url,
-            bypassCertValidation=True,
-            headerValues=_jsonHeaders()
-        )
+        response = httpGet(url=url, headerValues=_jsonHeaders())
 
         if response:
             ottoLogger.info("Otto API - Updating /Robots/ - Response Received")
@@ -662,11 +649,7 @@ def updateSystemStates():
     robotsBasePath = "[Otto_FleetManager]Robots"
 
     try:
-        response = system.net.httpGet(
-            url=url,
-            bypassCertValidation=True,
-            headerValues=_jsonHeaders()
-        )
+        response = httpGet(url=url, headerValues=_jsonHeaders())
 
         if not response:
             ottoLogger.error(
@@ -766,11 +749,7 @@ def updateChargeLevels():
     ottoLogger = system.util.getLogger("Otto_API_Logger")
 
     try:
-        response = system.net.httpGet(
-            url=url,
-            bypassCertValidation=True,
-            headerValues=_jsonHeaders()
-        )
+        response = httpGet(url=url, headerValues=_jsonHeaders())
         if not response:
             ottoLogger.error("Otto API - HTTP GET failed for /robots/batteries/")
             return _buildSyncResult(False, "error", "HTTP GET failed for /robots/batteries/")
@@ -847,11 +826,7 @@ def updateActivityStates():
     ottoLogger = system.util.getLogger("Otto_API_Logger")
 
     try:
-        response = system.net.httpGet(
-            url=url,
-            bypassCertValidation=True,
-            headerValues=_jsonHeaders()
-        )
+        response = httpGet(url=url, headerValues=_jsonHeaders())
         if not response:
             ottoLogger.error("Otto API - HTTP GET failed for /robots/activities/")
             return _buildSyncResult(False, "error", "HTTP GET failed for /robots/activities/")
@@ -937,11 +912,7 @@ def updatePlaces():
     ottoLogger.info("Otto API - Updating /Places/")
 
     try:
-        response = system.net.httpGet(
-            url=url,
-            bypassCertValidation=True,
-            headerValues=_jsonHeaders()
-        )
+        response = httpGet(url=url, headerValues=_jsonHeaders())
         system.tag.write("[Otto_FleetManager]System/lastResponse", response)
 
         if response:
@@ -1046,11 +1017,7 @@ def updateMaps():
     ottoLogger.info("Otto API - Updating /Maps/")
 
     try:
-        response = system.net.httpGet(
-            url=url,
-            bypassCertValidation=True,
-            headerValues=_jsonHeaders()
-        )
+        response = httpGet(url=url, headerValues=_jsonHeaders())
         system.tag.write("[Otto_FleetManager]Maps/updateResponse", response)
 
         if response:
@@ -1148,11 +1115,7 @@ def updateWorkflows():
 
     ottoLogger.info("Otto API - Updating /Workflows/")
     try:
-        response = system.net.httpGet(
-            url=url,
-            bypassCertValidation=True,
-            headerValues=_jsonHeaders()
-        )
+        response = httpGet(url=url, headerValues=_jsonHeaders())
         system.tag.writeAsync(responseTag, response)
         if response:
             try:

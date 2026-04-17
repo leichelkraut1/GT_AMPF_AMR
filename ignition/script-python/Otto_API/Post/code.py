@@ -1,6 +1,7 @@
 import json
 import time
 import uuid
+from Otto_API.HttpHelpers import httpPost
 from Otto_API.ResultHelpers import buildOperationResult
 from Otto_API.Get import sanitizeTagName
 from Otto_API.TagHelpers import readOptionalTagValue
@@ -167,19 +168,16 @@ def _buildResult(ok, level, message, missionId=None, responseText=None, payload=
 	)
 
 
-def createMissionFromInputs(templateDict, robotId, missionName, fleetManagerURL, httpPost):
+def createMissionFromInputs(templateDict, robotId, missionName, fleetManagerURL, postFunc):
 	"""
 	Creates a mission from explicit inputs and returns a structured result.
 	"""
 	try:
 		missionPayload = buildCreateMissionPayload(templateDict, robotId, missionName)
 		jsonBody = system.util.jsonEncode(missionPayload)
-		response = httpPost(
+		response = postFunc(
 			url=fleetManagerURL,
 			postData=jsonBody,
-			contentType="application/json",
-			headerValues={"Accept": "application/json"},
-			bypassCertValidation=True
 		)
 
 		logLevel, message = interpretCreateMissionResponse(response)
@@ -204,7 +202,7 @@ def createMissionFromInputs(templateDict, robotId, missionName, fleetManagerURL,
 		)
 
 
-def finalizeMissionFromInputs(robotUuid, missionRecords, fleetManagerURL, httpPost):
+def finalizeMissionFromInputs(robotUuid, missionRecords, fleetManagerURL, postFunc):
 	"""
 	Finalizes a mission from explicit inputs and returns a structured result.
 	"""
@@ -216,12 +214,9 @@ def finalizeMissionFromInputs(robotUuid, missionRecords, fleetManagerURL, httpPo
 	try:
 		missionPayload = buildFinalizeMissionPayload(targetMissionUUID)
 		jsonBody = system.util.jsonEncode(missionPayload)
-		response = httpPost(
+		response = postFunc(
 			url=fleetManagerURL,
 			postData=jsonBody,
-			contentType="application/json",
-			headerValues={"Accept": "application/json"},
-			bypassCertValidation=True
 		)
 
 		logLevel, message = interpretFinalizeMissionResponse(response, targetMissionUUID)
@@ -289,7 +284,7 @@ def createMission(templateTagPath, robotTagPath, missionName):
 			robot_id,
 			missionName,
 			fleetManagerURL,
-			system.net.httpPost
+			httpPost
 		)
 
 		if result["response_text"] is not None:
@@ -391,7 +386,7 @@ def finalizeMission(robotName):
 			robot_uuid,
 			missionRecords,
 			fleetManagerURL,
-			system.net.httpPost
+			httpPost
 		)
 
 		if result["level"] == "info":
