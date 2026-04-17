@@ -252,6 +252,26 @@ def buildRobotMetricWrites(robotIdToPath, metricRecords, robotKey, valueKey, tar
     return writes, unmatchedRobotIds
 
 
+def normalizeChargePercentage(rawValue):
+    """
+    Normalize OTTO battery values to 0-100 percent units.
+
+    Some OTTO responses use fractional values like 0.76 while others use
+    whole percentages like 76 or 88. This helper standardizes both forms.
+    """
+    if rawValue is None:
+        return None
+
+    try:
+        numericValue = float(rawValue)
+    except Exception:
+        return rawValue
+
+    if 0 <= numericValue <= 1:
+        return numericValue * 100
+    return numericValue
+
+
 def groupRecordsByRobot(records, robotKey="robot"):
     """
     Group records by robot identifier.
@@ -711,6 +731,10 @@ def updateChargeLevels():
             "percentage",
             "ChargeLevel"
         )
+        writes = [
+            (path, normalizeChargePercentage(value))
+            for path, value in writes
+        ]
 
         for robotId in unmatchedRobotIds:
             ottoLogger.warn("No matching robot tag found for robot ID " + robotId)
