@@ -86,7 +86,7 @@ def interpretCreateMissionResponse(responseText):
 
 def findActiveMissionIdForRobot(robotUuid, missionRecords):
 	"""
-	Finds the active mission ID/UUID assigned to the given robot UUID.
+	Finds the active mission ID assigned to the given robot UUID.
 	Returns (missionId, warningMessage).
 	"""
 	for missionRecord in missionRecords:
@@ -98,13 +98,13 @@ def findActiveMissionIdForRobot(robotUuid, missionRecords):
 		if assignedRobotUuid != robotUuid:
 			continue
 
-		missionId = missionRecord.get("uuid") or missionRecord.get("id")
+		missionId = missionRecord.get("id") or missionRecord.get("uuid")
 		if missionId:
 			return (str(missionId), None)
 
 		return (
 			None,
-			"Matched mission for robot UUID [{}], but no uuid/id found".format(robotUuid)
+			"Matched mission for robot UUID [{}], but no id/uuid found".format(robotUuid)
 		)
 
 	return (None, None)
@@ -357,7 +357,7 @@ def finalizeMission(robotName):
 
 			missionRecords.append({
 				"assigned_robot": assignedRobotValue,
-				"uuid": readRequiredTagValue(uuidPath, None),
+				"uuid": readOptionalTagValue(uuidPath, None),
 				"id": readOptionalTagValue(idPath, None),
 			})
 
