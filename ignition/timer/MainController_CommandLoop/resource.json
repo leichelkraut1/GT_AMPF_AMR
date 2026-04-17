@@ -1,0 +1,20 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "handleTimerEvent.py"
+  ],
+  "attributes": {
+    "sharedThread": true,
+    "delay": 1000,
+    "lastModificationSignature": "0000000000000000000000000000000000000000000000000000000000000000",
+    "fixedDelay": true,
+    "lastModification": {
+      "actor": "Codex",
+      "timestamp": "2026-04-17T21:00:00Z"
+    },
+    "enabled": false
+  }
+}
