@@ -3,6 +3,8 @@ import time
 import uuid
 from Otto_API.ResultHelpers import buildOperationResult
 from Otto_API.Get import sanitizeTagName
+from Otto_API.TagHelpers import readOptionalTagValue
+from Otto_API.TagHelpers import readRequiredTagValue
 
 
 def parseTemplateJson(templateJsonStr):
@@ -252,17 +254,24 @@ def createMission(templateTagPath, robotTagPath, missionName):
 	"""
 
 	# --- Config ---
-	fleetManagerURL = system.tag.read("[Otto_FleetManager]Url_ApiBase").value + "/operations/"
+	fleetManagerURL = readRequiredTagValue(
+		"[Otto_FleetManager]Url_ApiBase",
+		"API base URL"
+	) + "/operations/"
 	responseTag = "[Otto_FleetManager]Missions/Triggers/lastResponse"
 	ottoLogger = system.util.getLogger("OTTO_API_Logger")
-	
+
 	ottoLogger.info("Posting mission from template [{}] for robot [{}]".format(templateTagPath, robotTagPath))
 
 	try:
-		# --- Read required tags ---
-		tagResults = system.tag.readBlocking([robotTagPath, templateTagPath])
-		robot_id = tagResults[0].value
-		template_json_str = tagResults[1].value
+		try:
+			robot_id = readRequiredTagValue(robotTagPath, "Robot ID")
+			template_json_str = readRequiredTagValue(templateTagPath, "Template")
+		except ValueError as e:
+			msg = str(e)
+			ottoLogger.error(msg)
+			system.tag.writeAsync(responseTag, msg)
+			return _buildResult(ok=False, level="error", message=msg)
 
 		try:
 			template = parseTemplateJson(template_json_str)
@@ -312,7 +321,10 @@ def finalizeMission(robotName):
 	"""
 
 	# --- Config ---
-	fleetManagerURL = system.tag.read("[Otto_FleetManager]Url_ApiBase").value + "/operations/"
+	fleetManagerURL = readRequiredTagValue(
+		"[Otto_FleetManager]Url_ApiBase",
+		"API base URL"
+	) + "/operations/"
 	responseTag = "[Otto_FleetManager]Missions/Triggers/lastResponse"
 	ottoLogger = system.util.getLogger("OTTO_API_Logger")
 
@@ -321,15 +333,15 @@ def finalizeMission(robotName):
 	try:
 		# --- Resolve robot UUID ---
 		robotIdPath = "[Otto_FleetManager]Robots/{}/id".format(robotName)
-		robotIdResult = system.tag.readBlocking([robotIdPath])[0]
-
-		if not robotIdResult.quality.isGood() or not robotIdResult.value:
+		try:
+			robotIdValue = readRequiredTagValue(robotIdPath, "Robot ID")
+		except ValueError:
 			msg = "Robot [{}] has no valid id tag".format(robotName)
 			ottoLogger.warn(msg)
 			system.tag.writeAsync(responseTag, msg)
 			return _buildResult(ok=False, level="warn", message=msg)
 
-		robot_uuid = str(robotIdResult.value).strip().lower()
+		robot_uuid = str(robotIdValue).strip().lower()
 
 		# --- Locate active mission assigned to this robot ---
 		activeMissionsPath = "[Otto_FleetManager]Missions/Active"
@@ -340,23 +352,18 @@ def finalizeMission(robotName):
 			missionBasePath = str(mission.get("fullPath"))
 
 			assignedRobotPath = missionBasePath + "/assigned_robot"
-			assignedRobotResult = system.tag.readBlocking([assignedRobotPath])[0]
-
-			if not assignedRobotResult.quality.isGood():
-				continue
-
-			if not assignedRobotResult.value:
+			assignedRobotValue = readOptionalTagValue(assignedRobotPath, None)
+			if not assignedRobotValue:
 				continue
 
 			# --- Resolve mission identifier (prefer uuid, fallback to id) ---
 			uuidPath = missionBasePath + "/uuid"
 			idPath = missionBasePath + "/id"
 
-			idResults = system.tag.readBlocking([uuidPath, idPath])
 			missionRecords.append({
-				"assigned_robot": assignedRobotResult.value,
-				"uuid": idResults[0].value if idResults[0].quality.isGood() else None,
-				"id": idResults[1].value if idResults[1].quality.isGood() else None,
+				"assigned_robot": assignedRobotValue,
+				"uuid": readRequiredTagValue(uuidPath, None),
+				"id": readOptionalTagValue(idPath, None),
 			})
 
 		targetMissionUUID, warningMessage = findActiveMissionIdForRobot(

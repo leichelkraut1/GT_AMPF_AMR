@@ -1,4 +1,5 @@
 from Otto_API.ResultHelpers import buildOperationResult
+from Otto_API.TagHelpers import readRequiredTagValue
 
 
 DEFAULT_ALLOWED_ACTIVITY_STATES = set([
@@ -197,9 +198,13 @@ def updateAvailableForWork():
     minChargePath = "[Otto_FleetManager]Missions/minChargeLevelForMissioning"
 
     try:
-        minCharge = system.tag.read(minChargePath).value
-        if minCharge is None:
-            message = "minChargeLevelForMissioning is None"
+        try:
+            minCharge = readRequiredTagValue(
+                minChargePath,
+                "Minimum charge threshold"
+            )
+        except ValueError as e:
+            message = str(e)
             ottoLogger.warn(message)
             return _buildUpdateResult(False, "warn", message)
 

@@ -1,6 +1,8 @@
 from Otto_API.Get import getMissions
 from Otto_API.Get import sanitizeTagName
 from Otto_API.ResultHelpers import buildOperationResult
+from Otto_API.TagHelpers import readOptionalTagValue
+from Otto_API.TagHelpers import readRequiredTagValue
 
 # ---------------------------------------------------------------------------
 # CONSTANTS
@@ -50,7 +52,7 @@ def _debug_enabled():
     Reads debug enable tag
     """
     try:
-        return bool(system.tag.read(DEBUG_TAG_PATH).value)
+        return bool(readOptionalTagValue(DEBUG_TAG_PATH, False))
     except Exception:
         return False
 
@@ -253,7 +255,16 @@ def cleanup_completed(logger, debug=False):
     enriched = []
 
     for fullPath, name in instances:
-        createdVal = system.tag.read(fullPath + "/Created").value
+        try:
+            createdVal = readRequiredTagValue(fullPath + "/Created")
+        except Exception as exc:
+            logger.warn(
+                "Skipping completed mission {} during age cleanup - {}".format(
+                    fullPath,
+                    str(exc)
+                )
+            )
+            continue
         createdDate = parse_date(createdVal)
         enriched.append((fullPath, name, createdDate))
 
@@ -277,7 +288,16 @@ def cleanup_completed(logger, debug=False):
     enriched = []
 
     for fullPath, name in instances:
-        createdVal = system.tag.read(fullPath + "/Created").value
+        try:
+            createdVal = readRequiredTagValue(fullPath + "/Created")
+        except Exception as exc:
+            logger.warn(
+                "Skipping completed mission {} during max-count cleanup - {}".format(
+                    fullPath,
+                    str(exc)
+                )
+            )
+            continue
         createdDate = parse_date(createdVal)
         enriched.append((fullPath, name, createdDate))
 
