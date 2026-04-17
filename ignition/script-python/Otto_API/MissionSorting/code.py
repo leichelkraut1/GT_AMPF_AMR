@@ -1,6 +1,3 @@
-import json
-from java.util import Date
-
 from Otto_API.Get import getMissions
 from Otto_API.Get import sanitizeTagName
 
@@ -72,13 +69,24 @@ def parse_date(val):
     if val is None:
         return None
 
-    if isinstance(val, Date):
+    if hasattr(val, "before"):
         return val
 
     try:
         return system.date.parse(str(val))
     except Exception:
         return None
+
+
+def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None, removed=None):
+    return {
+        "ok": ok,
+        "level": level,
+        "message": message,
+        "active_wanted": sorted(list(activeWanted or [])),
+        "completed_wanted": sorted(list(completedWanted or [])),
+        "removed": list(removed or []),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -94,30 +102,24 @@ def make_instance_name(mission):
     return "{}_{}".format(name, short)
 
 
-def ensure_instance(parentFolder, instanceName, logger=None, debug=False):
+def classify_mission_bucket(missionStatus, terminalStatuses=None):
     """
-    Ensures api_Mission UDT instance exists and returns its path
+    Classify a mission into the Active or Completed bucket.
     """
-    instPath = parentFolder + "/" + instanceName
+    if terminalStatuses is None:
+        terminalStatuses = TERMINAL_STATUSES
 
-    if not system.tag.exists(instPath):
-        tagDef = {
-            "name": instanceName,
-            "typeID": "api_Mission",
-            "tagType": "UdtInstance"
-        }
-        system.tag.configure(parentFolder, [tagDef], "a")
-        if logger and debug:
-            logger.info("Created mission instance: {}".format(instPath))
-
-    return instPath
+    status = str(missionStatus or "").upper()
+    if status in terminalStatuses:
+        return "completed"
+    return "active"
 
 
-def write_mission_data(instancePath, mission):
+def mission_to_tag_values(mission):
     """
-    Writes mission fields into api_Mission UDT
+    Convert a mission record into api_Mission field values.
     """
-    values = {
+    return {
         "ID": mission.get("id"),
         "Assigned_Robot": mission.get("assigned_robot"),
         "Client_Reference_ID": mission.get("client_reference_id"),
@@ -144,6 +146,52 @@ def write_mission_data(instancePath, mission):
         "Signature": mission.get("signature"),
         "Structure": mission.get("structure")
     }
+
+
+def should_remove_completed_by_age(createdDate, cutoff):
+    """
+    Return True when a completed mission is older than the retention cutoff.
+    """
+    return bool(createdDate and cutoff and createdDate.before(cutoff))
+
+
+def compute_completed_overflow(enrichedRows, maxCompleted, nowDate):
+    """
+    Return the oldest completed rows that exceed the retention count.
+    """
+    def sort_key(item):
+        return item[2] if item[2] else nowDate
+
+    enriched_sorted = sorted(list(enrichedRows or []), key=sort_key)
+    if len(enriched_sorted) <= maxCompleted:
+        return []
+    return enriched_sorted[:-maxCompleted]
+
+
+def ensure_instance(parentFolder, instanceName, logger=None, debug=False):
+    """
+    Ensures api_Mission UDT instance exists and returns its path
+    """
+    instPath = parentFolder + "/" + instanceName
+
+    if not system.tag.exists(instPath):
+        tagDef = {
+            "name": instanceName,
+            "typeID": "api_Mission",
+            "tagType": "UdtInstance"
+        }
+        system.tag.configure(parentFolder, [tagDef], "a")
+        if logger and debug:
+            logger.info("Created mission instance: {}".format(instPath))
+
+    return instPath
+
+
+def write_mission_data(instancePath, mission):
+    """
+    Writes mission fields into api_Mission UDT
+    """
+    values = mission_to_tag_values(mission)
 
     paths = [instancePath + "/" + k for k in values]
     vals = [values[k] for k in values]
@@ -201,8 +249,9 @@ def cleanup_completed(logger, debug=False):
         enriched.append((fullPath, name, createdDate))
 
     removed_age = 0
+    removed = []
     for fullPath, name, createdDate in enriched:
-        if createdDate and createdDate.before(cutoff):
+        if should_remove_completed_by_age(createdDate, cutoff):
             remove_instance(
                 fullPath,
                 logger,
@@ -210,6 +259,7 @@ def cleanup_completed(logger, debug=False):
                 "older than {} days".format(COMPLETED_RETENTION_DAYS)
             )
             removed_age += 1
+            removed.append((fullPath, "age"))
 
     if debug:
         logger.info("Completed cleanup: removed {} by age".format(removed_age))
@@ -222,29 +272,25 @@ def cleanup_completed(logger, debug=False):
         createdDate = parse_date(createdVal)
         enriched.append((fullPath, name, createdDate))
 
-    def sort_key(item):
-        """Sort by Created timestamp, falling back to current time for missing values."""
-        return item[2] if item[2] else now
+    excess = compute_completed_overflow(enriched, MAX_COMPLETED, now)
+    for fullPath, name, ts in excess:
+        remove_instance(
+            fullPath,
+            logger,
+            debug,
+            "pruned to max {}".format(MAX_COMPLETED)
+        )
+        removed.append((fullPath, "max"))
 
-    enriched_sorted = sorted(enriched, key=sort_key)
-
-    if len(enriched_sorted) > MAX_COMPLETED:
-        excess = enriched_sorted[:-MAX_COMPLETED]
-        for fullPath, name, ts in excess:
-            remove_instance(
-                fullPath,
-                logger,
-                debug,
-                "pruned to max {}".format(MAX_COMPLETED)
+    if debug and excess:
+        logger.info(
+            "Completed cleanup: pruned {} to max {}".format(
+                len(excess),
+                MAX_COMPLETED
             )
+        )
 
-        if debug:
-            logger.info(
-                "Completed cleanup: pruned {} to max {}".format(
-                    len(excess),
-                    MAX_COMPLETED
-                )
-            )
+    return removed
 
 
 # ---------------------------------------------------------------------------
@@ -259,6 +305,8 @@ def run():
     debug = _debug_enabled()
 
     _dlog(logger, debug, "MissionSorting.run START")
+
+    result = None
 
     try:
         missions = []
@@ -292,6 +340,7 @@ def run():
 
         activeWanted = set()
         completedWanted = set()
+        removed = []
 
         for mission in missions:
             status = mission.get("mission_status", "")
@@ -300,7 +349,9 @@ def run():
             activePath = ACTIVE_PATH + "/" + instanceName
             completedPath = COMPLETED_PATH + "/" + instanceName
 
-            if status in TERMINAL_STATUSES:
+            bucket = classify_mission_bucket(status)
+
+            if bucket == "completed":
                 if system.tag.exists(activePath):
                     remove_instance(
                         activePath,
@@ -308,6 +359,7 @@ def run():
                         debug,
                         "moved to Completed"
                     )
+                    removed.append((activePath, "moved_to_completed"))
 
                 targetFolder = COMPLETED_PATH
                 completedWanted.add(instanceName)
@@ -320,6 +372,7 @@ def run():
                         debug,
                         "moved to Active"
                     )
+                    removed.append((completedPath, "moved_to_active"))
 
                 targetFolder = ACTIVE_PATH
                 activeWanted.add(instanceName)
@@ -342,6 +395,7 @@ def run():
                     debug,
                     "stale (not returned)"
                 )
+                removed.append((fullPath, "stale_active"))
 
         # --- Cleanup COMPLETED ---
         for fullPath, name in browse_instances(COMPLETED_PATH):
@@ -352,10 +406,25 @@ def run():
                     debug,
                     "stale (not returned)"
                 )
+                removed.append((fullPath, "stale_completed"))
 
-        cleanup_completed(logger, debug)
+        removed.extend(cleanup_completed(logger, debug))
+        result = _buildSyncResult(
+            True,
+            "info",
+            "Mission sorting completed for {} mission(s)".format(len(missions)),
+            activeWanted=activeWanted,
+            completedWanted=completedWanted,
+            removed=removed
+        )
 
     except Exception as e:
         logger.error("MissionSorting.run FAILED: {}".format(e))
+        result = _buildSyncResult(
+            False,
+            "error",
+            "Mission sorting failed: {}".format(e)
+        )
 
     _dlog(logger, debug, "MissionSorting.run END")
+    return result
