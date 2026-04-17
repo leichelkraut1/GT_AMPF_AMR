@@ -1,5 +1,6 @@
 from Otto_API.ResultHelpers import buildOperationResult
 from Otto_API.TagHelpers import readRequiredTagValue
+from Otto_API.TagHelpers import writeTagValue
 
 
 DEFAULT_ALLOWED_ACTIVITY_STATES = set([
@@ -238,7 +239,7 @@ def updateAvailableForWork():
                     minCharge
                 )
                 robotResults.append(readiness)
-                system.tag.writeBlocking([availablePath], [readiness["available"]])
+                writeTagValue(availablePath, readiness["available"])
 
             except Exception as e:
                 ottoLogger.warn(

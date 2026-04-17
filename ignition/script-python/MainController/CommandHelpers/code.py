@@ -3,6 +3,7 @@ import uuid
 
 from Otto_API.ResultHelpers import buildOperationResult
 from Otto_API.TagHelpers import readOptionalTagValue
+from Otto_API.TagHelpers import writeTagValues
 
 
 def memoryTagDef(name, dataType, value=None):
@@ -157,7 +158,7 @@ def readCommandState(config):
 def writeCommandState(config, state):
     state = normalizeCommandState(state)
     paths = commandStatePaths(config["command_path"])
-    system.tag.writeBlocking(
+    writeTagValues(
         [
             paths["latched"],
             paths["state"],

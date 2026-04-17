@@ -58,3 +58,31 @@ def readOptionalTagValue(tagPath, defaultValue=None, allowEmptyString=False):
         return defaultValue
 
     return value
+
+
+def writeTagValue(tagPath, value):
+    """
+    Write a single tag value synchronously.
+    """
+    return system.tag.writeBlocking([tagPath], [value])
+
+
+def writeTagValues(tagPaths, values):
+    """
+    Write multiple tag values synchronously.
+    """
+    return system.tag.writeBlocking(list(tagPaths), list(values))
+
+
+def writeTagValueAsync(tagPath, value):
+    """
+    Write a single tag value asynchronously.
+    """
+    return system.tag.writeAsync(tagPath, value)
+
+
+def writeTagValuesAsync(tagPaths, values):
+    """
+    Write multiple tag values asynchronously.
+    """
+    return system.tag.writeAsync(list(tagPaths), list(values))

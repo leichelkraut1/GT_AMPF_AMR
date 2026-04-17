@@ -3,6 +3,7 @@ from Otto_API.Get import sanitizeTagName
 from Otto_API.ResultHelpers import buildOperationResult
 from Otto_API.TagHelpers import readOptionalTagValue
 from Otto_API.TagHelpers import readRequiredTagValue
+from Otto_API.TagHelpers import writeTagValues
 
 # ---------------------------------------------------------------------------
 # CONSTANTS
@@ -207,7 +208,7 @@ def write_mission_data(instancePath, mission):
     paths = [instancePath + "/" + k for k in values]
     vals = [values[k] for k in values]
 
-    system.tag.writeBlocking(paths, vals)
+    writeTagValues(paths, vals)
 
 
 def remove_instance(path, logger=None, debug=False, reason=None):
