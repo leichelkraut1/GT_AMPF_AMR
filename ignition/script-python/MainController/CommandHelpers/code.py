@@ -188,16 +188,38 @@ def timestampString(nowEpochMs):
 
 def readCommandConfigValues(config):
     paths = commandStatePaths(config["command_path"])
+    templateTagPath = readOptionalTagValue(
+        paths["template_tag_path"],
+        config.get("template_tag_path", "")
+    )
+    robotIdTagPath = readOptionalTagValue(
+        paths["robot_id_tag_path"],
+        config.get("robot_id_tag_path", "")
+    )
+    retryDelayMs = toInt(
+        readOptionalTagValue(
+            paths["retry_delay_ms"],
+            config.get("retry_delay_ms", 5000)
+        ),
+        config.get("retry_delay_ms", 5000)
+    )
+    maxAttempts = toInt(
+        readOptionalTagValue(
+            paths["max_attempts"],
+            config.get("max_attempts", 3)
+        ),
+        config.get("max_attempts", 3)
+    )
     return {
         "request": toBool(readOptionalTagValue(paths["request"], config.get("request_default", False))),
         "enabled": toBool(readOptionalTagValue(paths["enabled"], True)),
         "command_type": str(readOptionalTagValue(paths["command_type"], config.get("command_type", "")) or ""),
-        "template_tag_path": str(readOptionalTagValue(paths["template_tag_path"], config.get("template_tag_path", "")) or ""),
-        "robot_id_tag_path": str(readOptionalTagValue(paths["robot_id_tag_path"], config.get("robot_id_tag_path", "")) or ""),
+        "template_tag_path": str(templateTagPath or ""),
+        "robot_id_tag_path": str(robotIdTagPath or ""),
         "robot_name": str(readOptionalTagValue(paths["robot_name"], config.get("robot_name", "")) or ""),
         "mission_name": str(readOptionalTagValue(paths["mission_name"], config.get("mission_name", "")) or ""),
-        "retry_delay_ms": toInt(readOptionalTagValue(paths["retry_delay_ms"], config.get("retry_delay_ms", 5000)), config.get("retry_delay_ms", 5000)),
-        "max_attempts": toInt(readOptionalTagValue(paths["max_attempts"], config.get("max_attempts", 3)), config.get("max_attempts", 3)),
+        "retry_delay_ms": retryDelayMs,
+        "max_attempts": maxAttempts,
     }
 
 
