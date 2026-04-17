@@ -1,3 +1,6 @@
+from Otto_API.ResultHelpers import buildOperationResult
+
+
 DEFAULT_ALLOWED_ACTIVITY_STATES = set([
     "PARKING",
     "IDLE",
@@ -163,17 +166,24 @@ def isRobotAvailable(
 
 def _buildUpdateResult(ok, level, message, minCharge=None, robotResults=None):
     robotResults = list(robotResults or [])
-    return {
-        "ok": ok,
-        "level": level,
-        "message": message,
-        "min_charge": minCharge,
-        "robots_evaluated": len(robotResults),
-        "robots_available": len([
-            result for result in robotResults if result.get("available")
-        ]),
-        "robot_results": robotResults,
-    }
+    robotsAvailable = len([
+        result for result in robotResults if result.get("available")
+    ])
+    return buildOperationResult(
+        ok,
+        level,
+        message,
+        data={
+            "min_charge": minCharge,
+            "robots_evaluated": len(robotResults),
+            "robots_available": robotsAvailable,
+            "robot_results": robotResults,
+        },
+        min_charge=minCharge,
+        robots_evaluated=len(robotResults),
+        robots_available=robotsAvailable,
+        robot_results=robotResults,
+    )
 
 
 def updateAvailableForWork():

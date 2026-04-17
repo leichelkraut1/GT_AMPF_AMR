@@ -2,6 +2,7 @@ import json
 import calendar
 import re
 import time
+from Otto_API.ResultHelpers import buildOperationResult
 
 
 def _jsonHeaders():
@@ -12,14 +13,20 @@ def _jsonHeaders():
 
 
 def _buildSyncResult(ok, level, message, records=None, writes=None, data=None):
-    return {
-        "ok": ok,
-        "level": level,
-        "message": message,
-        "records": list(records or []),
-        "writes": list(writes or []),
-        "data": data,
-    }
+    records = list(records or [])
+    writes = list(writes or [])
+    return buildOperationResult(
+        ok,
+        level,
+        message,
+        data={
+            "records": records,
+            "writes": writes,
+            "value": data,
+        },
+        records=records,
+        writes=writes,
+    )
 
 
 def parseServerStatus(responseText):

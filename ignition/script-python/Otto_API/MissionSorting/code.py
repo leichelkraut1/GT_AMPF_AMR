@@ -1,5 +1,6 @@
 from Otto_API.Get import getMissions
 from Otto_API.Get import sanitizeTagName
+from Otto_API.ResultHelpers import buildOperationResult
 
 # ---------------------------------------------------------------------------
 # CONSTANTS
@@ -79,14 +80,22 @@ def parse_date(val):
 
 
 def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None, removed=None):
-    return {
-        "ok": ok,
-        "level": level,
-        "message": message,
-        "active_wanted": sorted(list(activeWanted or [])),
-        "completed_wanted": sorted(list(completedWanted or [])),
-        "removed": list(removed or []),
-    }
+    activeWanted = sorted(list(activeWanted or []))
+    completedWanted = sorted(list(completedWanted or []))
+    removed = list(removed or [])
+    return buildOperationResult(
+        ok,
+        level,
+        message,
+        data={
+            "active_wanted": activeWanted,
+            "completed_wanted": completedWanted,
+            "removed": removed,
+        },
+        active_wanted=activeWanted,
+        completed_wanted=completedWanted,
+        removed=removed,
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import json
 import time
 import uuid
+from Otto_API.ResultHelpers import buildOperationResult
 from Otto_API.Get import sanitizeTagName
 
 
@@ -149,14 +150,19 @@ def _buildResult(ok, level, message, missionId=None, responseText=None, payload=
 	"""
 	Builds a structured result object for wrapper and helper callers.
 	"""
-	return {
-		"ok": ok,
-		"level": level,
-		"message": message,
-		"mission_id": missionId,
-		"response_text": responseText,
-		"payload": payload,
-	}
+	return buildOperationResult(
+		ok,
+		level,
+		message,
+		data={
+			"mission_id": missionId,
+			"response_text": responseText,
+			"payload": payload,
+		},
+		mission_id=missionId,
+		response_text=responseText,
+		payload=payload,
+	)
 
 
 def createMissionFromInputs(templateDict, robotId, missionName, fleetManagerURL, httpPost):
