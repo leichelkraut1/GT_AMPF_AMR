@@ -103,10 +103,13 @@ def ensureMissionTriggerTags(workflowIds=None, robotIds=None):
         createdPaths.append(cancelPath)
 
     cancelAllPath = buildMissionTriggerPath(cancelBase, "cancelAllActiveMissions")
+    cancelAllFailedPath = buildMissionTriggerPath(cancelBase, "cancelAllFailedMissions")
     updateTriggersPath = buildMissionTriggerPath(systemUpdatesBase, "updateTriggers")
     _ensureBooleanTag(cancelAllPath, False)
+    _ensureBooleanTag(cancelAllFailedPath, False)
     _ensureBooleanTag(updateTriggersPath, False)
     createdPaths.append(cancelAllPath)
+    createdPaths.append(cancelAllFailedPath)
     createdPaths.append(updateTriggersPath)
 
     return createdPaths

@@ -37,6 +37,20 @@ def _readActiveMissionRecords():
 	"""
 	Read active mission assignments in one browse + one bulk read pass.
 	"""
+	return _readMissionRecords("[Otto_FleetManager]Missions/Active")
+
+
+def _readFailedMissionRecords():
+	"""
+	Read failed mission records in one browse + one bulk read pass.
+	"""
+	return _readMissionRecords("[Otto_FleetManager]Missions/Failed")
+
+
+def _readMissionRecords(rootPath):
+	"""
+	Read mission robot references and ids in one recursive browse + one bulk read pass.
+	"""
 	def _browseMissionInstancesRecursive(folderPath):
 		missionBasePaths = []
 		pending = [folderPath]
@@ -65,10 +79,9 @@ def _readActiveMissionRecords():
 			return value
 		return None
 
-	activeMissionsPath = "[Otto_FleetManager]Missions/Active"
 	missionRows = []
 
-	for missionBasePath in _browseMissionInstancesRecursive(activeMissionsPath):
+	for missionBasePath in _browseMissionInstancesRecursive(rootPath):
 		missionRows.append({
 			"assigned_robot_path": missionBasePath + "/assigned_robot",
 			"assigned_robot_alt_path": missionBasePath + "/Assigned_Robot",
@@ -618,6 +631,50 @@ def cancelAllActiveMissions():
 
 	except Exception as e:
 		msg = "Error canceling all active missions: {}".format(str(e))
+		ottoLogger.error(msg)
+		writeTagValueAsync(responseTag, msg)
+		return _buildResult(ok=False, level="error", message=msg)
+
+
+def cancelAllFailedMissions():
+	"""
+	Cancels all known failed missions currently present under [Otto_FleetManager]Missions/Failed.
+	"""
+	fleetManagerURL = readRequiredTagValue(
+		"[Otto_FleetManager]Url_ApiBase",
+		"API base URL"
+	) + "/operations/"
+	responseTag = "[Otto_FleetManager]Missions/Triggers/lastResponse"
+	ottoLogger = system.util.getLogger("OTTO_API_Logger")
+
+	ottoLogger.info("Canceling all failed missions")
+
+	try:
+		missionRecords = _readFailedMissionRecords()
+		result = cancelAllActiveMissionsFromInputs(
+			missionRecords,
+			fleetManagerURL,
+			httpPost
+		)
+
+		if result.get("response_texts"):
+			writeTagValueAsync("[Otto_FleetManager]System/lastResponse", result["response_texts"][-1])
+
+		if result["level"] == "info":
+			result["message"] = "Canceled {} failed mission(s)".format(len(result.get("mission_ids") or []))
+			ottoLogger.info(result["message"])
+		elif result["level"] == "warn":
+			if result["message"] == "No active missions found to cancel":
+				result["message"] = "No failed missions found to cancel"
+			ottoLogger.warn(result["message"])
+		else:
+			ottoLogger.error(result["message"])
+
+		writeTagValueAsync(responseTag, result["message"])
+		return result
+
+	except Exception as e:
+		msg = "Error canceling all failed missions: {}".format(str(e))
 		ottoLogger.error(msg)
 		writeTagValueAsync(responseTag, msg)
 		return _buildResult(ok=False, level="error", message=msg)
