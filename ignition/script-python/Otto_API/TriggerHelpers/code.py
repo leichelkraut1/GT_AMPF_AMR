@@ -1,3 +1,7 @@
+from Otto_API.Common.TagHelpers import ensureFolder
+from Otto_API.Common.TagHelpers import ensureMemoryTag
+
+
 def buildMissionTriggerPath(triggerBase, triggerName):
     """
     Build a mission trigger path from a base folder and trigger name.
@@ -14,57 +18,6 @@ def buildCreateMissionTriggerPath(triggerBase, workflowId, robotId):
         "create_WF{}_RV{}".format(workflowId, robotId)
     )
 
-
-def buildTriggerPath(triggerBase, workflowId, robotId):
-    """
-    Backward-compatible wrapper for the old create-trigger helper name.
-    Prefer buildCreateMissionTriggerPath(...) for new code.
-    """
-    return buildCreateMissionTriggerPath(triggerBase, workflowId, robotId)
-
-
-def _splitTagPath(path):
-    if "/" in path:
-        return path.rsplit("/", 1)
-
-    if "]" in path:
-        providerPath, childName = path.split("]", 1)
-        return providerPath + "]", childName
-
-    raise ValueError("Unsupported tag path: {}".format(path))
-
-
-def _ensureFolder(path):
-    parentPath, name = _splitTagPath(path)
-    system.tag.configure(
-        parentPath,
-        [{"name": name, "tagType": "Folder"}],
-        "a"
-    )
-
-
-def _memoryTagDef(name, dataType, value=None):
-    tagDef = {
-        "name": name,
-        "tagType": "AtomicTag",
-        "valueSource": "memory",
-        "dataType": dataType,
-    }
-    if value is not None:
-        tagDef["value"] = value
-    return tagDef
-
-
-def _ensureBooleanTag(path, initialValue=False):
-    parentPath, name = _splitTagPath(path)
-    system.tag.configure(
-        parentPath,
-        [_memoryTagDef(name, "Boolean", bool(initialValue))],
-        "a"
-    )
-    system.tag.writeBlocking([path], [bool(initialValue)])
-
-
 def ensureMissionTriggerTags(workflowIds=None, robotIds=None):
     """
     Ensure the mission trigger folder structure and Boolean memory tags exist.
@@ -79,35 +32,35 @@ def ensureMissionTriggerTags(workflowIds=None, robotIds=None):
     cancelBase = missionsBase + "/Cancel"
     systemUpdatesBase = triggersBase + "/SystemUpdates"
 
-    _ensureFolder(triggersBase)
-    _ensureFolder(missionsBase)
-    _ensureFolder(createBase)
-    _ensureFolder(finalizeBase)
-    _ensureFolder(cancelBase)
-    _ensureFolder(systemUpdatesBase)
+    ensureFolder(triggersBase)
+    ensureFolder(missionsBase)
+    ensureFolder(createBase)
+    ensureFolder(finalizeBase)
+    ensureFolder(cancelBase)
+    ensureFolder(systemUpdatesBase)
 
     createdPaths = []
 
     for workflowId in workflowIds:
         for robotId in robotIds:
             triggerPath = buildCreateMissionTriggerPath(createBase, workflowId, robotId)
-            _ensureBooleanTag(triggerPath, False)
+            ensureMemoryTag(triggerPath, "Boolean", False, "a")
             createdPaths.append(triggerPath)
 
     for robotId in robotIds:
         finalizePath = buildMissionTriggerPath(finalizeBase, "finalize_RV" + str(robotId))
         cancelPath = buildMissionTriggerPath(cancelBase, "cancel_RV" + str(robotId))
-        _ensureBooleanTag(finalizePath, False)
-        _ensureBooleanTag(cancelPath, False)
+        ensureMemoryTag(finalizePath, "Boolean", False, "a")
+        ensureMemoryTag(cancelPath, "Boolean", False, "a")
         createdPaths.append(finalizePath)
         createdPaths.append(cancelPath)
 
     cancelAllPath = buildMissionTriggerPath(cancelBase, "cancelAllActiveMissions")
     cancelAllFailedPath = buildMissionTriggerPath(cancelBase, "cancelAllFailedMissions")
     updateTriggersPath = buildMissionTriggerPath(systemUpdatesBase, "updateTriggers")
-    _ensureBooleanTag(cancelAllPath, False)
-    _ensureBooleanTag(cancelAllFailedPath, False)
-    _ensureBooleanTag(updateTriggersPath, False)
+    ensureMemoryTag(cancelAllPath, "Boolean", False, "a")
+    ensureMemoryTag(cancelAllFailedPath, "Boolean", False, "a")
+    ensureMemoryTag(updateTriggersPath, "Boolean", False, "a")
     createdPaths.append(cancelAllPath)
     createdPaths.append(cancelAllFailedPath)
     createdPaths.append(updateTriggersPath)

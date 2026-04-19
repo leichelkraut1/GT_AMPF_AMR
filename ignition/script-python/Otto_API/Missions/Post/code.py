@@ -1,8 +1,11 @@
 from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.TagHelpers import getMissionTriggerLastResponsePath
+from Otto_API.Common.TagHelpers import getOttoOperationsUrl
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
-from Otto_API.Common.TagHelpers import writeTagValueAsync
+from Otto_API.Common.TagHelpers import writeLastSystemResponse
+from Otto_API.Common.TagHelpers import writeLastTriggerResponse
 from Otto_API.Missions.MissionActions import buildCancelMissionPayload
 from Otto_API.Missions.MissionActions import buildCreateMissionPayload
 from Otto_API.Missions.MissionActions import buildFinalizeMissionPayload
@@ -12,6 +15,12 @@ from Otto_API.Missions.MissionActions import interpretCancelMissionResponse
 from Otto_API.Missions.MissionActions import interpretCreateMissionResponse
 from Otto_API.Missions.MissionActions import interpretFinalizeMissionResponse
 from Otto_API.Missions.MissionActions import parseTemplateJson
+from Otto_API.Missions.MissionTreeHelpers import readMissionIdRecords
+from Otto_API.Missions.MissionTreeHelpers import readMissionRobotAwareRecords
+
+ACTIVE_MISSIONS_ROOT = "[Otto_FleetManager]Missions/Active"
+FAILED_MISSIONS_ROOT = "[Otto_FleetManager]Missions/Failed"
+ROBOTS_ROOT = "[Otto_FleetManager]Robots"
 
 
 def _buildResult(ok, level, message, missionId=None, responseText=None, payload=None):
@@ -31,116 +40,6 @@ def _buildResult(ok, level, message, missionId=None, responseText=None, payload=
 		response_text=responseText,
 		payload=payload,
 	)
-
-
-def _readActiveMissionRecords():
-	"""
-	Read active mission assignments in one browse + one bulk read pass.
-	"""
-	return _readMissionRecords("[Otto_FleetManager]Missions/Active")
-
-
-def _readFailedMissionRecords():
-	"""
-	Read failed mission records in one browse + one bulk read pass.
-	"""
-	return _readMissionRecords("[Otto_FleetManager]Missions/Failed")
-
-
-def _readMissionRecords(rootPath):
-	"""
-	Read mission robot references and ids in one recursive browse + one bulk read pass.
-	"""
-	def _browseMissionInstancesRecursive(folderPath):
-		missionBasePaths = []
-		pending = [folderPath]
-
-		while pending:
-			currentFolder = pending.pop(0)
-			for row in system.tag.browse(currentFolder).getResults():
-				tagType = str(row.get("tagType"))
-				fullPath = str(row.get("fullPath"))
-				if tagType == "UdtInstance":
-					missionBasePaths.append(fullPath)
-				elif tagType == "Folder":
-					pending.append(fullPath)
-
-		return missionBasePaths
-
-	def _pickValue(*qualifiedValues):
-		for qualifiedValue in qualifiedValues:
-			if qualifiedValue is None or not qualifiedValue.quality.isGood():
-				continue
-			value = qualifiedValue.value
-			if value is None:
-				continue
-			if not str(value).strip():
-				continue
-			return value
-		return None
-
-	missionRows = []
-
-	for missionBasePath in _browseMissionInstancesRecursive(rootPath):
-		missionRows.append({
-			"assigned_robot_path": missionBasePath + "/assigned_robot",
-			"assigned_robot_alt_path": missionBasePath + "/Assigned_Robot",
-			"force_robot_path": missionBasePath + "/force_robot",
-			"force_robot_alt_path": missionBasePath + "/Force_Robot",
-			"forced_robot_path": missionBasePath + "/forced_robot",
-			"forced_robot_alt_path": missionBasePath + "/Forced_Robot",
-			"id_path": missionBasePath + "/id",
-			"id_alt_path": missionBasePath + "/ID",
-		})
-
-	readPaths = []
-	for missionRow in missionRows:
-		readPaths.extend([
-			missionRow["assigned_robot_path"],
-			missionRow["assigned_robot_alt_path"],
-			missionRow["force_robot_path"],
-			missionRow["force_robot_alt_path"],
-			missionRow["forced_robot_path"],
-			missionRow["forced_robot_alt_path"],
-			missionRow["id_path"],
-			missionRow["id_alt_path"],
-		])
-
-	readResults = []
-	if readPaths:
-		readResults = system.tag.readBlocking(readPaths)
-
-	missionRecords = []
-	for index, missionRow in enumerate(missionRows):
-		offset = index * 8
-		assignedRobotValue = _pickValue(
-			readResults[offset],
-			readResults[offset + 1],
-		)
-		forceRobotValue = _pickValue(
-			readResults[offset + 2],
-			readResults[offset + 3],
-		)
-		forcedRobotValue = _pickValue(
-			readResults[offset + 4],
-			readResults[offset + 5],
-		)
-		missionIdValue = _pickValue(
-			readResults[offset + 6],
-			readResults[offset + 7],
-		)
-
-		if not assignedRobotValue and not forceRobotValue and not forcedRobotValue:
-			continue
-
-		missionRecords.append({
-			"assigned_robot": assignedRobotValue,
-			"force_robot": forceRobotValue,
-			"forced_robot": forcedRobotValue,
-			"id": missionIdValue,
-		})
-
-	return missionRecords
 
 
 def createMissionFromInputs(templateDict, robotId, missionName, fleetManagerURL, postFunc):
@@ -401,11 +300,8 @@ def createMission(templateTagPath, robotTagPath, missionName):
 	"""
 
 	# --- Config ---
-	fleetManagerURL = readRequiredTagValue(
-		"[Otto_FleetManager]Url_ApiBase",
-		"API base URL"
-	) + "/operations/"
-	responseTag = "[Otto_FleetManager]Missions/Triggers/lastResponse"
+	fleetManagerURL = getOttoOperationsUrl()
+	responseTag = getMissionTriggerLastResponsePath()
 	ottoLogger = system.util.getLogger("OTTO_API_Logger")
 
 	ottoLogger.info("Posting mission from template [{}] for robot [{}]".format(templateTagPath, robotTagPath))
@@ -417,7 +313,7 @@ def createMission(templateTagPath, robotTagPath, missionName):
 		except ValueError as e:
 			msg = str(e)
 			ottoLogger.error(msg)
-			writeTagValueAsync(responseTag, msg)
+			writeLastTriggerResponse(msg, asyncWrite=True)
 			return _buildResult(ok=False, level="error", message=msg)
 
 		try:
@@ -425,7 +321,7 @@ def createMission(templateTagPath, robotTagPath, missionName):
 		except ValueError as e:
 			msg = "Invalid template: {}".format(str(e))
 			ottoLogger.error(msg)
-			writeTagValueAsync(responseTag, msg)
+			writeLastTriggerResponse(msg, asyncWrite=True)
 			return _buildResult(ok=False, level="error", message=msg)
 
 		if not isinstance(template.get("tasks", []), list):
@@ -440,7 +336,7 @@ def createMission(templateTagPath, robotTagPath, missionName):
 		)
 
 		if result["response_text"] is not None:
-			writeTagValueAsync("[Otto_FleetManager]System/lastResponse", result["response_text"])
+			writeLastSystemResponse(result["response_text"], asyncWrite=True)
 
 		if result["level"] == "info":
 			ottoLogger.info(result["message"])
@@ -449,13 +345,13 @@ def createMission(templateTagPath, robotTagPath, missionName):
 		else:
 			ottoLogger.error(result["message"])
 
-		writeTagValueAsync(responseTag, result["message"])
+		writeLastTriggerResponse(result["message"], asyncWrite=True)
 		return result
 
 	except Exception as e:
 		msg = "Error posting mission: {}".format(str(e))
 		ottoLogger.error(msg)
-		writeTagValueAsync(responseTag, msg)
+		writeLastTriggerResponse(msg, asyncWrite=True)
 		return _buildResult(ok=False, level="error", message=msg)
 
 def finalizeMission(robotName):
@@ -468,30 +364,27 @@ def finalizeMission(robotName):
 	"""
 
 	# --- Config ---
-	fleetManagerURL = readRequiredTagValue(
-		"[Otto_FleetManager]Url_ApiBase",
-		"API base URL"
-	) + "/operations/"
-	responseTag = "[Otto_FleetManager]Missions/Triggers/lastResponse"
+	fleetManagerURL = getOttoOperationsUrl()
+	responseTag = getMissionTriggerLastResponsePath()
 	ottoLogger = system.util.getLogger("OTTO_API_Logger")
 
 	ottoLogger.info("Finalizing mission for robot [{}]".format(robotName))
 
 	try:
 		# --- Resolve robot ID ---
-		robotIdPath = "[Otto_FleetManager]Robots/{}/id".format(robotName)
+		robotIdPath = "{}/{}/id".format(ROBOTS_ROOT, robotName)
 		try:
 			robotIdValue = readRequiredTagValue(robotIdPath, "Robot ID")
 		except ValueError:
 			msg = "Robot [{}] has no valid id tag".format(robotName)
 			ottoLogger.warn(msg)
-			writeTagValueAsync(responseTag, msg)
+			writeLastTriggerResponse(msg, asyncWrite=True)
 			return _buildResult(ok=False, level="warn", message=msg)
 
 		robot_id = str(robotIdValue).strip().lower()
 
 		# --- Locate active mission assigned to this robot ---
-		missionRecords = _readActiveMissionRecords()
+		missionRecords = readMissionRobotAwareRecords(ACTIVE_MISSIONS_ROOT)
 
 		targetMissionId, warningMessage = findActiveMissionIdForRobot(
 			robot_id,
@@ -505,7 +398,7 @@ def finalizeMission(robotName):
 				robotName, robot_id
 			)
 			ottoLogger.info(msg)
-			writeTagValueAsync(responseTag, msg)
+			writeLastTriggerResponse(msg, asyncWrite=True)
 			return _buildResult(ok=False, level="warn", message=msg)
 
 		ottoLogger.info(
@@ -528,13 +421,13 @@ def finalizeMission(robotName):
 		else:
 			ottoLogger.error(result["message"])
 
-		writeTagValueAsync(responseTag, result["message"])
+		writeLastTriggerResponse(result["message"], asyncWrite=True)
 		return result
 
 	except Exception as e:
 		msg = "Error finalizing mission for robot [{}]: {}".format(robotName, str(e))
 		ottoLogger.error(msg)
-		writeTagValueAsync(responseTag, msg)
+		writeLastTriggerResponse(msg, asyncWrite=True)
 		return _buildResult(ok=False, level="error", message=msg)
 
 
@@ -547,27 +440,24 @@ def cancelMission(robotName):
 		robotName (str): Name of the robot UDT instance under [Otto_FleetManager]Robots
 	"""
 
-	fleetManagerURL = readRequiredTagValue(
-		"[Otto_FleetManager]Url_ApiBase",
-		"API base URL"
-	) + "/operations/"
-	responseTag = "[Otto_FleetManager]Missions/Triggers/lastResponse"
+	fleetManagerURL = getOttoOperationsUrl()
+	responseTag = getMissionTriggerLastResponsePath()
 	ottoLogger = system.util.getLogger("OTTO_API_Logger")
 
 	ottoLogger.info("Canceling mission(s) for robot [{}]".format(robotName))
 
 	try:
-		robotIdPath = "[Otto_FleetManager]Robots/{}/id".format(robotName)
+		robotIdPath = "{}/{}/id".format(ROBOTS_ROOT, robotName)
 		try:
 			robotIdValue = readRequiredTagValue(robotIdPath, "Robot ID")
 		except ValueError:
 			msg = "Robot [{}] has no valid id tag".format(robotName)
 			ottoLogger.warn(msg)
-			writeTagValueAsync(responseTag, msg)
+			writeLastTriggerResponse(msg, asyncWrite=True)
 			return _buildResult(ok=False, level="warn", message=msg)
 
 		robot_id = str(robotIdValue).strip().lower()
-		missionRecords = _readActiveMissionRecords()
+		missionRecords = readMissionRobotAwareRecords(ACTIVE_MISSIONS_ROOT)
 		result = cancelMissionsFromInputs(
 			robot_id,
 			missionRecords,
@@ -576,7 +466,7 @@ def cancelMission(robotName):
 		)
 
 		if result.get("response_texts"):
-			writeTagValueAsync("[Otto_FleetManager]System/lastResponse", result["response_texts"][-1])
+			writeLastSystemResponse(result["response_texts"][-1], asyncWrite=True)
 
 		if result["level"] == "info":
 			ottoLogger.info(result["message"])
@@ -585,13 +475,13 @@ def cancelMission(robotName):
 		else:
 			ottoLogger.error(result["message"])
 
-		writeTagValueAsync(responseTag, result["message"])
+		writeLastTriggerResponse(result["message"], asyncWrite=True)
 		return result
 
 	except Exception as e:
 		msg = "Error canceling mission(s) for robot [{}]: {}".format(robotName, str(e))
 		ottoLogger.error(msg)
-		writeTagValueAsync(responseTag, msg)
+		writeLastTriggerResponse(msg, asyncWrite=True)
 		return _buildResult(ok=False, level="error", message=msg)
 
 
@@ -599,17 +489,14 @@ def cancelAllActiveMissions():
 	"""
 	Cancels all known active missions currently present under [Otto_FleetManager]Missions/Active.
 	"""
-	fleetManagerURL = readRequiredTagValue(
-		"[Otto_FleetManager]Url_ApiBase",
-		"API base URL"
-	) + "/operations/"
-	responseTag = "[Otto_FleetManager]Missions/Triggers/lastResponse"
+	fleetManagerURL = getOttoOperationsUrl()
+	responseTag = getMissionTriggerLastResponsePath()
 	ottoLogger = system.util.getLogger("OTTO_API_Logger")
 
 	ottoLogger.info("Canceling all active missions")
 
 	try:
-		missionRecords = _readActiveMissionRecords()
+		missionRecords = readMissionIdRecords(ACTIVE_MISSIONS_ROOT)
 		result = cancelAllActiveMissionsFromInputs(
 			missionRecords,
 			fleetManagerURL,
@@ -617,7 +504,7 @@ def cancelAllActiveMissions():
 		)
 
 		if result.get("response_texts"):
-			writeTagValueAsync("[Otto_FleetManager]System/lastResponse", result["response_texts"][-1])
+			writeLastSystemResponse(result["response_texts"][-1], asyncWrite=True)
 
 		if result["level"] == "info":
 			ottoLogger.info(result["message"])
@@ -626,13 +513,13 @@ def cancelAllActiveMissions():
 		else:
 			ottoLogger.error(result["message"])
 
-		writeTagValueAsync(responseTag, result["message"])
+		writeLastTriggerResponse(result["message"], asyncWrite=True)
 		return result
 
 	except Exception as e:
 		msg = "Error canceling all active missions: {}".format(str(e))
 		ottoLogger.error(msg)
-		writeTagValueAsync(responseTag, msg)
+		writeLastTriggerResponse(msg, asyncWrite=True)
 		return _buildResult(ok=False, level="error", message=msg)
 
 
@@ -640,17 +527,14 @@ def cancelAllFailedMissions():
 	"""
 	Cancels all known failed missions currently present under [Otto_FleetManager]Missions/Failed.
 	"""
-	fleetManagerURL = readRequiredTagValue(
-		"[Otto_FleetManager]Url_ApiBase",
-		"API base URL"
-	) + "/operations/"
-	responseTag = "[Otto_FleetManager]Missions/Triggers/lastResponse"
+	fleetManagerURL = getOttoOperationsUrl()
+	responseTag = getMissionTriggerLastResponsePath()
 	ottoLogger = system.util.getLogger("OTTO_API_Logger")
 
 	ottoLogger.info("Canceling all failed missions")
 
 	try:
-		missionRecords = _readFailedMissionRecords()
+		missionRecords = readMissionIdRecords(FAILED_MISSIONS_ROOT)
 		result = cancelAllActiveMissionsFromInputs(
 			missionRecords,
 			fleetManagerURL,
@@ -658,7 +542,7 @@ def cancelAllFailedMissions():
 		)
 
 		if result.get("response_texts"):
-			writeTagValueAsync("[Otto_FleetManager]System/lastResponse", result["response_texts"][-1])
+			writeLastSystemResponse(result["response_texts"][-1], asyncWrite=True)
 
 		if result["level"] == "info":
 			result["message"] = "Canceled {} failed mission(s)".format(len(result.get("mission_ids") or []))
@@ -670,11 +554,11 @@ def cancelAllFailedMissions():
 		else:
 			ottoLogger.error(result["message"])
 
-		writeTagValueAsync(responseTag, result["message"])
+		writeLastTriggerResponse(result["message"], asyncWrite=True)
 		return result
 
 	except Exception as e:
 		msg = "Error canceling all failed missions: {}".format(str(e))
 		ottoLogger.error(msg)
-		writeTagValueAsync(responseTag, msg)
+		writeLastTriggerResponse(msg, asyncWrite=True)
 		return _buildResult(ok=False, level="error", message=msg)

@@ -1,5 +1,11 @@
+from Otto_API.Common.TagHelpers import browseTagResults
+from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
+from Otto_API.Common.TagHelpers import getMissionLastUpdateTsPath
+from Otto_API.Common.TagHelpers import getMissionMinChargePath
 from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
+from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Common.TagHelpers import writeTagValues
 from Otto_API.Common.TagHelpers import writeTagValue
 
@@ -26,6 +32,7 @@ def _buildRobotReadinessResult(
     chargeLevel=None,
     minCharge=None,
     activeMissionCount=None,
+    failedMissionCount=None,
     missionLastUpdateTs=None,
     missionLastUpdateSuccess=None
 ):
@@ -38,6 +45,7 @@ def _buildRobotReadinessResult(
         "charge_level": chargeLevel,
         "min_charge": minCharge,
         "active_mission_count": activeMissionCount,
+        "failed_mission_count": failedMissionCount,
         "mission_last_update_ts": missionLastUpdateTs,
         "mission_last_update_success": missionLastUpdateSuccess,
     }
@@ -52,6 +60,7 @@ def evaluateRobotReadiness(
     activeMissionCount=None,
     missionLastUpdateTs=None,
     missionLastUpdateSuccess=None,
+    failedMissionCount=None,
     allowedActivityStates=None
 ):
     """
@@ -78,6 +87,7 @@ def evaluateRobotReadiness(
             chargeLevel,
             minCharge,
             activeMissionCount,
+            failedMissionCount,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -92,6 +102,7 @@ def evaluateRobotReadiness(
             chargeLevel,
             minCharge,
             activeMissionCount,
+            failedMissionCount,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -106,6 +117,7 @@ def evaluateRobotReadiness(
             chargeLevel,
             minCharge,
             activeMissionCount,
+            failedMissionCount,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -120,6 +132,7 @@ def evaluateRobotReadiness(
             chargeLevel,
             minCharge,
             activeMissionCount,
+            failedMissionCount,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -134,6 +147,7 @@ def evaluateRobotReadiness(
             chargeLevel,
             minCharge,
             activeMissionCount,
+            failedMissionCount,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -148,6 +162,7 @@ def evaluateRobotReadiness(
             chargeLevel,
             minCharge,
             activeMissionCount,
+            failedMissionCount,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -162,6 +177,7 @@ def evaluateRobotReadiness(
             chargeLevel,
             minCharge,
             activeMissionCount,
+            failedMissionCount,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -176,6 +192,7 @@ def evaluateRobotReadiness(
             chargeLevel,
             minCharge,
             activeMissionCount,
+            failedMissionCount,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -190,6 +207,7 @@ def evaluateRobotReadiness(
             chargeLevel,
             minCharge,
             activeMissionCount,
+            failedMissionCount,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -218,6 +236,37 @@ def evaluateRobotReadiness(
             chargeLevel,
             minCharge,
             activeMissionCount,
+            failedMissionCount,
+            missionLastUpdateTs,
+            missionLastUpdateSuccess
+        )
+
+    if failedMissionCount is None:
+        return _buildRobotReadinessResult(
+            robotName,
+            False,
+            "failed_mission_count_missing",
+            normalizedSystemState,
+            normalizedActivityState,
+            chargeLevel,
+            minCharge,
+            activeMissionCount,
+            failedMissionCount,
+            missionLastUpdateTs,
+            missionLastUpdateSuccess
+        )
+
+    if failedMissionCount != 0:
+        return _buildRobotReadinessResult(
+            robotName,
+            False,
+            "failed_missions_present",
+            normalizedSystemState,
+            normalizedActivityState,
+            chargeLevel,
+            minCharge,
+            activeMissionCount,
+            failedMissionCount,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -231,6 +280,7 @@ def evaluateRobotReadiness(
         chargeLevel,
         minCharge,
         activeMissionCount,
+        failedMissionCount,
         missionLastUpdateTs,
         missionLastUpdateSuccess
     )
@@ -244,6 +294,7 @@ def isRobotAvailable(
     activeMissionCount=None,
     missionLastUpdateTs=None,
     missionLastUpdateSuccess=None,
+    failedMissionCount=None,
     allowedActivityStates=None
 ):
     """
@@ -258,6 +309,7 @@ def isRobotAvailable(
         activeMissionCount,
         missionLastUpdateTs,
         missionLastUpdateSuccess,
+        failedMissionCount,
         allowedActivityStates
     )["available"]
 
@@ -284,17 +336,81 @@ def _buildUpdateResult(ok, level, message, minCharge=None, robotResults=None):
     )
 
 
+def _reasonToTagValue(readiness):
+    if readiness.get("available"):
+        return ""
+    return str(readiness.get("reason") or "")
+
+
+def buildReadinessResultsAndWrites(
+    robotSnapshots,
+    minCharge,
+    missionLastUpdateTs=None,
+    missionLastUpdateSuccess=None
+):
+    """
+    Evaluate readiness for explicit robot snapshots and build the tag writes.
+    Each snapshot should include:
+    - robot_name
+    - robot_path
+    - system_state
+    - activity_state
+    - charge_level
+    - active_mission_count
+    - failed_mission_count
+    """
+    robotResults = []
+    writePaths = []
+    writeValues = []
+
+    for snapshot in list(robotSnapshots or []):
+        readiness = evaluateRobotReadiness(
+            snapshot.get("robot_name"),
+            snapshot.get("system_state"),
+            snapshot.get("activity_state"),
+            snapshot.get("charge_level"),
+            minCharge,
+            snapshot.get("active_mission_count"),
+            missionLastUpdateTs,
+            missionLastUpdateSuccess,
+            snapshot.get("failed_mission_count"),
+        )
+        robotResults.append(readiness)
+
+        robotPath = snapshot.get("robot_path")
+        if robotPath:
+            writePaths.extend([
+                robotPath + "/AvailableForWork",
+                robotPath + "/NotReadyReason",
+            ])
+            writeValues.extend([
+                readiness["available"],
+                _reasonToTagValue(readiness),
+            ])
+
+    return {
+        "robot_results": robotResults,
+        "write_paths": writePaths,
+        "write_values": writeValues,
+    }
+
+
 def updateAvailableForWork():
     """
     Evaluates SystemState, ActivityState, and ChargeLevel for each robot
     and sets /AvailableForWork based on mission eligibility rules.
+
+    This is kept as a standalone manual/fallback/debugging entrypoint.
+    At this time it is not the intended main runtime path; the normal
+    runtime flow should prefer Otto_API.Fleet.Get.updateRobotOperationalState()
+    so OTTO sync and readiness evaluation happen in one pass.
     """
     ottoLogger = system.util.getLogger("Otto_Logic_Logger")
 
     robotsBasePath = "[Otto_FleetManager]Robots"
-    minChargePath = "[Otto_FleetManager]Missions/minChargeLevelForMissioning"
-    missionLastUpdateTsPath = "[Otto_FleetManager]Missions/LastUpdateTS"
-    missionLastUpdateSuccessPath = "[Otto_FleetManager]Missions/LastUpdateSuccess"
+    minChargePath = getMissionMinChargePath()
+    missionLastUpdateTsPath = getMissionLastUpdateTsPath()
+    missionLastUpdateSuccessPath = getMissionLastUpdateSuccessPath()
 
     try:
         try:
@@ -302,21 +418,21 @@ def updateAvailableForWork():
                 minChargePath,
                 "Minimum charge threshold"
             )
-            missionLastUpdateTs = readRequiredTagValue(
+            missionLastUpdateTs = readOptionalTagValue(
                 missionLastUpdateTsPath,
-                "Mission last update timestamp",
+                None,
                 allowEmptyString=False
             )
-            missionLastUpdateSuccess = bool(readRequiredTagValue(
+            missionLastUpdateSuccess = bool(readOptionalTagValue(
                 missionLastUpdateSuccessPath,
-                "Mission last update success"
+                False
             ))
         except ValueError as e:
             message = str(e)
             ottoLogger.warn(message)
             return _buildUpdateResult(False, "warn", message)
 
-        browseResults = system.tag.browse(robotsBasePath).getResults()
+        browseResults = browseTagResults(robotsBasePath)
         robotRows = []
         readPaths = []
 
@@ -335,38 +451,43 @@ def updateAvailableForWork():
                 robotPath + "/ActivityState",
                 robotPath + "/ChargeLevel",
                 robotPath + "/ActiveMissionCount",
+                robotPath + "/FailedMissionCount",
             ])
-
-        robotResults = []
-        writePaths = []
-        writeValues = []
 
         readResults = []
         if readPaths:
-            readResults = system.tag.readBlocking(readPaths)
+            readResults = readTagValues(readPaths)
 
+        robotSnapshots = []
         for index, robotRow in enumerate(robotRows):
-            offset = index * 4
-            try:
-                readiness = evaluateRobotReadiness(
-                    robotRow["robot_name"],
-                    readResults[offset].value if readResults[offset].quality.isGood() else None,
-                    readResults[offset + 1].value if readResults[offset + 1].quality.isGood() else None,
-                    readResults[offset + 2].value if readResults[offset + 2].quality.isGood() else None,
-                    minCharge,
-                    readResults[offset + 3].value if readResults[offset + 3].quality.isGood() else None,
-                    missionLastUpdateTs,
-                    missionLastUpdateSuccess
-                )
-                robotResults.append(readiness)
-                writePaths.append(robotRow["robot_path"] + "/AvailableForWork")
-                writeValues.append(readiness["available"])
+            offset = index * 5
+            robotSnapshots.append({
+                "robot_name": robotRow["robot_name"],
+                "robot_path": robotRow["robot_path"],
+                "system_state": readResults[offset].value if readResults[offset].quality.isGood() else None,
+                "activity_state": readResults[offset + 1].value if readResults[offset + 1].quality.isGood() else None,
+                "charge_level": readResults[offset + 2].value if readResults[offset + 2].quality.isGood() else None,
+                "active_mission_count": (
+                    readResults[offset + 3].value
+                    if readResults[offset + 3].quality.isGood()
+                    else None
+                ),
+                "failed_mission_count": (
+                    readResults[offset + 4].value
+                    if readResults[offset + 4].quality.isGood()
+                    else None
+                ),
+            })
 
-            except Exception as e:
-                ottoLogger.warn(
-                    "Failed to evaluate AvailableForWork for " +
-                    robotRow["robot_name"] + " - " + str(e)
-                )
+        readinessBatch = buildReadinessResultsAndWrites(
+            robotSnapshots,
+            minCharge,
+            missionLastUpdateTs,
+            missionLastUpdateSuccess
+        )
+        robotResults = readinessBatch["robot_results"]
+        writePaths = readinessBatch["write_paths"]
+        writeValues = readinessBatch["write_values"]
 
         if writePaths:
             writeTagValues(writePaths, writeValues)

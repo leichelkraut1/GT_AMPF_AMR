@@ -4,10 +4,67 @@ except NameError:
     string_types = (str,)
 
 
+API_BASE_URL_TAG_PATH = "[Otto_FleetManager]Url_ApiBase"
+SYSTEM_LAST_RESPONSE_TAG_PATH = "[Otto_FleetManager]System/lastResponse"
+MISSION_TRIGGER_LAST_RESPONSE_TAG_PATH = "[Otto_FleetManager]Missions/Triggers/lastResponse"
+MISSION_MIN_CHARGE_TAG_PATH = "[Otto_FleetManager]Missions/minChargeLevelForMissioning"
+MISSION_LAST_UPDATE_TS_TAG_PATH = "[Otto_FleetManager]Missions/LastUpdateTS"
+MISSION_LAST_UPDATE_SUCCESS_TAG_PATH = "[Otto_FleetManager]Missions/LastUpdateSuccess"
+
+
 def _normalizeTagLabel(label, tagPath):
     if label:
         return str(label)
     return "Tag"
+
+
+def splitTagPath(path):
+    """
+    Split a full Ignition tag path into (parentPath, childName).
+    """
+    path = str(path)
+    if "/" in path:
+        return path.rsplit("/", 1)
+
+    if "]" in path:
+        providerPath, childName = path.split("]", 1)
+        return providerPath + "]", childName
+
+    raise ValueError("Unsupported tag path: {}".format(path))
+
+
+def getApiBaseUrl():
+    """
+    Read the OTTO API base URL from the shared project tag.
+    """
+    return readRequiredTagValue(API_BASE_URL_TAG_PATH, "API base URL")
+
+
+def getOttoOperationsUrl():
+    """
+    Build the OTTO operations endpoint from the shared base URL.
+    """
+    return getApiBaseUrl().rstrip("/") + "/operations/"
+
+
+def getMissionMinChargePath():
+    return MISSION_MIN_CHARGE_TAG_PATH
+
+
+def getMissionLastUpdateTsPath():
+    return MISSION_LAST_UPDATE_TS_TAG_PATH
+
+
+def getMissionLastUpdateSuccessPath():
+    return MISSION_LAST_UPDATE_SUCCESS_TAG_PATH
+
+
+def getSystemLastResponsePath():
+    return SYSTEM_LAST_RESPONSE_TAG_PATH
+
+
+def getMissionTriggerLastResponsePath():
+    return MISSION_TRIGGER_LAST_RESPONSE_TAG_PATH
 
 
 def _validateTagRead(tagResult, tagPath, label, allowEmptyString=False):
@@ -34,15 +91,84 @@ def readRequiredTagValue(tagPath, label=None, allowEmptyString=False):
     """
     Read a required tag value and raise a clear ValueError if it is missing.
     """
-    tagResult = system.tag.readBlocking([tagPath])[0]
+    tagResult = readTagValues([tagPath])[0]
     return _validateTagRead(tagResult, tagPath, label, allowEmptyString)
+
+
+def readTagValues(tagPaths):
+    """
+    Read multiple tag values synchronously.
+    """
+    tagPaths = list(tagPaths or [])
+    if not tagPaths:
+        return []
+    return system.tag.readBlocking(tagPaths)
+
+
+def readRequiredTagValues(tagPaths, labels=None, allowEmptyString=False):
+    """
+    Read multiple required tag values and raise clear ValueErrors for bad entries.
+    """
+    tagPaths = list(tagPaths or [])
+    labels = list(labels or [])
+    results = readTagValues(tagPaths)
+    values = []
+
+    for index, tagPath in enumerate(tagPaths):
+        label = labels[index] if index < len(labels) else None
+        values.append(
+            _validateTagRead(results[index], tagPath, label, allowEmptyString)
+        )
+
+    return values
+
+
+def readOptionalTagValues(tagPaths, defaultValues=None, allowEmptyString=False):
+    """
+    Read multiple optional tag values and substitute defaults for bad entries.
+    """
+    tagPaths = list(tagPaths or [])
+    results = readTagValues(tagPaths)
+
+    if defaultValues is None:
+        defaultValues = []
+    elif isinstance(defaultValues, (list, tuple)):
+        defaultValues = list(defaultValues)
+    else:
+        defaultValues = [defaultValues] * len(tagPaths)
+
+    values = []
+    for index, tagPath in enumerate(tagPaths):
+        defaultValue = defaultValues[index] if index < len(defaultValues) else None
+        tagResult = results[index]
+
+        if not tagResult.quality.isGood():
+            values.append(defaultValue)
+            continue
+
+        value = tagResult.value
+        if value is None:
+            values.append(defaultValue)
+            continue
+
+        if (
+            not allowEmptyString
+            and isinstance(value, string_types)
+            and not value.strip()
+        ):
+            values.append(defaultValue)
+            continue
+
+        values.append(value)
+
+    return values
 
 
 def readOptionalTagValue(tagPath, defaultValue=None, allowEmptyString=False):
     """
     Read an optional tag value and return the supplied default when missing.
     """
-    tagResult = system.tag.readBlocking([tagPath])[0]
+    tagResult = readTagValues([tagPath])[0]
     if not tagResult.quality.isGood():
         return defaultValue
 
@@ -58,6 +184,98 @@ def readOptionalTagValue(tagPath, defaultValue=None, allowEmptyString=False):
         return defaultValue
 
     return value
+
+
+def configureTagDefinitions(parentPath, tagDefs, collisionPolicy="a"):
+    """
+    Configure one or more tag definitions under the given parent path.
+    """
+    return system.tag.configure(parentPath, list(tagDefs), collisionPolicy)
+
+
+def browseTagResults(path):
+    """
+    Browse a tag path and return its result rows.
+    """
+    return system.tag.browse(path).getResults()
+
+
+def tagExists(path):
+    """
+    Return True when the given tag path exists.
+    """
+    return system.tag.exists(path)
+
+
+def ensureFolder(path):
+    """
+    Ensure a tag folder exists at the given full path.
+    """
+    parentPath, name = splitTagPath(path)
+    return configureTagDefinitions(
+        parentPath,
+        [{"name": name, "tagType": "Folder"}],
+        "a"
+    )
+
+
+def ensureUdtInstance(parentPath, name, typeId, collisionPolicy="a"):
+    """
+    Ensure a UDT instance exists under the given parent folder.
+    """
+    ensureFolder(parentPath)
+    return configureTagDefinitions(
+        parentPath,
+        [{
+            "name": name,
+            "typeID": typeId,
+            "tagType": "UdtInstance",
+        }],
+        collisionPolicy
+    )
+
+
+def ensureUdtInstancePath(path, typeId, collisionPolicy="a"):
+    """
+    Ensure a UDT instance exists at the given full path.
+    """
+    parentPath, name = splitTagPath(path)
+    return ensureUdtInstance(parentPath, name, typeId, collisionPolicy)
+
+
+def ensureMemoryTag(path, dataType, initialValue=None, collisionPolicy="a"):
+    """
+    Ensure a memory-backed atomic tag exists at the given full path.
+    """
+    parentPath, name = splitTagPath(path)
+    ensureFolder(parentPath)
+    tagDef = {
+        "name": name,
+        "tagType": "AtomicTag",
+        "valueSource": "memory",
+        "dataType": dataType,
+    }
+    if initialValue is not None:
+        tagDef["value"] = initialValue
+
+    result = configureTagDefinitions(parentPath, [tagDef], collisionPolicy)
+    if initialValue is not None:
+        writeTagValue(path, initialValue)
+    return result
+
+
+def deleteTagPaths(tagPaths):
+    """
+    Delete one or more tag paths.
+    """
+    return system.tag.deleteTags(list(tagPaths))
+
+
+def deleteTagPath(tagPath):
+    """
+    Delete a single tag path.
+    """
+    return deleteTagPaths([tagPath])
 
 
 def writeTagValue(tagPath, value):
@@ -86,3 +304,21 @@ def writeTagValuesAsync(tagPaths, values):
     Write multiple tag values asynchronously.
     """
     return system.tag.writeAsync(list(tagPaths), list(values))
+
+
+def writeLastSystemResponse(value, asyncWrite=False):
+    """
+    Write the shared system lastResponse tag.
+    """
+    if asyncWrite:
+        return writeTagValueAsync(getSystemLastResponsePath(), value)
+    return writeTagValue(getSystemLastResponsePath(), value)
+
+
+def writeLastTriggerResponse(value, asyncWrite=False):
+    """
+    Write the shared mission trigger lastResponse tag.
+    """
+    if asyncWrite:
+        return writeTagValueAsync(getMissionTriggerLastResponsePath(), value)
+    return writeTagValue(getMissionTriggerLastResponsePath(), value)

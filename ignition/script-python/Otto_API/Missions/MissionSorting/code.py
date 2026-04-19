@@ -1,10 +1,19 @@
+from Otto_API.Common.TagHelpers import browseTagResults
 from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.TagHelpers import deleteTagPath
+from Otto_API.Common.TagHelpers import ensureUdtInstancePath
+from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
+from Otto_API.Common.TagHelpers import getMissionLastUpdateTsPath
+from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
+from Otto_API.Common.TagHelpers import tagExists
 from Otto_API.Common.TagHelpers import writeTagValues
 from Otto_API.Fleet.ContentSync import sanitizeTagName
+from Otto_API.Fleet.FleetSync import readRobotInventoryMetadata
 from Otto_API.Fleet.Get import getMissions
 from Otto_API.Missions.MissionActions import resolveMissionRobotId
+from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
 
 # ---------------------------------------------------------------------------
 # CONSTANTS
@@ -14,8 +23,8 @@ BASE = "[Otto_FleetManager]Missions"
 ACTIVE_PATH = BASE + "/Active"
 COMPLETED_PATH = BASE + "/Completed"
 FAILED_PATH = BASE + "/Failed"
-LAST_UPDATE_TS_PATH = BASE + "/LastUpdateTS"
-LAST_UPDATE_SUCCESS_PATH = BASE + "/LastUpdateSuccess"
+LAST_UPDATE_TS_PATH = getMissionLastUpdateTsPath()
+LAST_UPDATE_SUCCESS_PATH = getMissionLastUpdateSuccessPath()
 
 ACTIVE_STATUSES = [
     "QUEUED",
@@ -31,8 +40,7 @@ ACTIVE_STATUSES = [
 TERMINAL_STATUSES = [
     "CANCELLED",
     "SUCCEEDED",
-    "REVOKED",
-    "FAILED"
+    "REVOKED"
 ]
 
 FAILED_STATUSES = [
@@ -207,25 +215,6 @@ def compute_completed_overflow(enrichedRows, maxCompleted, nowDate):
     return enriched_sorted[:-maxCompleted]
 
 
-def ensure_instance(parentFolder, instanceName, logger=None, debug=False):
-    """
-    Ensures api_Mission UDT instance exists and returns its path
-    """
-    instPath = parentFolder + "/" + instanceName
-
-    if not system.tag.exists(instPath):
-        tagDef = {
-            "name": instanceName,
-            "typeID": "api_Mission",
-            "tagType": "UdtInstance"
-        }
-        system.tag.configure(parentFolder, [tagDef], "a")
-        if logger and debug:
-            logger.info("Created mission instance: {}".format(instPath))
-
-    return instPath
-
-
 def write_mission_data(instancePath, mission):
     """
     Writes mission fields into api_Mission UDT
@@ -243,7 +232,7 @@ def remove_instance(path, logger=None, debug=False, reason=None):
     Deletes a UDT instance
     """
     try:
-        system.tag.deleteTags([path])
+        deleteTagPath(path)
         if logger and debug:
             if reason:
                 logger.info("Deleted {} ({})".format(path, reason))
@@ -252,102 +241,33 @@ def remove_instance(path, logger=None, debug=False, reason=None):
     except Exception:
         pass
 
-
-def browse_instances(folderPath):
-    """
-    Returns list of (fullPath, name) for UDT instances in folder
-    """
-    try:
-        results = system.tag.browse(folderPath).getResults()
-        out = []
-        for t in results:
-            if str(t.get("tagType")) == "UdtInstance":
-                out.append((str(t.get("fullPath")), t.get("name")))
-        return out
-    except Exception:
-        return []
-
-
-def browse_instances_recursive(folderPath):
-    """
-    Returns list of (fullPath, name) for all UDT instances below the given folder.
-    """
-    instances = []
-    pending = [folderPath]
-
-    while pending:
-        currentFolder = pending.pop(0)
-        try:
-            results = system.tag.browse(currentFolder).getResults()
-        except Exception:
-            continue
-
-        for row in results:
-            tagType = str(row.get("tagType"))
-            fullPath = str(row.get("fullPath"))
-            name = row.get("name")
-            if tagType == "UdtInstance":
-                instances.append((fullPath, name))
-            elif tagType == "Folder":
-                pending.append(fullPath)
-
-    return instances
-
-
 def _readRobotFolderMappings():
     """
     Build lookup maps for robot folder names and robot IDs.
     """
-    nameByLower = {}
-    idByName = {}
-    idPaths = []
-    robotNames = []
-
     try:
-        results = system.tag.browse(ROBOTS_PATH).getResults()
+        inventory = readRobotInventoryMetadata(ROBOTS_PATH)
     except Exception:
         return {
-            "name_by_lower": nameByLower,
+            "name_by_lower": {},
             "name_by_id": {},
         }
 
-    for row in results:
-        if str(row.get("tagType")) != "UdtInstance":
-            continue
-        robotName = str(row.get("name"))
-        robotBasePath = str(row.get("fullPath"))
-        robotNames.append(robotName)
-        nameByLower[robotName.strip().lower()] = robotName
-        idPaths.append(robotBasePath + "/ID")
-
-    readResults = system.tag.readBlocking(idPaths) if idPaths else []
-    nameById = {}
-    for index, robotName in enumerate(robotNames):
-        qualifiedValue = readResults[index]
-        if not qualifiedValue.quality.isGood():
-            continue
-        value = qualifiedValue.value
-        if value is None:
-            continue
-        normalizedId = str(value).strip().lower()
-        if normalizedId:
-            nameById[normalizedId] = robotName
-
     return {
-        "name_by_lower": nameByLower,
-        "name_by_id": nameById,
+        "name_by_lower": dict(inventory.get("robot_name_by_lower", {})),
+        "name_by_id": dict(inventory.get("robot_name_by_id", {})),
     }
 
 
-def build_active_mission_count_writes(robotMappings, activeCountsByFolder):
+def build_robot_mission_count_writes(robotMappings, countsByFolder, memberName):
     """
-    Build ActiveMissionCount writes for known robot folders.
+    Build mission count writes for known robot folders.
     """
     writes = []
     for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
         writes.append((
-            ROBOTS_PATH + "/" + robotFolder + "/ActiveMissionCount",
-            int(activeCountsByFolder.get(robotFolder, 0))
+            ROBOTS_PATH + "/" + robotFolder + "/" + memberName,
+            int(countsByFolder.get(robotFolder, 0))
         ))
     return writes
 
@@ -389,7 +309,7 @@ def cleanup_terminal_folder(folderPath, retentionDays, maxCount, label, logger, 
     now = system.date.now()
     cutoff = system.date.addDays(now, -retentionDays)
 
-    instances = browse_instances_recursive(folderPath)
+    instances = browseMissionInstances(folderPath)
     removed = []
     removedPaths = set()
     enriched = []
@@ -397,7 +317,7 @@ def cleanup_terminal_folder(folderPath, retentionDays, maxCount, label, logger, 
     readPaths = [fullPath + "/Created" for fullPath, _ in instances]
     readResults = []
     if readPaths:
-        readResults = system.tag.readBlocking(readPaths)
+        readResults = readTagValues(readPaths)
 
     for index, instance in enumerate(instances):
         fullPath, name = instance
@@ -505,11 +425,22 @@ def run():
             )
         )
 
+        # --- Fetch FAILED missions in one capped bulk call ---
+        missions.extend(
+            getMissions(
+                logger,
+                debug,
+                mission_status=FAILED_STATUSES,
+                limit=MAX_FAILED
+            )
+        )
+
         robotMappings = _readRobotFolderMappings()
         activeWanted = set()
         completedWanted = set()
         failedWanted = set()
         activeCountsByFolder = {}
+        failedCountsByFolder = {}
         removed = []
 
         for mission in missions:
@@ -524,7 +455,7 @@ def run():
             bucket = classify_mission_bucket(status)
 
             if bucket == "completed":
-                if system.tag.exists(activePath):
+                if tagExists(activePath):
                     remove_instance(
                         activePath,
                         logger,
@@ -532,7 +463,7 @@ def run():
                         "moved to Completed"
                     )
                     removed.append((activePath, "moved_to_completed"))
-                if system.tag.exists(failedPath):
+                if tagExists(failedPath):
                     remove_instance(
                         failedPath,
                         logger,
@@ -545,7 +476,7 @@ def run():
                 completedWanted.add(completedPath)
 
             elif bucket == "failed":
-                if system.tag.exists(activePath):
+                if tagExists(activePath):
                     remove_instance(
                         activePath,
                         logger,
@@ -553,7 +484,7 @@ def run():
                         "moved to Failed"
                     )
                     removed.append((activePath, "moved_to_failed"))
-                if system.tag.exists(completedPath):
+                if tagExists(completedPath):
                     remove_instance(
                         completedPath,
                         logger,
@@ -564,9 +495,10 @@ def run():
 
                 targetFolder = FAILED_PATH + "/" + robotFolder
                 failedWanted.add(failedPath)
+                failedCountsByFolder[robotFolder] = failedCountsByFolder.get(robotFolder, 0) + 1
 
             else:
-                if system.tag.exists(completedPath):
+                if tagExists(completedPath):
                     remove_instance(
                         completedPath,
                         logger,
@@ -574,7 +506,7 @@ def run():
                         "moved to Active"
                     )
                     removed.append((completedPath, "moved_to_active"))
-                if system.tag.exists(failedPath):
+                if tagExists(failedPath):
                     remove_instance(
                         failedPath,
                         logger,
@@ -587,27 +519,34 @@ def run():
                 activeWanted.add(activePath)
                 activeCountsByFolder[robotFolder] = activeCountsByFolder.get(robotFolder, 0) + 1
 
-            instancePath = ensure_instance(
-                targetFolder,
-                instanceName,
-                logger,
-                debug
-            )
+            instancePath = targetFolder + "/" + instanceName
+            if not tagExists(instancePath):
+                ensureUdtInstancePath(instancePath, "api_Mission", "a")
+                if debug:
+                    logger.info("Created mission instance: {}".format(instancePath))
 
             write_mission_data(instancePath, mission)
 
-        activeMissionCountWrites = build_active_mission_count_writes(
-            robotMappings,
-            activeCountsByFolder
+        missionCountWrites = (
+            build_robot_mission_count_writes(
+                robotMappings,
+                activeCountsByFolder,
+                "ActiveMissionCount"
+            ) +
+            build_robot_mission_count_writes(
+                robotMappings,
+                failedCountsByFolder,
+                "FailedMissionCount"
+            )
         )
-        if activeMissionCountWrites:
+        if missionCountWrites:
             writeTagValues(
-                [path for path, _ in activeMissionCountWrites],
-                [value for _, value in activeMissionCountWrites]
+                [path for path, _ in missionCountWrites],
+                [value for _, value in missionCountWrites]
             )
 
         # --- Cleanup ACTIVE ---
-        for fullPath, name in browse_instances_recursive(ACTIVE_PATH):
+        for fullPath, name in browseMissionInstances(ACTIVE_PATH):
             if fullPath not in activeWanted:
                 remove_instance(
                     fullPath,
@@ -618,7 +557,7 @@ def run():
                 removed.append((fullPath, "stale_active"))
 
         # --- Cleanup COMPLETED ---
-        for fullPath, name in browse_instances_recursive(COMPLETED_PATH):
+        for fullPath, name in browseMissionInstances(COMPLETED_PATH):
             if fullPath not in completedWanted:
                 remove_instance(
                     fullPath,
@@ -629,7 +568,7 @@ def run():
                 removed.append((fullPath, "stale_completed"))
 
         # --- Cleanup FAILED ---
-        for fullPath, name in browse_instances_recursive(FAILED_PATH):
+        for fullPath, name in browseMissionInstances(FAILED_PATH):
             if fullPath not in failedWanted:
                 remove_instance(
                     fullPath,

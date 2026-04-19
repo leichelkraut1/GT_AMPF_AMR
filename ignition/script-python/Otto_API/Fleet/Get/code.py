@@ -1,9 +1,20 @@
 import json
+from Otto_API.Common.TagHelpers import browseTagResults
+from Otto_API.Common.TagHelpers import getApiBaseUrl
+from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
+from Otto_API.Common.TagHelpers import getMissionLastUpdateTsPath
+from Otto_API.Common.TagHelpers import getMissionMinChargePath
+from Otto_API.Common.TagHelpers import getSystemLastResponsePath
 from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.TagHelpers import deleteTagPath
+from Otto_API.Common.TagHelpers import ensureUdtInstancePath
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
+from Otto_API.Common.TagHelpers import readTagValues
+from Otto_API.Common.TagHelpers import tagExists
+from Otto_API.Common.TagHelpers import writeLastSystemResponse
 from Otto_API.Common.TagHelpers import writeTagValue
 from Otto_API.Common.TagHelpers import writeTagValueAsync
 from Otto_API.Common.TagHelpers import writeTagValues
@@ -20,10 +31,7 @@ from Otto_API.Fleet.ContentSync import sanitizeTagName
 from Otto_API.Fleet.ContentSync import selectMostRecentMap
 from Otto_API.Fleet.FleetSync import buildMissionsUrl
 from Otto_API.Fleet.FleetSync import buildInvalidRobotSyncWrites
-from Otto_API.Fleet.FleetSync import buildRobotIdToPathMap
 from Otto_API.Fleet.FleetSync import buildRobotMetricWrites
-from Otto_API.Fleet.FleetSync import buildRobotIdReadPlan
-from Otto_API.Fleet.FleetSync import buildRobotIdToPathMapFromReads
 from Otto_API.Fleet.FleetSync import groupRecordsByRobot
 from Otto_API.Fleet.FleetSync import invalidateRobotSyncState
 from Otto_API.Fleet.FleetSync import normalizeChargePercentage
@@ -32,14 +40,9 @@ from Otto_API.Fleet.FleetSync import parseJsonResponse
 from Otto_API.Fleet.FleetSync import parseListPayload
 from Otto_API.Fleet.FleetSync import parseMissionResults
 from Otto_API.Fleet.FleetSync import parseServerStatus
-from Otto_API.Fleet.FleetSync import readRobotIdToPathMap
+from Otto_API.Fleet.FleetSync import readRobotInventoryMetadata
 from Otto_API.Fleet.FleetSync import selectDominantSystemState
-from Otto_API.Fleet.RobotReadiness import evaluateRobotReadiness
-
-
-def _jsonHeaders():
-    return jsonHeaders()
-
+from Otto_API.Fleet.RobotReadiness import buildReadinessResultsAndWrites
 
 def _buildSyncResult(ok, level, message, records=None, writes=None, data=None):
     records = list(records or [])
@@ -59,12 +62,13 @@ def _buildSyncResult(ok, level, message, records=None, writes=None, data=None):
 
 
 def _readRobotInventory(robotsBasePath):
-    browseResults = system.tag.browse(robotsBasePath).getResults()
-    robotTags, invalidRobotRows, readPlan = readRobotIdToPathMap(
-        browseResults,
-        robotsBasePath
+    inventory = readRobotInventoryMetadata(robotsBasePath)
+    return (
+        inventory["browse_results"],
+        inventory["robot_path_by_id"],
+        inventory["invalid_robot_rows"],
+        inventory["read_plan"],
     )
-    return browseResults, robotTags, invalidRobotRows, readPlan
 
 
 def _collectInvalidRobotWrites(invalidRobotRows, ottoLogger):
@@ -91,11 +95,11 @@ def getServerStatus():
     """
     Gets Fleet Manager server states.
     """
-    url = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL") + "/system/state/"
+    url = getApiBaseUrl() + "/system/state/"
     ottoLogger = system.util.getLogger("Otto_API_Logger")
 
     try:
-        response = httpGet(url=url, headerValues=_jsonHeaders())
+        response = httpGet(url=url, headerValues=jsonHeaders())
         if response:
             status = parseServerStatus(response)
             writeTagValueAsync("[Otto_FleetManager]System/ServerStatus", status)
@@ -120,7 +124,7 @@ def getMissions(logger, debug, mission_status=None, limit=None):
                 logger.warn("getMissions called with no mission_status")
             return []
 
-        base = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL")
+        base = getApiBaseUrl()
         url = buildMissionsUrl(base, mission_status, limit)
         if isinstance(mission_status, (list, tuple)):
             statusLabel = ",".join([str(x) for x in mission_status])
@@ -134,7 +138,7 @@ def getMissions(logger, debug, mission_status=None, limit=None):
                 )
             )
 
-        response = httpGet(url=url, headerValues=_jsonHeaders())
+        response = httpGet(url=url, headerValues=jsonHeaders())
 
         results = parseMissionResults(response)
 
@@ -162,19 +166,16 @@ def updateRobots():
     Also removes UDT instances that no longer exist in the API response.
     Intended to be run only when a vehicle is added or removed from the Fleet.
     """
-    url = (
-        readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL")
-        + "/robots/?fields=id,hostname,name,serial_number"
-    )
+    url = getApiBaseUrl() + "/robots/?fields=id,hostname,name,serial_number"
     ottoLogger = system.util.getLogger("Otto_API_Logger")
     ottoLogger.info("Otto API - Updating /Robots/ Tags")
 
     try:
-        response = httpGet(url=url, headerValues=_jsonHeaders())
+        response = httpGet(url=url, headerValues=jsonHeaders())
 
         if response:
             ottoLogger.info("Otto API - Updating /Robots/ - Response Received")
-            writeTagValue("[Otto_FleetManager]System/lastResponse", response)
+            writeLastSystemResponse(response)
 
             try:
                 data = parseJsonResponse(response)
@@ -194,11 +195,10 @@ def updateRobots():
 
                 apiRobots.append(instanceName)
                 instancePath = basePath + "/" + instanceName
-                exists = system.tag.exists(instancePath)
+                exists = tagExists(instancePath)
 
                 if not exists:
-                    tagDef = buildUdtInstanceDef(instanceName, "api_Robot")
-                    system.tag.configure(basePath, [tagDef], "a")
+                    ensureUdtInstancePath(instancePath, "api_Robot", "a")
                     ottoLogger.info("Otto API - Created new robot tag instance: " + instanceName)
                 else:
                     ottoLogger.info("Otto API - Updating existing robot tag instance: " + instanceName)
@@ -207,12 +207,12 @@ def updateRobots():
                 writes.extend(tagValues.items())
 
             try:
-                existingRobots = listUdtInstanceNames(system.tag.browse(basePath).getResults())
+                existingRobots = listUdtInstanceNames(browseTagResults(basePath))
 
                 for robotName in existingRobots:
                     if robotName not in apiRobots:
                         instancePath = basePath + "/" + robotName
-                        system.tag.deleteTags([instancePath])
+                        deleteTagPath(instancePath)
                         ottoLogger.info("Otto API - Removed stale robot tag instance: " + robotName)
 
             except Exception as e:
@@ -247,12 +247,12 @@ def updateSystemStates():
     """
     ottoLogger = system.util.getLogger("Otto_API_Logger")
 
-    baseUrl = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL")
+    baseUrl = getApiBaseUrl()
     url = baseUrl + "/robots/states/?fields=%2A"
     robotsBasePath = "[Otto_FleetManager]Robots"
 
     try:
-        response = httpGet(url=url, headerValues=_jsonHeaders())
+        response = httpGet(url=url, headerValues=jsonHeaders())
 
         if not response:
             ottoLogger.error(
@@ -330,12 +330,12 @@ def updateChargeLevels():
     Updates the .ChargeLevel tag for all vehicles in [Otto_FleetManager]Robots
     by retrieving battery percentages from the API and matching by robot ID.
     """
-    baseUrl = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL")
+    baseUrl = getApiBaseUrl()
     url = baseUrl + "/robots/batteries/?fields=percentage,robot"
     ottoLogger = system.util.getLogger("Otto_API_Logger")
 
     try:
-        response = httpGet(url=url, headerValues=_jsonHeaders())
+        response = httpGet(url=url, headerValues=jsonHeaders())
         if not response:
             ottoLogger.error("Otto API - HTTP GET failed for /robots/batteries/")
             return _buildSyncResult(False, "error", "HTTP GET failed for /robots/batteries/")
@@ -386,12 +386,12 @@ def updateActivityStates():
     Updates the .ActivityState tag for all vehicles in [Otto_FleetManager]Robots
     by retrieving activity states from the API and matching by robot ID.
     """
-    baseUrl = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL")
+    baseUrl = getApiBaseUrl()
     url = baseUrl + "/robots/activities/?fields=activity,robot&offset=0&limit=100"
     ottoLogger = system.util.getLogger("Otto_API_Logger")
 
     try:
-        response = httpGet(url=url, headerValues=_jsonHeaders())
+        response = httpGet(url=url, headerValues=jsonHeaders())
         if not response:
             ottoLogger.error("Otto API - HTTP GET failed for /robots/activities/")
             return _buildSyncResult(False, "error", "HTTP GET failed for /robots/activities/")
@@ -448,17 +448,17 @@ def updateRobotOperationalState():
 
     try:
         minCharge = readRequiredTagValue(
-            "[Otto_FleetManager]Missions/minChargeLevelForMissioning",
+            getMissionMinChargePath(),
             "Minimum charge threshold"
         )
-        missionLastUpdateTs = readRequiredTagValue(
-            "[Otto_FleetManager]Missions/LastUpdateTS",
-            "Mission last update timestamp",
+        missionLastUpdateTs = readOptionalTagValue(
+            getMissionLastUpdateTsPath(),
+            None,
             allowEmptyString=False
         )
-        missionLastUpdateSuccess = bool(readRequiredTagValue(
-            "[Otto_FleetManager]Missions/LastUpdateSuccess",
-            "Mission last update success"
+        missionLastUpdateSuccess = bool(readOptionalTagValue(
+            getMissionLastUpdateSuccessPath(),
+            False
         ))
     except ValueError as e:
         message = str(e)
@@ -480,26 +480,27 @@ def updateRobotOperationalState():
                 robotPath + "/ActivityState",
                 robotPath + "/ChargeLevel",
                 robotPath + "/ActiveMissionCount",
+                robotPath + "/FailedMissionCount",
             ])
 
         currentValues = {}
         if currentValuePaths:
-            readResults = system.tag.readBlocking(currentValuePaths)
+            readResults = readTagValues(currentValuePaths)
             for path, qualifiedValue in zip(currentValuePaths, readResults):
                 currentValues[path] = qualifiedValue.value if qualifiedValue.quality.isGood() else None
 
-        baseUrl = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL")
+        baseUrl = getApiBaseUrl()
         systemStateResponse = httpGet(
             url=baseUrl + "/robots/states/?fields=%2A",
-            headerValues=_jsonHeaders()
+            headerValues=jsonHeaders()
         )
         activityResponse = httpGet(
             url=baseUrl + "/robots/activities/?fields=activity,robot&offset=0&limit=100",
-            headerValues=_jsonHeaders()
+            headerValues=jsonHeaders()
         )
         batteryResponse = httpGet(
             url=baseUrl + "/robots/batteries/?fields=percentage,robot",
-            headerValues=_jsonHeaders()
+            headerValues=jsonHeaders()
         )
 
         if not systemStateResponse:
@@ -534,7 +535,9 @@ def updateRobotOperationalState():
         for invalidPath, invalidValue in invalidated:
             writesByPath[invalidPath] = invalidValue
 
+        robotSnapshots = []
         for robotId, robotPath in robotTags.items():
+            robotName = str(robotPath).rsplit("/", 1)[1]
             dominant = selectDominantSystemState(statesByRobot.get(robotId, []))
 
             systemStatePath = robotPath + "/SystemState"
@@ -544,7 +547,7 @@ def updateRobotOperationalState():
             activityPath = robotPath + "/ActivityState"
             chargePath = robotPath + "/ChargeLevel"
             activeMissionCountPath = robotPath + "/ActiveMissionCount"
-            availablePath = robotPath + "/AvailableForWork"
+            failedMissionCountPath = robotPath + "/FailedMissionCount"
 
             effectiveSystemState = currentValues.get(systemStatePath)
             effectiveSubSystemState = currentValues.get(subSystemPath)
@@ -553,6 +556,7 @@ def updateRobotOperationalState():
             effectiveActivity = currentValues.get(activityPath)
             effectiveCharge = currentValues.get(chargePath)
             effectiveActiveMissionCount = currentValues.get(activeMissionCountPath)
+            effectiveFailedMissionCount = currentValues.get(failedMissionCountPath)
 
             if dominant is not None:
                 effectiveSystemState = dominant.get("system_state")
@@ -572,17 +576,27 @@ def updateRobotOperationalState():
                 effectiveCharge = chargeByRobot.get(robotId)
                 writesByPath[chargePath] = effectiveCharge
 
-            readiness = evaluateRobotReadiness(
-                robotId,
-                effectiveSystemState,
-                effectiveActivity,
-                effectiveCharge,
-                minCharge,
-                effectiveActiveMissionCount,
-                missionLastUpdateTs,
-                missionLastUpdateSuccess
-            )
-            writesByPath[availablePath] = readiness["available"]
+            robotSnapshots.append({
+                "robot_name": robotName,
+                "robot_path": robotPath,
+                "system_state": effectiveSystemState,
+                "activity_state": effectiveActivity,
+                "charge_level": effectiveCharge,
+                "active_mission_count": effectiveActiveMissionCount,
+                "failed_mission_count": effectiveFailedMissionCount,
+            })
+
+        readinessBatch = buildReadinessResultsAndWrites(
+            robotSnapshots,
+            minCharge,
+            missionLastUpdateTs,
+            missionLastUpdateSuccess
+        )
+        for path, value in zip(
+            readinessBatch["write_paths"],
+            readinessBatch["write_values"]
+        ):
+            writesByPath[path] = value
 
         if writesByPath:
             writeTagValues(
@@ -613,14 +627,14 @@ def updatePlaces():
     Also removes UDT instances that no longer exist in the API response.
     Ignores TEMPLATE place types entirely.
     """
-    url = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL") + "/places/"
+    url = getApiBaseUrl() + "/places/"
     ottoLogger = system.util.getLogger("Otto_API_Logger")
 
     ottoLogger.info("Otto API - Updating /Places/")
 
     try:
-        response = httpGet(url=url, headerValues=_jsonHeaders())
-        writeTagValue("[Otto_FleetManager]System/lastResponse", response)
+        response = httpGet(url=url, headerValues=jsonHeaders())
+        writeLastSystemResponse(response)
 
         if response:
             try:
@@ -644,11 +658,10 @@ def updatePlaces():
                 apiPlaces.append(instanceName)
                 instancePath = basePath + "/" + instanceName
 
-                exists = system.tag.exists(instancePath)
+                exists = tagExists(instancePath)
 
                 if not exists:
-                    tagDef = buildUdtInstanceDef(instanceName, "api_Place")
-                    system.tag.configure(basePath, [tagDef], "a")
+                    ensureUdtInstancePath(instancePath, "api_Place", "a")
                     ottoLogger.info("Otto API - Created new place tag instance: " + instanceName)
                 else:
                     ottoLogger.info("Otto API - Updating existing place tag instance: " + instanceName)
@@ -682,12 +695,12 @@ def updatePlaces():
                     writes.extend(recipeValueWrites.items())
 
             try:
-                existingPlaces = listUdtInstanceNames(system.tag.browse(basePath).getResults())
+                existingPlaces = listUdtInstanceNames(browseTagResults(basePath))
 
                 for placeName in existingPlaces:
                     if placeName not in apiPlaces:
                         instancePath = basePath + "/" + placeName
-                        system.tag.deleteTags([instancePath])
+                        deleteTagPath(instancePath)
                         ottoLogger.info("Otto API - Removed stale place tag instance: " + placeName)
 
             except Exception as e:
@@ -716,13 +729,13 @@ def updateMaps():
     Also determines the most recently modified map and stores its ID in ActiveMapID.
     Cleanup removes old map UDT instances but ignores the ActiveMapID memory tag.
     """
-    url = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL") + "/maps/?offset=0&tagged=false"
+    url = getApiBaseUrl() + "/maps/?offset=0&tagged=false"
     ottoLogger = system.util.getLogger("Otto_API_Logger")
 
     ottoLogger.info("Otto API - Updating /Maps/")
 
     try:
-        response = httpGet(url=url, headerValues=_jsonHeaders())
+        response = httpGet(url=url, headerValues=jsonHeaders())
         writeTagValue("[Otto_FleetManager]Maps/updateResponse", response)
 
         if response:
@@ -755,11 +768,10 @@ def updateMaps():
                 apiMaps.append(instanceName)
                 instancePath = basePath + "/" + instanceName
 
-                exists = system.tag.exists(instancePath)
+                exists = tagExists(instancePath)
 
                 if not exists:
-                    tagDef = buildUdtInstanceDef(instanceName, "api_Map")
-                    system.tag.configure(basePath, [tagDef], "a")
+                    ensureUdtInstancePath(instancePath, "api_Map", "a")
                     ottoLogger.info("Otto API - Created new map tag instance: " + instanceName)
                 else:
                     ottoLogger.info("Otto API - Updating existing map tag instance: " + instanceName)
@@ -768,7 +780,7 @@ def updateMaps():
                 writes.extend(tagDict.items())
 
             try:
-                existingMaps = listUdtInstanceNames(system.tag.browse(basePath).getResults())
+                existingMaps = listUdtInstanceNames(browseTagResults(basePath))
 
                 for mapName in existingMaps:
                     if mapName not in apiMaps:
@@ -776,7 +788,7 @@ def updateMaps():
                             continue
 
                         instancePath = basePath + "/" + mapName
-                        system.tag.deleteTags([instancePath])
+                        deleteTagPath(instancePath)
                         ottoLogger.info("Otto API - Removed stale map tag instance: " + mapName)
 
             except Exception as e:
@@ -806,19 +818,16 @@ def updateWorkflows():
     and creates tags in /Workflows/ for each one.
     The full mission JSON (including tasks) is stored in jsonString for later reconstruction.
     """
-    baseUrl = (
-        readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL")
-        + "/maps/mission_templates/?offset=0&map="
-    )
+    baseUrl = getApiBaseUrl() + "/maps/mission_templates/?offset=0&map="
     mapUuid = readRequiredTagValue("[Otto_FleetManager]Maps/ActiveMapID", "Active map ID")
     url = baseUrl + str(mapUuid)
-    responseTag = "[Otto_FleetManager]System/lastResponse"
+    responseTag = getSystemLastResponsePath()
     basePath    = "[Otto_FleetManager]Workflows"
     ottoLogger = system.util.getLogger("Otto_API_Logger")
 
     ottoLogger.info("Otto API - Updating /Workflows/")
     try:
-        response = httpGet(url=url, headerValues=_jsonHeaders())
+        response = httpGet(url=url, headerValues=jsonHeaders())
         writeTagValueAsync(responseTag, response)
         if response:
             try:
@@ -836,11 +845,10 @@ def updateWorkflows():
                     continue
                 instancePath = basePath + "/" + instanceName
 
-                exists = system.tag.exists(instancePath)
+                exists = tagExists(instancePath)
 
                 if not exists:
-                    tagDef = buildUdtInstanceDef(instanceName, "api_Mission")
-                    system.tag.configure(basePath, [tagDef], "a")
+                    ensureUdtInstancePath(instancePath, "api_Mission", "a")
                     ottoLogger.info("Otto API - Created Workflow: " + instanceName)
                 else:
                     ottoLogger.info("Otto API - Updating Workflow: " + instanceName)
@@ -852,11 +860,11 @@ def updateWorkflows():
                 writes.extend(missionDict.items())
 
             try:
-                existingTemplates = listUdtInstanceNames(system.tag.browse(basePath).getResults())
+                existingTemplates = listUdtInstanceNames(browseTagResults(basePath))
 
                 for tmplName in existingTemplates:
                     if tmplName not in apiTemplates:
-                        system.tag.deleteTags([basePath + "/" + tmplName])
+                        deleteTagPath(basePath + "/" + tmplName)
                         ottoLogger.info("Otto API - Removed stale workflow: " + tmplName)
 
             except Exception as e:

@@ -2,6 +2,8 @@ import calendar
 import json
 import re
 
+from Otto_API.Common.TagHelpers import browseTagResults
+from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Common.TagHelpers import writeTagValues
 
 
@@ -294,7 +296,7 @@ def readRobotIdToPathMap(robotRows, basePath):
     if not readPlan:
         return {}, [], []
 
-    qualifiedValues = system.tag.readBlocking([
+    qualifiedValues = readTagValues([
         row["id_path"] for row in readPlan
     ])
     robotIdToPath, invalidRobotRows = buildRobotIdToPathMapFromReads(
@@ -302,6 +304,59 @@ def readRobotIdToPathMap(robotRows, basePath):
         qualifiedValues
     )
     return robotIdToPath, invalidRobotRows, readPlan
+
+
+def readRobotInventoryMetadata(basePath):
+    """
+    Read shared robot inventory metadata from the local robot tag tree.
+    Returns browse rows, ID/path mappings, invalid rows, and name lookups that
+    are useful across both fleet sync and mission sorting.
+    """
+    browseResults = browseTagResults(basePath)
+    readPlan = buildRobotIdReadPlan(browseResults, basePath)
+    qualifiedValues = readTagValues([
+        row["id_path"] for row in readPlan
+    ])
+    robotIdToPath, invalidRobotRows = buildRobotIdToPathMapFromReads(
+        readPlan,
+        qualifiedValues
+    )
+
+    robotNameByLower = {}
+    robotNameById = {}
+
+    for row in list(browseResults or []):
+        if str(row.get("tagType")) != "UdtInstance":
+            continue
+        robotName = str(row.get("name"))
+        robotNameByLower[robotName.strip().lower()] = robotName
+
+    for planRow, qualifiedValue in zip(
+        list(readPlan or []),
+        list(qualifiedValues or [])
+    ):
+        quality = getattr(qualifiedValue, "quality", None)
+        if quality is None or not quality.isGood():
+            continue
+
+        robotId = qualifiedValue.value
+        if robotId is None:
+            continue
+
+        normalizedId = str(robotId).strip().lower()
+        if not normalizedId:
+            continue
+
+        robotNameById[normalizedId] = planRow["robot_name"]
+
+    return {
+        "browse_results": browseResults,
+        "robot_path_by_id": robotIdToPath,
+        "invalid_robot_rows": invalidRobotRows,
+        "read_plan": readPlan,
+        "robot_name_by_lower": robotNameByLower,
+        "robot_name_by_id": robotNameById,
+    }
 
 
 def invalidateRobotSyncState(robotPath):
@@ -329,7 +384,9 @@ def buildInvalidRobotSyncWrites(robotPath):
         robotPath + "/ActivityState",
         robotPath + "/ChargeLevel",
         robotPath + "/ActiveMissionCount",
+        robotPath + "/FailedMissionCount",
         robotPath + "/AvailableForWork",
+        robotPath + "/NotReadyReason",
     ]
     values = [
         None,
@@ -339,7 +396,9 @@ def buildInvalidRobotSyncWrites(robotPath):
         None,
         None,
         0,
+        0,
         False,
+        "invalid_robot_id",
     ]
     return list(zip(paths, values))
 
