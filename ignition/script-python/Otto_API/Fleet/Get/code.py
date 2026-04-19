@@ -198,7 +198,7 @@ def updateRobots():
                 exists = tagExists(instancePath)
 
                 if not exists:
-                    ensureUdtInstancePath(instancePath, "api_Robot", "a")
+                    ensureUdtInstancePath(instancePath, "api_Robot")
                     ottoLogger.info("Otto API - Created new robot tag instance: " + instanceName)
                 else:
                     ottoLogger.info("Otto API - Updating existing robot tag instance: " + instanceName)
@@ -661,7 +661,7 @@ def updatePlaces():
                 exists = tagExists(instancePath)
 
                 if not exists:
-                    ensureUdtInstancePath(instancePath, "api_Place", "a")
+                    ensureUdtInstancePath(instancePath, "api_Place")
                     ottoLogger.info("Otto API - Created new place tag instance: " + instanceName)
                 else:
                     ottoLogger.info("Otto API - Updating existing place tag instance: " + instanceName)
@@ -771,7 +771,7 @@ def updateMaps():
                 exists = tagExists(instancePath)
 
                 if not exists:
-                    ensureUdtInstancePath(instancePath, "api_Map", "a")
+                    ensureUdtInstancePath(instancePath, "api_Map")
                     ottoLogger.info("Otto API - Created new map tag instance: " + instanceName)
                 else:
                     ottoLogger.info("Otto API - Updating existing map tag instance: " + instanceName)
@@ -848,7 +848,7 @@ def updateWorkflows():
                 exists = tagExists(instancePath)
 
                 if not exists:
-                    ensureUdtInstancePath(instancePath, "api_Mission", "a")
+                    ensureUdtInstancePath(instancePath, "api_Mission")
                     ottoLogger.info("Otto API - Created Workflow: " + instanceName)
                 else:
                     ottoLogger.info("Otto API - Updating Workflow: " + instanceName)

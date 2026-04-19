@@ -44,23 +44,23 @@ def ensureMissionTriggerTags(workflowIds=None, robotIds=None):
     for workflowId in workflowIds:
         for robotId in robotIds:
             triggerPath = buildCreateMissionTriggerPath(createBase, workflowId, robotId)
-            ensureMemoryTag(triggerPath, "Boolean", False, "a")
+            ensureMemoryTag(triggerPath, "Boolean", False)
             createdPaths.append(triggerPath)
 
     for robotId in robotIds:
         finalizePath = buildMissionTriggerPath(finalizeBase, "finalize_RV" + str(robotId))
         cancelPath = buildMissionTriggerPath(cancelBase, "cancel_RV" + str(robotId))
-        ensureMemoryTag(finalizePath, "Boolean", False, "a")
-        ensureMemoryTag(cancelPath, "Boolean", False, "a")
+        ensureMemoryTag(finalizePath, "Boolean", False)
+        ensureMemoryTag(cancelPath, "Boolean", False)
         createdPaths.append(finalizePath)
         createdPaths.append(cancelPath)
 
     cancelAllPath = buildMissionTriggerPath(cancelBase, "cancelAllActiveMissions")
     cancelAllFailedPath = buildMissionTriggerPath(cancelBase, "cancelAllFailedMissions")
     updateTriggersPath = buildMissionTriggerPath(systemUpdatesBase, "updateTriggers")
-    ensureMemoryTag(cancelAllPath, "Boolean", False, "a")
-    ensureMemoryTag(cancelAllFailedPath, "Boolean", False, "a")
-    ensureMemoryTag(updateTriggersPath, "Boolean", False, "a")
+    ensureMemoryTag(cancelAllPath, "Boolean", False)
+    ensureMemoryTag(cancelAllFailedPath, "Boolean", False)
+    ensureMemoryTag(updateTriggersPath, "Boolean", False)
     createdPaths.append(cancelAllPath)
     createdPaths.append(cancelAllFailedPath)
     createdPaths.append(updateTriggersPath)

@@ -186,7 +186,7 @@ def readOptionalTagValue(tagPath, defaultValue=None, allowEmptyString=False):
     return value
 
 
-def configureTagDefinitions(parentPath, tagDefs, collisionPolicy="a"):
+def configureTagDefinitions(parentPath, tagDefs, collisionPolicy="i"):
     """
     Configure one or more tag definitions under the given parent path.
     """
@@ -215,11 +215,11 @@ def ensureFolder(path):
     return configureTagDefinitions(
         parentPath,
         [{"name": name, "tagType": "Folder"}],
-        "a"
+        "i"
     )
 
 
-def ensureUdtInstance(parentPath, name, typeId, collisionPolicy="a"):
+def ensureUdtInstance(parentPath, name, typeId, collisionPolicy="i"):
     """
     Ensure a UDT instance exists under the given parent folder.
     """
@@ -235,7 +235,7 @@ def ensureUdtInstance(parentPath, name, typeId, collisionPolicy="a"):
     )
 
 
-def ensureUdtInstancePath(path, typeId, collisionPolicy="a"):
+def ensureUdtInstancePath(path, typeId, collisionPolicy="i"):
     """
     Ensure a UDT instance exists at the given full path.
     """
@@ -243,7 +243,7 @@ def ensureUdtInstancePath(path, typeId, collisionPolicy="a"):
     return ensureUdtInstance(parentPath, name, typeId, collisionPolicy)
 
 
-def ensureMemoryTag(path, dataType, initialValue=None, collisionPolicy="a"):
+def ensureMemoryTag(path, dataType, initialValue=None, collisionPolicy="i"):
     """
     Ensure a memory-backed atomic tag exists at the given full path.
     """

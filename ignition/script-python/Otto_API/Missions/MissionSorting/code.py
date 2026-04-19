@@ -538,7 +538,7 @@ def run():
 
             instancePath = targetFolder + "/" + instanceName
             if not tagExists(instancePath):
-                ensureUdtInstancePath(instancePath, "api_Mission", "a")
+                ensureUdtInstancePath(instancePath, "api_Mission")
                 if debug:
                     logger.info("Created mission instance: {}".format(instancePath))
 
