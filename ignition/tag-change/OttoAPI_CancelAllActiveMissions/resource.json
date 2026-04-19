@@ -12,10 +12,10 @@
     ],
     "lastModificationSignature": "7445d0ce35ba6d8cedd1b8ecfd74e334b2db6f90c5db2f8d5af49093ac4335a6",
     "paths": [
-      "[Otto_FleetManager]Triggers/Missions/Cancel/cancelAllActiveMissions"
+      "[Otto_FleetManager]Fleet/Triggers/Missions/Cancel/cancelAllActiveMissions"
     ],
     "lastModification": {
-      "actor": "Codex",
+      "actor": "Luke",
       "timestamp": "2026-04-19T00:00:00Z"
     },
     "enabled": true

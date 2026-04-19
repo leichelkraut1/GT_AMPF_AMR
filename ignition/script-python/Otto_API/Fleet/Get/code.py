@@ -1,6 +1,11 @@
 import json
 from Otto_API.Common.TagHelpers import browseTagResults
 from Otto_API.Common.TagHelpers import getApiBaseUrl
+from Otto_API.Common.TagHelpers import getFleetMapsPath
+from Otto_API.Common.TagHelpers import getFleetPlacesPath
+from Otto_API.Common.TagHelpers import getFleetRobotsPath
+from Otto_API.Common.TagHelpers import getFleetSystemPath
+from Otto_API.Common.TagHelpers import getFleetWorkflowsPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateTsPath
 from Otto_API.Common.TagHelpers import getMissionMinChargePath
@@ -43,6 +48,12 @@ from Otto_API.Fleet.FleetSync import parseServerStatus
 from Otto_API.Fleet.FleetSync import readRobotInventoryMetadata
 from Otto_API.Fleet.FleetSync import selectDominantSystemState
 from Otto_API.Fleet.RobotReadiness import buildReadinessResultsAndWrites
+
+SYSTEM_BASE_PATH = getFleetSystemPath()
+ROBOTS_BASE_PATH = getFleetRobotsPath()
+PLACES_BASE_PATH = getFleetPlacesPath()
+MAPS_BASE_PATH = getFleetMapsPath()
+WORKFLOWS_BASE_PATH = getFleetWorkflowsPath()
 
 def _buildSyncResult(ok, level, message, records=None, writes=None, data=None):
     records = list(records or [])
@@ -102,11 +113,11 @@ def getServerStatus():
         response = httpGet(url=url, headerValues=jsonHeaders())
         if response:
             status = parseServerStatus(response)
-            writeTagValueAsync("[Otto_FleetManager]System/ServerStatus", status)
+            writeTagValueAsync(SYSTEM_BASE_PATH + "/ServerStatus", status)
             return _buildSyncResult(True, "info", "Server status updated", data=status)
 
         ottoLogger.warn("Otto Fleet Manager Did Not Respond to Status Update Request")
-        writeTagValueAsync("[Otto_FleetManager]System/ServerStatus", "ResponseError")
+        writeTagValueAsync(SYSTEM_BASE_PATH + "/ServerStatus", "ResponseError")
         return _buildSyncResult(False, "warn", "Otto Fleet Manager did not respond")
     except Exception as e:
         ottoLogger.error("Otto API - Status Update Failed - " + str(e))
@@ -162,7 +173,7 @@ def getMissions(logger, debug, mission_status=None, limit=None):
 
 def updateRobots():
     """
-    Gets vehicle information from Otto and creates tags for each vehicle in [Otto_FleetManager]Robots.
+    Gets vehicle information from Otto and creates tags for each vehicle in [Otto_FleetManager]Fleet/Robots.
     Also removes UDT instances that no longer exist in the API response.
     Intended to be run only when a vehicle is added or removed from the Fleet.
     """
@@ -183,7 +194,7 @@ def updateRobots():
                 ottoLogger.error("Otto API - JSON decode error: {}".format(jsonErr))
                 return _buildSyncResult(False, "error", "Robot JSON decode error - {}".format(jsonErr))
 
-            basePath = "[Otto_FleetManager]Robots"
+            basePath = ROBOTS_BASE_PATH
             robotResults = data.get("results", [])
             apiRobots = []
             writes = []
@@ -249,7 +260,7 @@ def updateSystemStates():
 
     baseUrl = getApiBaseUrl()
     url = baseUrl + "/robots/states/?fields=%2A"
-    robotsBasePath = "[Otto_FleetManager]Robots"
+    robotsBasePath = ROBOTS_BASE_PATH
 
     try:
         response = httpGet(url=url, headerValues=jsonHeaders())
@@ -327,7 +338,7 @@ def updateSystemStates():
 
 def updateChargeLevels():
     """
-    Updates the .ChargeLevel tag for all vehicles in [Otto_FleetManager]Robots
+    Updates the .ChargeLevel tag for all vehicles in [Otto_FleetManager]Fleet/Robots
     by retrieving battery percentages from the API and matching by robot ID.
     """
     baseUrl = getApiBaseUrl()
@@ -341,7 +352,7 @@ def updateChargeLevels():
             return _buildSyncResult(False, "error", "HTTP GET failed for /robots/batteries/")
 
         batteryData = json.loads(response)
-        basePath = "[Otto_FleetManager]Robots"
+        basePath = ROBOTS_BASE_PATH
         batteryResults = batteryData.get("results", [])
 
         _, robotTags, invalidRobotRows, _ = _readRobotInventory(basePath)
@@ -383,7 +394,7 @@ def updateChargeLevels():
 
 def updateActivityStates():
     """
-    Updates the .ActivityState tag for all vehicles in [Otto_FleetManager]Robots
+    Updates the .ActivityState tag for all vehicles in [Otto_FleetManager]Fleet/Robots
     by retrieving activity states from the API and matching by robot ID.
     """
     baseUrl = getApiBaseUrl()
@@ -397,7 +408,7 @@ def updateActivityStates():
             return _buildSyncResult(False, "error", "HTTP GET failed for /robots/activities/")
 
         activityData = json.loads(response)
-        basePath = "[Otto_FleetManager]Robots"
+        basePath = ROBOTS_BASE_PATH
         activityResults = activityData.get("results", [])
 
         _, robotTags, invalidRobotRows, _ = _readRobotInventory(basePath)
@@ -444,7 +455,7 @@ def updateRobotOperationalState():
     system state, activity state, charge level, and AvailableForWork.
     """
     ottoLogger = system.util.getLogger("Otto_API_Logger")
-    robotsBasePath = "[Otto_FleetManager]Robots"
+    robotsBasePath = ROBOTS_BASE_PATH
 
     try:
         minCharge = readRequiredTagValue(
@@ -623,7 +634,7 @@ def updateRobotOperationalState():
 
 def updatePlaces():
     """
-    Gets endpoint information from Otto and creates tags for each endpoint in [Otto_FleetManager]Places.
+    Gets endpoint information from Otto and creates tags for each endpoint in [Otto_FleetManager]Fleet/Places.
     Also removes UDT instances that no longer exist in the API response.
     Ignores TEMPLATE place types entirely.
     """
@@ -643,9 +654,9 @@ def updatePlaces():
                 ottoLogger.error("Otto API - JSON decode error: {}".format(jsonErr))
                 return _buildSyncResult(False, "error", "Places JSON decode error - {}".format(jsonErr))
 
-            writeTagValueAsync("[Otto_FleetManager]Places/jsonString", response)
+            writeTagValueAsync(PLACES_BASE_PATH + "/jsonString", response)
 
-            basePath = "[Otto_FleetManager]Places"
+            basePath = PLACES_BASE_PATH
             apiPlaces = []
             writes = []
 
@@ -725,7 +736,7 @@ def updatePlaces():
 
 def updateMaps():
     """
-    Gets Map data from Otto and creates tags in [Otto_FleetManager]Maps/ for each map instance.
+    Gets Map data from Otto and creates tags in [Otto_FleetManager]Fleet/Maps/ for each map instance.
     Also determines the most recently modified map and stores its ID in ActiveMapID.
     Cleanup removes old map UDT instances but ignores the ActiveMapID memory tag.
     """
@@ -736,7 +747,7 @@ def updateMaps():
 
     try:
         response = httpGet(url=url, headerValues=jsonHeaders())
-        writeTagValue("[Otto_FleetManager]Maps/updateResponse", response)
+        writeTagValue(MAPS_BASE_PATH + "/updateResponse", response)
 
         if response:
             try:
@@ -745,9 +756,9 @@ def updateMaps():
                 ottoLogger.error("Otto API - JSON decode error: {}".format(jsonErr))
                 return _buildSyncResult(False, "error", "Maps JSON decode error - {}".format(jsonErr))
 
-            writeTagValueAsync("[Otto_FleetManager]Maps/jsonString", response)
+            writeTagValueAsync(MAPS_BASE_PATH + "/jsonString", response)
 
-            basePath = "[Otto_FleetManager]Maps"
+            basePath = MAPS_BASE_PATH
             activeMapTag = basePath + "/ActiveMapID"
             apiMaps = []
             writes = []
@@ -819,10 +830,10 @@ def updateWorkflows():
     The full mission JSON (including tasks) is stored in jsonString for later reconstruction.
     """
     baseUrl = getApiBaseUrl() + "/maps/mission_templates/?offset=0&map="
-    mapUuid = readRequiredTagValue("[Otto_FleetManager]Maps/ActiveMapID", "Active map ID")
+    mapUuid = readRequiredTagValue(MAPS_BASE_PATH + "/ActiveMapID", "Active map ID")
     url = baseUrl + str(mapUuid)
     responseTag = getSystemLastResponsePath()
-    basePath    = "[Otto_FleetManager]Workflows"
+    basePath    = WORKFLOWS_BASE_PATH
     ottoLogger = system.util.getLogger("Otto_API_Logger")
 
     ottoLogger.info("Otto API - Updating /Workflows/")

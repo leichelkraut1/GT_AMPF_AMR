@@ -12,7 +12,7 @@
     ],
     "lastModificationSignature": "e382c5c6de5c1610590821328533390f3b2ff162dbbc57ac670794f17876a3ad",
     "paths": [
-      "[Otto_FleetManager]Triggers/Missions/Create/create_WF3_RV4"
+      "[Otto_FleetManager]Fleet/Triggers/Missions/Create/create_WF3_RV4"
     ],
     "lastModification": {
       "actor": "FAS",

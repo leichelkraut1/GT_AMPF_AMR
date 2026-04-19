@@ -14,7 +14,7 @@
     ],
     "lastModificationSignature": "b1d265b76518bee8979c3ca32db68fcbef52611a2dc6f8d0a0a9b7225ce0b4ff",
     "paths": [
-      "[Otto_FleetManager]Triggers/SystemUpdates/updateWorkflows"
+      "[Otto_FleetManager]Fleet/Triggers/SystemUpdates/updateWorkflows"
     ],
     "lastModification": {
       "actor": "FAS",

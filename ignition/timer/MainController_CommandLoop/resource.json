@@ -8,13 +8,13 @@
   ],
   "attributes": {
     "sharedThread": true,
-    "delay": 1000,
+    "delay": 2000,
     "lastModificationSignature": "0000000000000000000000000000000000000000000000000000000000000000",
     "fixedDelay": true,
     "lastModification": {
-      "actor": "Codex",
+      "actor": "Luke",
       "timestamp": "2026-04-17T21:00:00Z"
     },
-    "enabled": false
+    "enabled": true
   }
 }

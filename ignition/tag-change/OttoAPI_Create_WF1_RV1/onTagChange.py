@@ -1,9 +1,9 @@
 def onTagChange(initialChange, newValue, previousValue, event, executionCount):
 	"""Handle Ignition tag-change event for this resource."""
 	if newValue.value == True:
-		system.tag.writeAsync("[Otto_FleetManager]Triggers/Missions/Create/create_WF1_RV1", False)
+		system.tag.writeAsync("[Otto_FleetManager]Fleet/Triggers/Missions/Create/create_WF1_RV1", False)
 		Otto_API.Missions.Post.createMission(
-			templateTagPath="[Otto_FleetManager]Workflows/WF1_PrimusService/jsonString",
-			robotTagPath="[Otto_FleetManager]Robots/AMPF_AMR_RV1/ID",
+			templateTagPath="[Otto_FleetManager]Fleet/Workflows/WF1_PrimusService/jsonString",
+			robotTagPath="[Otto_FleetManager]Fleet/Robots/AMPF_AMR_RV1/ID",
 			missionName="Service Primus with RV1"
 		)

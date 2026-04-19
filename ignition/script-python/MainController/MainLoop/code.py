@@ -1,24 +1,82 @@
+import time
+
 from MainController import CommandCalls
+from MainController import CommandHelpers
+from MainController.WorkflowConfig import ROBOT_NAMES
 
 
-PILOT_CREATE_WF1_RV1 = {
-    "name": "Create_WF1_RV1",
-    "command_group_path": "[Otto_FleetManager]Commands/Missions",
-    "command_path": "[Otto_FleetManager]Commands/Missions/Create_WF1_RV1",
-    "command_type": "create_mission",
-    "template_tag_path": "[Otto_FleetManager]Workflows/WF1_PrimusService/jsonString",
-    "robot_id_tag_path": "[Otto_FleetManager]Robots/AMPF_AMR_RV1/ID",
-    "robot_name": "AMPF_AMR_RV1",
-    "mission_name": "Service Primus with RV1",
-    "retry_delay_ms": 5000,
-    "max_attempts": 3,
-}
-
-
-def runPilotCreateWF1RV1(nowEpochMs=None, uuidFactory=None, executeMission=None):
-    return CommandCalls.runConfiguredCommand(
-        PILOT_CREATE_WF1_RV1,
+def runRobotWorkflowCycle(
+    robotName,
+    reservedWorkflows=None,
+    nowEpochMs=None,
+    createMission=None,
+    finalizeMission=None
+):
+    return CommandCalls.runRobotWorkflowCycle(
+        robotName,
+        reservedWorkflows=reservedWorkflows,
         nowEpochMs=nowEpochMs,
-        uuidFactory=uuidFactory,
-        executeMission=executeMission,
+        createMission=createMission,
+        finalizeMission=finalizeMission,
     )
+
+
+def runAllRobotWorkflowCycles(nowEpochMs=None, createMission=None, finalizeMission=None):
+    return CommandCalls.runAllRobotWorkflowCycles(
+        robotNames=ROBOT_NAMES,
+        nowEpochMs=nowEpochMs,
+        createMission=createMission,
+        finalizeMission=finalizeMission,
+    )
+
+
+def runMainControllerCycle(nowEpochMs=None, createMission=None, finalizeMission=None):
+    if nowEpochMs is None:
+        nowEpochMs = int(time.time() * 1000)
+
+    CommandHelpers.ensureRuntimeTags()
+    runtimeState = CommandHelpers.readRuntimeState()
+    if runtimeState["loop_is_running"]:
+        overlapCount = runtimeState["loop_overlap_count"] + 1
+        CommandHelpers.writeRuntimeFields({
+            "loop_overlap_count": overlapCount,
+            "loop_last_result": "overlap_skipped",
+        })
+        system.util.getLogger("MainController_MainLoop").warn(
+            "Skipping MainController cycle because the previous loop is still running"
+        )
+        return {
+            "ok": False,
+            "level": "warn",
+            "message": "Skipped MainController cycle because the previous loop is still running",
+            "data": {"overlap_count": overlapCount},
+            "overlap_count": overlapCount,
+        }
+
+    startEpochMs = int(nowEpochMs)
+    CommandHelpers.writeRuntimeFields({
+        "loop_is_running": True,
+        "loop_last_start_ts": CommandHelpers.timestampString(startEpochMs),
+        "loop_last_result": "running",
+    })
+
+    result = None
+    try:
+        result = CommandCalls.runMainControllerCycle(
+            nowEpochMs=startEpochMs,
+            createMission=createMission,
+            finalizeMission=finalizeMission,
+        )
+        return result
+    finally:
+        endEpochMs = int(time.time() * 1000)
+        durationMs = max(0, endEpochMs - startEpochMs)
+        lastResult = "unknown"
+        if result is not None:
+            lastResult = str(result.get("level", "info")) + ":" + str(result.get("message", ""))
+        CommandHelpers.writeRuntimeFields({
+            "loop_is_running": False,
+            "loop_last_end_ts": CommandHelpers.timestampString(endEpochMs),
+            "loop_last_duration_ms": durationMs,
+            "loop_last_result": lastResult,
+        })

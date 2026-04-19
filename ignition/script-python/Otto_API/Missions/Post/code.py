@@ -2,6 +2,8 @@ from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagHelpers import getMissionTriggerLastResponsePath
 from Otto_API.Common.TagHelpers import getOttoOperationsUrl
+from Otto_API.Common.TagHelpers import getFleetMissionsPath
+from Otto_API.Common.TagHelpers import getFleetRobotsPath
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
 from Otto_API.Common.TagHelpers import writeLastSystemResponse
@@ -18,9 +20,9 @@ from Otto_API.Missions.MissionActions import parseTemplateJson
 from Otto_API.Missions.MissionTreeHelpers import readMissionIdRecords
 from Otto_API.Missions.MissionTreeHelpers import readMissionRobotAwareRecords
 
-ACTIVE_MISSIONS_ROOT = "[Otto_FleetManager]Missions/Active"
-FAILED_MISSIONS_ROOT = "[Otto_FleetManager]Missions/Failed"
-ROBOTS_ROOT = "[Otto_FleetManager]Robots"
+ACTIVE_MISSIONS_ROOT = getFleetMissionsPath() + "/Active"
+FAILED_MISSIONS_ROOT = getFleetMissionsPath() + "/Failed"
+ROBOTS_ROOT = getFleetRobotsPath()
 
 
 def _buildResult(ok, level, message, missionId=None, responseText=None, payload=None):
@@ -360,7 +362,7 @@ def finalizeMission(robotName):
 	posting an updateMission JSON-RPC request to the OTTO Fleet Manager.
 
 	Args:
-		robotName (str): Name of the robot UDT instance under [Otto_FleetManager]Robots
+		robotName (str): Name of the robot UDT instance under [Otto_FleetManager]Fleet/Robots
 	"""
 
 	# --- Config ---
@@ -437,7 +439,7 @@ def cancelMission(robotName):
 	posting cancelMission JSON-RPC requests to the OTTO Fleet Manager.
 
 	Args:
-		robotName (str): Name of the robot UDT instance under [Otto_FleetManager]Robots
+		robotName (str): Name of the robot UDT instance under [Otto_FleetManager]Fleet/Robots
 	"""
 
 	fleetManagerURL = getOttoOperationsUrl()
@@ -487,7 +489,7 @@ def cancelMission(robotName):
 
 def cancelAllActiveMissions():
 	"""
-	Cancels all known active missions currently present under [Otto_FleetManager]Missions/Active.
+	Cancels all known active missions currently present under [Otto_FleetManager]Fleet/Missions/Active.
 	"""
 	fleetManagerURL = getOttoOperationsUrl()
 	responseTag = getMissionTriggerLastResponsePath()
@@ -525,7 +527,7 @@ def cancelAllActiveMissions():
 
 def cancelAllFailedMissions():
 	"""
-	Cancels all known failed missions currently present under [Otto_FleetManager]Missions/Failed.
+	Cancels all known failed missions currently present under [Otto_FleetManager]Fleet/Missions/Failed.
 	"""
 	fleetManagerURL = getOttoOperationsUrl()
 	responseTag = getMissionTriggerLastResponsePath()

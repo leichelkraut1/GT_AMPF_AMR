@@ -1,7 +1,7 @@
 def handleTimerEvent():
-    """Handle Ignition timer event for the pilot mission command loop."""
+    """Handle Ignition timer event for the MainController workflow runner."""
     try:
-        MainController.MainLoop.runPilotCreateWF1RV1()
+        MainController.MainLoop.runMainControllerCycle()
     except Exception as e:
         logger = system.util.getLogger("MainController_MainLoop")
-        logger.error("Pilot command loop failed - " + str(e))
+        logger.error("MainController workflow runner failed - " + str(e))

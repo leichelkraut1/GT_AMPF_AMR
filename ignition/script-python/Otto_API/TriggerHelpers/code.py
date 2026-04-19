@@ -1,5 +1,6 @@
 from Otto_API.Common.TagHelpers import ensureFolder
 from Otto_API.Common.TagHelpers import ensureMemoryTag
+from Otto_API.Common.TagHelpers import getFleetTriggersPath
 
 
 def buildMissionTriggerPath(triggerBase, triggerName):
@@ -25,7 +26,7 @@ def ensureMissionTriggerTags(workflowIds=None, robotIds=None):
     workflowIds = list(workflowIds or [1, 2, 3, 4])
     robotIds = list(robotIds or [1, 2, 3, 4])
 
-    triggersBase = "[Otto_FleetManager]Triggers"
+    triggersBase = getFleetTriggersPath()
     missionsBase = triggersBase + "/Missions"
     createBase = missionsBase + "/Create"
     finalizeBase = missionsBase + "/Finalize"

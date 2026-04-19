@@ -3,8 +3,13 @@ from Otto_API.Common.TagHelpers import browseTagResults
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagHelpers import deleteTagPath
 from Otto_API.Common.TagHelpers import ensureUdtInstancePath
+from Otto_API.Common.TagHelpers import ensureFolder
+from Otto_API.Common.TagHelpers import ensureMemoryTag
+from Otto_API.Common.TagHelpers import getFleetMissionsPath
+from Otto_API.Common.TagHelpers import getFleetRobotsPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateTsPath
+from Otto_API.Common.TagHelpers import getMainControlRobotsPath
 from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
@@ -23,12 +28,13 @@ from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
 # CONSTANTS
 # ---------------------------------------------------------------------------
 
-BASE = "[Otto_FleetManager]Missions"
+BASE = getFleetMissionsPath()
 ACTIVE_PATH = BASE + "/Active"
 COMPLETED_PATH = BASE + "/Completed"
 FAILED_PATH = BASE + "/Failed"
 LAST_UPDATE_TS_PATH = getMissionLastUpdateTsPath()
 LAST_UPDATE_SUCCESS_PATH = getMissionLastUpdateSuccessPath()
+MAINCONTROL_ROBOTS_PATH = getMainControlRobotsPath()
 
 ACTIVE_STATUSES = [
     "QUEUED",
@@ -56,8 +62,8 @@ MAX_FAILED = 50
 COMPLETED_RETENTION_DAYS = 5
 FAILED_RETENTION_DAYS = 5
 
-DEBUG_TAG_PATH = "[Otto_FleetManager]Missions/DebugEnabled"
-ROBOTS_PATH = "[Otto_FleetManager]Robots"
+DEBUG_TAG_PATH = BASE + "/DebugEnabled"
+ROBOTS_PATH = getFleetRobotsPath()
 UNASSIGNED_FOLDER = "Unassigned"
 UNKNOWN_ROBOT_FOLDER = "Unkown_Robot"
 
@@ -277,7 +283,7 @@ def _readRobotFolderMappings():
     }
 
 
-def build_robot_member_writes(robotMappings, valuesByFolder, memberName, transform=None):
+def build_robot_member_writes(robotMappings, valuesByFolder, memberName, transform=None, basePath=None):
     """
     Build robot-member writes for known robot folders.
     """
@@ -286,14 +292,29 @@ def build_robot_member_writes(robotMappings, valuesByFolder, memberName, transfo
 
     if transform is None:
         transform = _identity
+    if basePath is None:
+        basePath = ROBOTS_PATH
 
     writes = []
     for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
         writes.append((
-            ROBOTS_PATH + "/" + robotFolder + "/" + memberName,
+            basePath + "/" + robotFolder + "/" + memberName,
             transform(valuesByFolder.get(robotFolder, 0))
         ))
     return writes
+
+
+def ensure_maincontrol_robot_attachment_tags(robotMappings):
+    """
+    Ensure derived attachment-state tags exist under MainControl/Robots.
+    """
+    ensureFolder(MAINCONTROL_ROBOTS_PATH)
+    for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
+        robotPath = MAINCONTROL_ROBOTS_PATH + "/" + robotFolder
+        ensureFolder(robotPath)
+        ensureMemoryTag(robotPath + "/MissionReadyforAttachment", "Boolean", False)
+        ensureMemoryTag(robotPath + "/MissionIdForAttacment", "String", "")
+        ensureMemoryTag(robotPath + "/MissionNameForAttachment", "String", "")
 
 
 def resolve_mission_robot_folder(mission, robotMappings=None):
@@ -563,6 +584,8 @@ def run():
 
             write_mission_data(instancePath, mission)
 
+        ensure_maincontrol_robot_attachment_tags(robotMappings)
+
         missionCountWrites = (
             build_robot_member_writes(
                 robotMappings,
@@ -578,19 +601,22 @@ def run():
                 robotMappings,
                 attachmentReadyByFolder,
                 "MissionReadyforAttachment",
-                transform=lambda value: bool(value)
+                transform=lambda value: bool(value),
+                basePath=MAINCONTROL_ROBOTS_PATH
             ) +
             build_robot_member_writes(
                 robotMappings,
                 attachmentMissionIdByFolder,
                 "MissionIdForAttacment",
-                transform=lambda value: str(value or "")
+                transform=lambda value: str(value or ""),
+                basePath=MAINCONTROL_ROBOTS_PATH
             ) +
             build_robot_member_writes(
                 robotMappings,
                 attachmentMissionNameByFolder,
                 "MissionNameForAttachment",
-                transform=lambda value: str(value or "")
+                transform=lambda value: str(value or ""),
+                basePath=MAINCONTROL_ROBOTS_PATH
             )
         )
         if missionCountWrites:

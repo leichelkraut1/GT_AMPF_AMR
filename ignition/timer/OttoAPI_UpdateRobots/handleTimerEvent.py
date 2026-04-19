@@ -1,7 +1,7 @@
 def handleTimerEvent():
 	"""Handle Ignition timer event for this resource."""
 	try:
-	    if system.tag.read("[Otto_FleetManager]System/ServerStatus").value == "RUNNING":
+	    if system.tag.read("[Otto_FleetManager]Fleet/System/ServerStatus").value == "RUNNING":
 	        Otto_API.Fleet.Get.updateRobotOperationalState()
 	    else:
 	        ottoLogger = system.util.getLogger("Otto_API_Logger")

@@ -12,7 +12,7 @@
     ],
     "lastModificationSignature": "08ec35a0ff5f7bc35b481ff7a8518d78f378bbf715f11b3ab1bd78c67884c8f0",
     "paths": [
-      "[Otto_FleetManager]Triggers/Missions/Finalize/finalize_RV1"
+      "[Otto_FleetManager]Fleet/Triggers/Missions/Finalize/finalize_RV1"
     ],
     "lastModification": {
       "actor": "FAS",

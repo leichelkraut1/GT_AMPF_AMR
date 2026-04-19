@@ -4,8 +4,8 @@ def onTagChange(initialChange, newValue, previousValue, event, executionCount):
 	
 	logger = system.util.getLogger("Otto_MissionFilter")
 	
-	COMPLETED_PATH = "[Otto_FleetManager]Missions/Completed"
-	LAST_TS_TAG = "[Otto_FleetManager]Missions/LastCompleteTS"
+	COMPLETED_PATH = "[Otto_FleetManager]Fleet/Missions/Completed"
+	LAST_TS_TAG = "[Otto_FleetManager]Fleet/Missions/LastCompleteTS"
 	
 	try:
 	    existingTags = system.tag.browse(COMPLETED_PATH).getResults()

@@ -12,7 +12,7 @@
     ],
     "lastModificationSignature": "65e2353554ff10ab2da90a0ac3ad8dca4836fddc0ddf358f2380e016e98c6e56",
     "paths": [
-      "[Otto_FleetManager]Missions/filterCompletedMissions"
+      "[Otto_FleetManager]Fleet/Missions/filterCompletedMissions"
     ],
     "lastModification": {
       "actor": "FAS",

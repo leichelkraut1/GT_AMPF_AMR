@@ -1,4 +1,5 @@
 from Otto_API.Common.TagHelpers import browseTagResults
+from Otto_API.Common.TagHelpers import getFleetRobotsPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateTsPath
 from Otto_API.Common.TagHelpers import getMissionMinChargePath
@@ -407,7 +408,7 @@ def updateAvailableForWork():
     """
     ottoLogger = system.util.getLogger("Otto_Logic_Logger")
 
-    robotsBasePath = "[Otto_FleetManager]Robots"
+    robotsBasePath = getFleetRobotsPath()
     minChargePath = getMissionMinChargePath()
     missionLastUpdateTsPath = getMissionLastUpdateTsPath()
     missionLastUpdateSuccessPath = getMissionLastUpdateSuccessPath()
