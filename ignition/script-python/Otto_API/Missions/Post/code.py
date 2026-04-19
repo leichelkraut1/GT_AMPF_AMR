@@ -37,6 +37,18 @@ def _readActiveMissionRecords():
 	"""
 	Read active mission assignments in one browse + one bulk read pass.
 	"""
+	def _pickValue(*qualifiedValues):
+		for qualifiedValue in qualifiedValues:
+			if qualifiedValue is None or not qualifiedValue.quality.isGood():
+				continue
+			value = qualifiedValue.value
+			if value is None:
+				continue
+			if not str(value).strip():
+				continue
+			return value
+		return None
+
 	activeMissionsPath = "[Otto_FleetManager]Missions/Active"
 	missionBrowseResults = system.tag.browse(activeMissionsPath).getResults()
 	missionRows = []
@@ -47,14 +59,26 @@ def _readActiveMissionRecords():
 		missionBasePath = str(mission.get("fullPath"))
 		missionRows.append({
 			"assigned_robot_path": missionBasePath + "/assigned_robot",
+			"assigned_robot_alt_path": missionBasePath + "/Assigned_Robot",
+			"force_robot_path": missionBasePath + "/force_robot",
+			"force_robot_alt_path": missionBasePath + "/Force_Robot",
+			"forced_robot_path": missionBasePath + "/forced_robot",
+			"forced_robot_alt_path": missionBasePath + "/Forced_Robot",
 			"id_path": missionBasePath + "/id",
+			"id_alt_path": missionBasePath + "/ID",
 		})
 
 	readPaths = []
 	for missionRow in missionRows:
 		readPaths.extend([
 			missionRow["assigned_robot_path"],
+			missionRow["assigned_robot_alt_path"],
+			missionRow["force_robot_path"],
+			missionRow["force_robot_alt_path"],
+			missionRow["forced_robot_path"],
+			missionRow["forced_robot_alt_path"],
 			missionRow["id_path"],
+			missionRow["id_alt_path"],
 		])
 
 	readResults = []
@@ -63,14 +87,32 @@ def _readActiveMissionRecords():
 
 	missionRecords = []
 	for index, missionRow in enumerate(missionRows):
-		offset = index * 2
-		assignedRobotValue = readResults[offset].value if readResults[offset].quality.isGood() else None
-		if not assignedRobotValue:
+		offset = index * 8
+		assignedRobotValue = _pickValue(
+			readResults[offset],
+			readResults[offset + 1],
+		)
+		forceRobotValue = _pickValue(
+			readResults[offset + 2],
+			readResults[offset + 3],
+		)
+		forcedRobotValue = _pickValue(
+			readResults[offset + 4],
+			readResults[offset + 5],
+		)
+		missionIdValue = _pickValue(
+			readResults[offset + 6],
+			readResults[offset + 7],
+		)
+
+		if not assignedRobotValue and not forceRobotValue and not forcedRobotValue:
 			continue
 
 		missionRecords.append({
 			"assigned_robot": assignedRobotValue,
-			"id": readResults[offset + 1].value if readResults[offset + 1].quality.isGood() else None,
+			"force_robot": forceRobotValue,
+			"forced_robot": forcedRobotValue,
+			"id": missionIdValue,
 		})
 
 	return missionRecords

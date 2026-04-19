@@ -81,18 +81,44 @@ def interpretCreateMissionResponse(responseText):
     return ("warn", "Unexpected response: {}".format(responseText))
 
 
+def resolveMissionRobotId(missionRecord):
+    """
+    Resolve the robot affinity for a mission record.
+    Preference order:
+    1. assigned_robot
+    2. force_robot
+    3. forced_robot
+    Accepts either lowercase or title-cased tag-style keys.
+    """
+    missionRecord = dict(missionRecord or {})
+    for key in [
+        "assigned_robot",
+        "Assigned_Robot",
+        "force_robot",
+        "Force_Robot",
+        "forced_robot",
+        "Forced_Robot",
+    ]:
+        value = missionRecord.get(key)
+        if value is None:
+            continue
+        value = str(value).strip().lower()
+        if value:
+            return value
+    return None
+
+
 def findActiveMissionIdForRobot(robotId, missionRecords):
     """
     Find the active mission ID assigned to the given robot ID.
     Returns (missionId, warningMessage).
     """
     for missionRecord in missionRecords:
-        assignedRobotId = missionRecord.get("assigned_robot")
-        if assignedRobotId is None:
+        resolvedRobotId = resolveMissionRobotId(missionRecord)
+        if resolvedRobotId is None:
             continue
 
-        assignedRobotId = str(assignedRobotId).strip().lower()
-        if assignedRobotId != robotId:
+        if resolvedRobotId != robotId:
             continue
 
         missionId = missionRecord.get("id")
@@ -116,12 +142,11 @@ def findActiveMissionIdsForRobot(robotId, missionRecords):
     warnings = []
 
     for missionRecord in missionRecords:
-        assignedRobotId = missionRecord.get("assigned_robot")
-        if assignedRobotId is None:
+        resolvedRobotId = resolveMissionRobotId(missionRecord)
+        if resolvedRobotId is None:
             continue
 
-        assignedRobotId = str(assignedRobotId).strip().lower()
-        if assignedRobotId != robotId:
+        if resolvedRobotId != robotId:
             continue
 
         missionId = missionRecord.get("id")
