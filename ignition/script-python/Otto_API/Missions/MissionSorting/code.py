@@ -11,6 +11,7 @@ from Otto_API.Common.TagHelpers import readRequiredTagValue
 from Otto_API.Common.TagHelpers import tagExists
 from Otto_API.Common.TagHelpers import writeRequiredTagValues
 from Otto_API.Common.TagHelpers import writeTagValues
+from Otto_API.AttachmentPhaseHelpers import deriveMissionAttachmentState
 from Otto_API.Fleet.ContentSync import sanitizeTagName
 from Otto_API.Fleet.FleetSync import parseIsoTimestampToEpochMillis
 from Otto_API.Fleet.FleetSync import readRobotInventoryMetadata
@@ -276,15 +277,21 @@ def _readRobotFolderMappings():
     }
 
 
-def build_robot_mission_count_writes(robotMappings, countsByFolder, memberName):
+def build_robot_member_writes(robotMappings, valuesByFolder, memberName, transform=None):
     """
-    Build mission count writes for known robot folders.
+    Build robot-member writes for known robot folders.
     """
+    def _identity(value):
+        return value
+
+    if transform is None:
+        transform = _identity
+
     writes = []
     for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
         writes.append((
             ROBOTS_PATH + "/" + robotFolder + "/" + memberName,
-            int(countsByFolder.get(robotFolder, 0))
+            transform(valuesByFolder.get(robotFolder, 0))
         ))
     return writes
 
@@ -458,12 +465,16 @@ def run():
         failedWanted = set()
         activeCountsByFolder = {}
         failedCountsByFolder = {}
+        attachmentReadyByFolder = {}
+        attachmentMissionIdByFolder = {}
+        attachmentMissionNameByFolder = {}
         removed = []
 
         for mission in missions:
             status = mission.get("mission_status", "")
             instanceName = make_instance_name(mission)
             robotFolder = resolve_mission_robot_folder(mission, robotMappings)
+            attachmentState = deriveMissionAttachmentState(mission)
 
             activePath = ACTIVE_PATH + "/" + robotFolder + "/" + instanceName
             completedPath = COMPLETED_PATH + "/" + robotFolder + "/" + instanceName
@@ -535,6 +546,14 @@ def run():
                 targetFolder = ACTIVE_PATH + "/" + robotFolder
                 activeWanted.add(activePath)
                 activeCountsByFolder[robotFolder] = activeCountsByFolder.get(robotFolder, 0) + 1
+                if attachmentState.get("ready_for_attachment") is True:
+                    attachmentReadyByFolder[robotFolder] = True
+                    attachmentMissionIdByFolder[robotFolder] = str(
+                        attachmentState.get("attachment_mission_id") or mission.get("id") or ""
+                    )
+                    attachmentMissionNameByFolder[robotFolder] = str(
+                        attachmentState.get("attachment_mission_name") or mission.get("name") or ""
+                    )
 
             instancePath = targetFolder + "/" + instanceName
             if not tagExists(instancePath):
@@ -545,15 +564,33 @@ def run():
             write_mission_data(instancePath, mission)
 
         missionCountWrites = (
-            build_robot_mission_count_writes(
+            build_robot_member_writes(
                 robotMappings,
                 activeCountsByFolder,
                 "ActiveMissionCount"
             ) +
-            build_robot_mission_count_writes(
+            build_robot_member_writes(
                 robotMappings,
                 failedCountsByFolder,
                 "FailedMissionCount"
+            ) +
+            build_robot_member_writes(
+                robotMappings,
+                attachmentReadyByFolder,
+                "MissionReadyforAttachment",
+                transform=lambda value: bool(value)
+            ) +
+            build_robot_member_writes(
+                robotMappings,
+                attachmentMissionIdByFolder,
+                "MissionIdForAttacment",
+                transform=lambda value: str(value or "")
+            ) +
+            build_robot_member_writes(
+                robotMappings,
+                attachmentMissionNameByFolder,
+                "MissionNameForAttachment",
+                transform=lambda value: str(value or "")
             )
         )
         if missionCountWrites:

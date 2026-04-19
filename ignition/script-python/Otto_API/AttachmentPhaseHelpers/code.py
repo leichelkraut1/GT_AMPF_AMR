@@ -9,40 +9,22 @@ def cleanupAttachmentAcks(attachmentRows):
     return resetRows
 
 
-def evaluateStarvedPhase(runVal, runningVal, doneVal, ackVal):
+def deriveMissionAttachmentState(missionRecord):
     """
-    Interpret STARVED attachment-phase state and return desired actions/state.
+    Derive attachment-facing mission state from a mission row.
 
-    The returned object is intended to be reusable outside the old Demo flow:
-    - allow_finalize: finalize may proceed this cycle
-    - request_run_demo: latch RunDemo this cycle
-    - set_complete_ack: latch DemoCompleteAck this cycle
-    - in_position: STARVED indicates the vehicle is in position
-    - state: normalized state label
+    This intentionally returns a small structured object instead of just a
+    boolean so we have a clean place to expand later when we start resolving
+    attachment place/endpoint details from richer mission/task metadata.
     """
-    result = {
-        "allow_finalize": False,
-        "request_run_demo": False,
-        "set_complete_ack": False,
-        "in_position": True,
-        "state": "pending_demo",
+    status = str((missionRecord or {}).get("mission_status") or "").strip().upper()
+    readyForAttachment = status == "STARVED"
+
+    return {
+        "ready_for_attachment": readyForAttachment,
+        "attachment_mission_id": (missionRecord or {}).get("id") if readyForAttachment else "",
+        "attachment_mission_name": (missionRecord or {}).get("name") if readyForAttachment else "",
+        "attachment_place": None,
+        "state": "ready_for_attachment" if readyForAttachment else "not_ready_for_attachment",
+        "reason": "mission_starved" if readyForAttachment else "mission_not_starved",
     }
-
-    if doneVal is True:
-        result["allow_finalize"] = True
-        result["state"] = "attachment_complete"
-        if ackVal is not True:
-            result["set_complete_ack"] = True
-        return result
-
-    if runningVal is True:
-        result["state"] = "attachment_running"
-        return result
-
-    if runVal is not True:
-        result["request_run_demo"] = True
-        result["state"] = "request_demo_start"
-        return result
-
-    result["state"] = "awaiting_demo_progress"
-    return result
