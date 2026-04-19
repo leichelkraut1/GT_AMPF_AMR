@@ -4,6 +4,7 @@ from Otto_API.Common.TagHelpers import readRequiredTagValue
 from Otto_API.Common.TagHelpers import writeTagValues
 from Otto_API.Fleet.ContentSync import sanitizeTagName
 from Otto_API.Fleet.Get import getMissions
+from Otto_API.Missions.MissionActions import resolveMissionRobotId
 
 # ---------------------------------------------------------------------------
 # CONSTANTS
@@ -35,6 +36,9 @@ MAX_COMPLETED = 50
 COMPLETED_RETENTION_DAYS = 5
 
 DEBUG_TAG_PATH = "[Otto_FleetManager]Missions/DebugEnabled"
+ROBOTS_PATH = "[Otto_FleetManager]Robots"
+UNASSIGNED_FOLDER = "Unassigned"
+UNKNOWN_ROBOT_FOLDER = "Unkown_Robot"
 
 
 # ---------------------------------------------------------------------------
@@ -241,6 +245,103 @@ def browse_instances(folderPath):
         return []
 
 
+def browse_instances_recursive(folderPath):
+    """
+    Returns list of (fullPath, name) for all UDT instances below the given folder.
+    """
+    instances = []
+    pending = [folderPath]
+
+    while pending:
+        currentFolder = pending.pop(0)
+        try:
+            results = system.tag.browse(currentFolder).getResults()
+        except Exception:
+            continue
+
+        for row in results:
+            tagType = str(row.get("tagType"))
+            fullPath = str(row.get("fullPath"))
+            name = row.get("name")
+            if tagType == "UdtInstance":
+                instances.append((fullPath, name))
+            elif tagType == "Folder":
+                pending.append(fullPath)
+
+    return instances
+
+
+def _readRobotFolderMappings():
+    """
+    Build lookup maps for robot folder names and robot IDs.
+    """
+    nameByLower = {}
+    idByName = {}
+    idPaths = []
+    robotNames = []
+
+    try:
+        results = system.tag.browse(ROBOTS_PATH).getResults()
+    except Exception:
+        return {
+            "name_by_lower": nameByLower,
+            "name_by_id": {},
+        }
+
+    for row in results:
+        if str(row.get("tagType")) != "UdtInstance":
+            continue
+        robotName = str(row.get("name"))
+        robotBasePath = str(row.get("fullPath"))
+        robotNames.append(robotName)
+        nameByLower[robotName.strip().lower()] = robotName
+        idPaths.append(robotBasePath + "/ID")
+
+    readResults = system.tag.readBlocking(idPaths) if idPaths else []
+    nameById = {}
+    for index, robotName in enumerate(robotNames):
+        qualifiedValue = readResults[index]
+        if not qualifiedValue.quality.isGood():
+            continue
+        value = qualifiedValue.value
+        if value is None:
+            continue
+        normalizedId = str(value).strip().lower()
+        if normalizedId:
+            nameById[normalizedId] = robotName
+
+    return {
+        "name_by_lower": nameByLower,
+        "name_by_id": nameById,
+    }
+
+
+def resolve_mission_robot_folder(mission, robotMappings=None):
+    """
+    Resolve the mission's robot-specific folder name or return Unassigned.
+    """
+    if robotMappings is None:
+        robotMappings = _readRobotFolderMappings()
+
+    resolvedRobot = resolveMissionRobotId(mission)
+    if not resolvedRobot:
+        return UNASSIGNED_FOLDER
+
+    resolvedRobot = str(resolvedRobot).strip().lower()
+    if not resolvedRobot:
+        return UNASSIGNED_FOLDER
+
+    robotName = robotMappings["name_by_lower"].get(resolvedRobot)
+    if robotName:
+        return robotName
+
+    robotName = robotMappings["name_by_id"].get(resolvedRobot)
+    if robotName:
+        return robotName
+
+    return UNKNOWN_ROBOT_FOLDER
+
+
 # ---------------------------------------------------------------------------
 # COMPLETED CLEANUP
 # ---------------------------------------------------------------------------
@@ -252,7 +353,7 @@ def cleanup_completed(logger, debug=False):
     now = system.date.now()
     cutoff = system.date.addDays(now, -COMPLETED_RETENTION_DAYS)
 
-    instances = browse_instances(COMPLETED_PATH)
+    instances = browse_instances_recursive(COMPLETED_PATH)
     removed = []
     removedPaths = set()
     enriched = []
@@ -363,6 +464,7 @@ def run():
             )
         )
 
+        robotMappings = _readRobotFolderMappings()
         activeWanted = set()
         completedWanted = set()
         removed = []
@@ -370,9 +472,10 @@ def run():
         for mission in missions:
             status = mission.get("mission_status", "")
             instanceName = make_instance_name(mission)
+            robotFolder = resolve_mission_robot_folder(mission, robotMappings)
 
-            activePath = ACTIVE_PATH + "/" + instanceName
-            completedPath = COMPLETED_PATH + "/" + instanceName
+            activePath = ACTIVE_PATH + "/" + robotFolder + "/" + instanceName
+            completedPath = COMPLETED_PATH + "/" + robotFolder + "/" + instanceName
 
             bucket = classify_mission_bucket(status)
 
@@ -386,8 +489,8 @@ def run():
                     )
                     removed.append((activePath, "moved_to_completed"))
 
-                targetFolder = COMPLETED_PATH
-                completedWanted.add(instanceName)
+                targetFolder = COMPLETED_PATH + "/" + robotFolder
+                completedWanted.add(completedPath)
 
             else:
                 if system.tag.exists(completedPath):
@@ -399,8 +502,8 @@ def run():
                     )
                     removed.append((completedPath, "moved_to_active"))
 
-                targetFolder = ACTIVE_PATH
-                activeWanted.add(instanceName)
+                targetFolder = ACTIVE_PATH + "/" + robotFolder
+                activeWanted.add(activePath)
 
             instancePath = ensure_instance(
                 targetFolder,
@@ -412,8 +515,8 @@ def run():
             write_mission_data(instancePath, mission)
 
         # --- Cleanup ACTIVE ---
-        for fullPath, name in browse_instances(ACTIVE_PATH):
-            if name not in activeWanted:
+        for fullPath, name in browse_instances_recursive(ACTIVE_PATH):
+            if fullPath not in activeWanted:
                 remove_instance(
                     fullPath,
                     logger,
@@ -423,8 +526,8 @@ def run():
                 removed.append((fullPath, "stale_active"))
 
         # --- Cleanup COMPLETED ---
-        for fullPath, name in browse_instances(COMPLETED_PATH):
-            if name not in completedWanted:
+        for fullPath, name in browse_instances_recursive(COMPLETED_PATH):
+            if fullPath not in completedWanted:
                 remove_instance(
                     fullPath,
                     logger,

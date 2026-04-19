@@ -37,6 +37,22 @@ def _readActiveMissionRecords():
 	"""
 	Read active mission assignments in one browse + one bulk read pass.
 	"""
+	def _browseMissionInstancesRecursive(folderPath):
+		missionBasePaths = []
+		pending = [folderPath]
+
+		while pending:
+			currentFolder = pending.pop(0)
+			for row in system.tag.browse(currentFolder).getResults():
+				tagType = str(row.get("tagType"))
+				fullPath = str(row.get("fullPath"))
+				if tagType == "UdtInstance":
+					missionBasePaths.append(fullPath)
+				elif tagType == "Folder":
+					pending.append(fullPath)
+
+		return missionBasePaths
+
 	def _pickValue(*qualifiedValues):
 		for qualifiedValue in qualifiedValues:
 			if qualifiedValue is None or not qualifiedValue.quality.isGood():
@@ -50,13 +66,9 @@ def _readActiveMissionRecords():
 		return None
 
 	activeMissionsPath = "[Otto_FleetManager]Missions/Active"
-	missionBrowseResults = system.tag.browse(activeMissionsPath).getResults()
 	missionRows = []
 
-	for mission in missionBrowseResults:
-		if str(mission.get("tagType")) != "UdtInstance":
-			continue
-		missionBasePath = str(mission.get("fullPath"))
+	for missionBasePath in _browseMissionInstancesRecursive(activeMissionsPath):
 		missionRows.append({
 			"assigned_robot_path": missionBasePath + "/assigned_robot",
 			"assigned_robot_alt_path": missionBasePath + "/Assigned_Robot",
