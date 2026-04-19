@@ -1,0 +1,23 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "onTagChange.py"
+  ],
+  "attributes": {
+    "changeTypes": [
+      "ValueChange"
+    ],
+    "lastModificationSignature": "25230463f4cebdc419cb8863a92be2f5160a13b24120f0c6f2d605a555cce4fa",
+    "paths": [
+      "[Otto_FleetManager]Triggers/SystemUpdates/updateTriggers"
+    ],
+    "lastModification": {
+      "actor": "Codex",
+      "timestamp": "2026-04-19T00:00:00Z"
+    },
+    "enabled": true
+  }
+}

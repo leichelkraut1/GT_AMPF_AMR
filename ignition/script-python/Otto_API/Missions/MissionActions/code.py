@@ -107,6 +107,34 @@ def findActiveMissionIdForRobot(robotId, missionRecords):
     return (None, None)
 
 
+def findActiveMissionIdsForRobot(robotId, missionRecords):
+    """
+    Find all active mission IDs assigned to the given robot ID.
+    Returns (missionIds, warnings).
+    """
+    missionIds = []
+    warnings = []
+
+    for missionRecord in missionRecords:
+        assignedRobotId = missionRecord.get("assigned_robot")
+        if assignedRobotId is None:
+            continue
+
+        assignedRobotId = str(assignedRobotId).strip().lower()
+        if assignedRobotId != robotId:
+            continue
+
+        missionId = missionRecord.get("id")
+        if missionId:
+            missionIds.append(str(missionId))
+        else:
+            warnings.append(
+                "Matched mission for robot ID [{}], but no mission id found".format(robotId)
+            )
+
+    return (missionIds, warnings)
+
+
 def buildFinalizeMissionPayload(missionId, nowEpoch=None):
     """
     Build the JSON-RPC payload for updateMission(finalized=True).
@@ -128,6 +156,23 @@ def buildFinalizeMissionPayload(missionId, nowEpoch=None):
     }
 
 
+def buildCancelMissionPayload(missionId, nowEpoch=None):
+    """
+    Build the JSON-RPC payload for cancelMission.
+    """
+    if nowEpoch is None:
+        nowEpoch = time.time()
+
+    return {
+        "id": int(nowEpoch),
+        "jsonrpc": "2.0",
+        "method": "cancelMission",
+        "params": {
+            "id": missionId
+        }
+    }
+
+
 def interpretFinalizeMissionResponse(responseText, missionId):
     """
     Parse an updateMission response and return (logLevel, message).
@@ -144,3 +189,21 @@ def interpretFinalizeMissionResponse(responseText, missionId):
         return ("warn", "API Error while finalizing mission: {}".format(json.dumps(respJson["error"])))
 
     return ("warn", "Unexpected response while finalizing mission: {}".format(responseText))
+
+
+def interpretCancelMissionResponse(responseText, missionId):
+    """
+    Parse a cancelMission response and return (logLevel, message).
+    """
+    try:
+        respJson = json.loads(responseText)
+    except Exception as e:
+        return ("error", "Non-JSON response while canceling mission: {}".format(str(e)))
+
+    if "result" in respJson:
+        return ("info", "Mission [{}] canceled successfully".format(missionId))
+
+    if "error" in respJson:
+        return ("warn", "API Error while canceling mission: {}".format(json.dumps(respJson["error"])))
+
+    return ("warn", "Unexpected response while canceling mission: {}".format(responseText))

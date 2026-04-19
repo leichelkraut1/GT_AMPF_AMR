@@ -1,0 +1,23 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "onTagChange.py"
+  ],
+  "attributes": {
+    "changeTypes": [
+      "ValueChange"
+    ],
+    "lastModificationSignature": "b9504bf81333e047f1ca5c5e04e657d47c7a6b1ed84b6b625f9a483ed19ef1d5",
+    "paths": [
+      "[Otto_FleetManager]Triggers/Missions/Cancel/cancel_RV3"
+    ],
+    "lastModification": {
+      "actor": "Codex",
+      "timestamp": "2026-04-19T00:00:00Z"
+    },
+    "enabled": true
+  }
+}
