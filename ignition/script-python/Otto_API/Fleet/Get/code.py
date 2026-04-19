@@ -451,6 +451,15 @@ def updateRobotOperationalState():
             "[Otto_FleetManager]Missions/minChargeLevelForMissioning",
             "Minimum charge threshold"
         )
+        missionLastUpdateTs = readRequiredTagValue(
+            "[Otto_FleetManager]Missions/LastUpdateTS",
+            "Mission last update timestamp",
+            allowEmptyString=False
+        )
+        missionLastUpdateSuccess = bool(readRequiredTagValue(
+            "[Otto_FleetManager]Missions/LastUpdateSuccess",
+            "Mission last update success"
+        ))
     except ValueError as e:
         message = str(e)
         ottoLogger.warn(message)
@@ -470,6 +479,7 @@ def updateRobotOperationalState():
                 robotPath + "/SystemStateUpdatedTs",
                 robotPath + "/ActivityState",
                 robotPath + "/ChargeLevel",
+                robotPath + "/ActiveMissionCount",
             ])
 
         currentValues = {}
@@ -533,6 +543,7 @@ def updateRobotOperationalState():
             updatedTsPath = robotPath + "/SystemStateUpdatedTs"
             activityPath = robotPath + "/ActivityState"
             chargePath = robotPath + "/ChargeLevel"
+            activeMissionCountPath = robotPath + "/ActiveMissionCount"
             availablePath = robotPath + "/AvailableForWork"
 
             effectiveSystemState = currentValues.get(systemStatePath)
@@ -541,6 +552,7 @@ def updateRobotOperationalState():
             effectiveUpdatedTs = currentValues.get(updatedTsPath)
             effectiveActivity = currentValues.get(activityPath)
             effectiveCharge = currentValues.get(chargePath)
+            effectiveActiveMissionCount = currentValues.get(activeMissionCountPath)
 
             if dominant is not None:
                 effectiveSystemState = dominant.get("system_state")
@@ -565,7 +577,10 @@ def updateRobotOperationalState():
                 effectiveSystemState,
                 effectiveActivity,
                 effectiveCharge,
-                minCharge
+                minCharge,
+                effectiveActiveMissionCount,
+                missionLastUpdateTs,
+                missionLastUpdateSuccess
             )
             writesByPath[availablePath] = readiness["available"]
 

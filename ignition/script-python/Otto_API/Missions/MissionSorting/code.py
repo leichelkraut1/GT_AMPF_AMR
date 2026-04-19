@@ -13,6 +13,9 @@ from Otto_API.Missions.MissionActions import resolveMissionRobotId
 BASE = "[Otto_FleetManager]Missions"
 ACTIVE_PATH = BASE + "/Active"
 COMPLETED_PATH = BASE + "/Completed"
+FAILED_PATH = BASE + "/Failed"
+LAST_UPDATE_TS_PATH = BASE + "/LastUpdateTS"
+LAST_UPDATE_SUCCESS_PATH = BASE + "/LastUpdateSuccess"
 
 ACTIVE_STATUSES = [
     "QUEUED",
@@ -32,8 +35,14 @@ TERMINAL_STATUSES = [
     "FAILED"
 ]
 
+FAILED_STATUSES = [
+    "FAILED"
+]
+
 MAX_COMPLETED = 50
+MAX_FAILED = 50
 COMPLETED_RETENTION_DAYS = 5
+FAILED_RETENTION_DAYS = 5
 
 DEBUG_TAG_PATH = "[Otto_FleetManager]Missions/DebugEnabled"
 ROBOTS_PATH = "[Otto_FleetManager]Robots"
@@ -86,9 +95,10 @@ def parse_date(val):
         return None
 
 
-def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None, removed=None):
+def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None, failedWanted=None, removed=None):
     activeWanted = sorted(list(activeWanted or []))
     completedWanted = sorted(list(completedWanted or []))
+    failedWanted = sorted(list(failedWanted or []))
     removed = list(removed or [])
     return buildOperationResult(
         ok,
@@ -97,11 +107,20 @@ def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None
         data={
             "active_wanted": activeWanted,
             "completed_wanted": completedWanted,
+            "failed_wanted": failedWanted,
             "removed": removed,
         },
         active_wanted=activeWanted,
         completed_wanted=completedWanted,
+        failed_wanted=failedWanted,
         removed=removed,
+    )
+
+
+def _writeMissionUpdateStatus(success, timestampValue):
+    writeTagValues(
+        [LAST_UPDATE_TS_PATH, LAST_UPDATE_SUCCESS_PATH],
+        [timestampValue, bool(success)]
     )
 
 
@@ -118,14 +137,18 @@ def make_instance_name(mission):
     return "{}_{}".format(name, short)
 
 
-def classify_mission_bucket(missionStatus, terminalStatuses=None):
+def classify_mission_bucket(missionStatus, terminalStatuses=None, failedStatuses=None):
     """
-    Classify a mission into the Active or Completed bucket.
+    Classify a mission into the Active, Failed, or Completed bucket.
     """
     if terminalStatuses is None:
         terminalStatuses = TERMINAL_STATUSES
+    if failedStatuses is None:
+        failedStatuses = FAILED_STATUSES
 
     status = str(missionStatus or "").upper()
+    if status in failedStatuses:
+        return "failed"
     if status in terminalStatuses:
         return "completed"
     return "active"
@@ -316,6 +339,19 @@ def _readRobotFolderMappings():
     }
 
 
+def build_active_mission_count_writes(robotMappings, activeCountsByFolder):
+    """
+    Build ActiveMissionCount writes for known robot folders.
+    """
+    writes = []
+    for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
+        writes.append((
+            ROBOTS_PATH + "/" + robotFolder + "/ActiveMissionCount",
+            int(activeCountsByFolder.get(robotFolder, 0))
+        ))
+    return writes
+
+
 def resolve_mission_robot_folder(mission, robotMappings=None):
     """
     Resolve the mission's robot-specific folder name or return Unassigned.
@@ -346,14 +382,14 @@ def resolve_mission_robot_folder(mission, robotMappings=None):
 # COMPLETED CLEANUP
 # ---------------------------------------------------------------------------
 
-def cleanup_completed(logger, debug=False):
+def cleanup_terminal_folder(folderPath, retentionDays, maxCount, label, logger, debug=False):
     """
-    Enforces completed mission retention and max count
+    Enforces terminal mission retention and max count for the given folder.
     """
     now = system.date.now()
-    cutoff = system.date.addDays(now, -COMPLETED_RETENTION_DAYS)
+    cutoff = system.date.addDays(now, -retentionDays)
 
-    instances = browse_instances_recursive(COMPLETED_PATH)
+    instances = browse_instances_recursive(folderPath)
     removed = []
     removedPaths = set()
     enriched = []
@@ -368,7 +404,8 @@ def cleanup_completed(logger, debug=False):
         qualifiedValue = readResults[index]
         if not qualifiedValue.quality.isGood():
             logger.warn(
-                "Skipping completed mission {} during cleanup - Created tag is not readable".format(
+                "Skipping {} mission {} during cleanup - Created tag is not readable".format(
+                    label,
                     fullPath
                 )
             )
@@ -377,7 +414,8 @@ def cleanup_completed(logger, debug=False):
         createdDate = parse_date(qualifiedValue.value)
         if createdDate is None:
             logger.warn(
-                "Skipping completed mission {} during cleanup - invalid Created value".format(
+                "Skipping {} mission {} during cleanup - invalid Created value".format(
+                    label,
                     fullPath
                 )
             )
@@ -392,7 +430,7 @@ def cleanup_completed(logger, debug=False):
                 fullPath,
                 logger,
                 debug,
-                "older than {} days".format(COMPLETED_RETENTION_DAYS)
+                "older than {} days".format(retentionDays)
             )
             removed_age += 1
             removedPaths.add(fullPath)
@@ -401,9 +439,9 @@ def cleanup_completed(logger, debug=False):
             remaining.append((fullPath, name, createdDate))
 
     if debug:
-        logger.info("Completed cleanup: removed {} by age".format(removed_age))
+        logger.info("{} cleanup: removed {} by age".format(label.title(), removed_age))
 
-    excess = compute_completed_overflow(remaining, MAX_COMPLETED, now)
+    excess = compute_completed_overflow(remaining, maxCount, now)
     for fullPath, name, ts in excess:
         if fullPath in removedPaths:
             continue
@@ -411,16 +449,17 @@ def cleanup_completed(logger, debug=False):
             fullPath,
             logger,
             debug,
-            "pruned to max {}".format(MAX_COMPLETED)
+            "pruned to max {}".format(maxCount)
         )
         removedPaths.add(fullPath)
         removed.append((fullPath, "max"))
 
     if debug and excess:
         logger.info(
-            "Completed cleanup: pruned {} to max {}".format(
+            "{} cleanup: pruned {} to max {}".format(
+                label.title(),
                 len(excess),
-                MAX_COMPLETED
+                maxCount
             )
         )
 
@@ -444,6 +483,8 @@ def run():
 
     try:
         missions = []
+        nowDate = system.date.now()
+        nowTimestamp = system.date.format(nowDate, "yyyy-MM-dd HH:mm:ss.SSS")
 
         # --- Fetch ACTIVE missions in one bulk call ---
         missions.extend(
@@ -467,6 +508,8 @@ def run():
         robotMappings = _readRobotFolderMappings()
         activeWanted = set()
         completedWanted = set()
+        failedWanted = set()
+        activeCountsByFolder = {}
         removed = []
 
         for mission in missions:
@@ -476,6 +519,7 @@ def run():
 
             activePath = ACTIVE_PATH + "/" + robotFolder + "/" + instanceName
             completedPath = COMPLETED_PATH + "/" + robotFolder + "/" + instanceName
+            failedPath = FAILED_PATH + "/" + robotFolder + "/" + instanceName
 
             bucket = classify_mission_bucket(status)
 
@@ -488,9 +532,38 @@ def run():
                         "moved to Completed"
                     )
                     removed.append((activePath, "moved_to_completed"))
+                if system.tag.exists(failedPath):
+                    remove_instance(
+                        failedPath,
+                        logger,
+                        debug,
+                        "moved to Completed"
+                    )
+                    removed.append((failedPath, "moved_to_completed"))
 
                 targetFolder = COMPLETED_PATH + "/" + robotFolder
                 completedWanted.add(completedPath)
+
+            elif bucket == "failed":
+                if system.tag.exists(activePath):
+                    remove_instance(
+                        activePath,
+                        logger,
+                        debug,
+                        "moved to Failed"
+                    )
+                    removed.append((activePath, "moved_to_failed"))
+                if system.tag.exists(completedPath):
+                    remove_instance(
+                        completedPath,
+                        logger,
+                        debug,
+                        "moved to Failed"
+                    )
+                    removed.append((completedPath, "moved_to_failed"))
+
+                targetFolder = FAILED_PATH + "/" + robotFolder
+                failedWanted.add(failedPath)
 
             else:
                 if system.tag.exists(completedPath):
@@ -501,9 +574,18 @@ def run():
                         "moved to Active"
                     )
                     removed.append((completedPath, "moved_to_active"))
+                if system.tag.exists(failedPath):
+                    remove_instance(
+                        failedPath,
+                        logger,
+                        debug,
+                        "moved to Active"
+                    )
+                    removed.append((failedPath, "moved_to_active"))
 
                 targetFolder = ACTIVE_PATH + "/" + robotFolder
                 activeWanted.add(activePath)
+                activeCountsByFolder[robotFolder] = activeCountsByFolder.get(robotFolder, 0) + 1
 
             instancePath = ensure_instance(
                 targetFolder,
@@ -513,6 +595,16 @@ def run():
             )
 
             write_mission_data(instancePath, mission)
+
+        activeMissionCountWrites = build_active_mission_count_writes(
+            robotMappings,
+            activeCountsByFolder
+        )
+        if activeMissionCountWrites:
+            writeTagValues(
+                [path for path, _ in activeMissionCountWrites],
+                [value for _, value in activeMissionCountWrites]
+            )
 
         # --- Cleanup ACTIVE ---
         for fullPath, name in browse_instances_recursive(ACTIVE_PATH):
@@ -536,17 +628,56 @@ def run():
                 )
                 removed.append((fullPath, "stale_completed"))
 
-        removed.extend(cleanup_completed(logger, debug))
+        # --- Cleanup FAILED ---
+        for fullPath, name in browse_instances_recursive(FAILED_PATH):
+            if fullPath not in failedWanted:
+                remove_instance(
+                    fullPath,
+                    logger,
+                    debug,
+                    "stale (not returned)"
+                )
+                removed.append((fullPath, "stale_failed"))
+
+        removed.extend(
+            cleanup_terminal_folder(
+                COMPLETED_PATH,
+                COMPLETED_RETENTION_DAYS,
+                MAX_COMPLETED,
+                "completed",
+                logger,
+                debug
+            )
+        )
+        removed.extend(
+            cleanup_terminal_folder(
+                FAILED_PATH,
+                FAILED_RETENTION_DAYS,
+                MAX_FAILED,
+                "failed",
+                logger,
+                debug
+            )
+        )
+        _writeMissionUpdateStatus(True, nowTimestamp)
         result = _buildSyncResult(
             True,
             "info",
             "Mission sorting completed for {} mission(s)".format(len(missions)),
             activeWanted=activeWanted,
             completedWanted=completedWanted,
+            failedWanted=failedWanted,
             removed=removed
         )
 
     except Exception as e:
+        try:
+            _writeMissionUpdateStatus(
+                False,
+                system.date.format(system.date.now(), "yyyy-MM-dd HH:mm:ss.SSS")
+            )
+        except Exception:
+            pass
         logger.error("MissionSorting.run FAILED: {}".format(e))
         result = _buildSyncResult(
             False,

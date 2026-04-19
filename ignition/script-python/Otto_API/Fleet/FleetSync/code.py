@@ -328,6 +328,7 @@ def buildInvalidRobotSyncWrites(robotPath):
         robotPath + "/SystemStateUpdatedTs",
         robotPath + "/ActivityState",
         robotPath + "/ChargeLevel",
+        robotPath + "/ActiveMissionCount",
         robotPath + "/AvailableForWork",
     ]
     values = [
@@ -337,6 +338,7 @@ def buildInvalidRobotSyncWrites(robotPath):
         None,
         None,
         None,
+        0,
         False,
     ]
     return list(zip(paths, values))
