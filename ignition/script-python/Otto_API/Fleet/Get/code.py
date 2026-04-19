@@ -102,7 +102,7 @@ def getServerStatus():
             return _buildSyncResult(True, "info", "Server status updated", data=status)
 
         ottoLogger.warn("Otto Fleet Manager Did Not Respond to Status Update Request")
-        writeTagValueAsync("[Otto_FleetManager]System/ServerStatus", "ReponseError")
+        writeTagValueAsync("[Otto_FleetManager]System/ServerStatus", "ResponseError")
         return _buildSyncResult(False, "warn", "Otto Fleet Manager did not respond")
     except Exception as e:
         ottoLogger.error("Otto API - Status Update Failed - " + str(e))
@@ -688,12 +688,10 @@ def updatePlaces():
 
         else:
             ottoLogger.error("Otto API - HTTPGet Failed for /Places/")
-            print("HTTP GET failed")
             return _buildSyncResult(False, "error", "HTTP GET failed for /Places/")
 
     except Exception as e:
         ottoLogger.error("Otto API - /Places/ Tag Update Failed - " + str(e))
-        print("Otto API error occurred: {}".format(e))
         return _buildSyncResult(False, "error", "Places tag update failed - " + str(e))
 
 
@@ -780,12 +778,10 @@ def updateMaps():
 
         else:
             ottoLogger.error("Otto API - HTTPGet Failed for /Maps/")
-            print("HTTP GET failed")
             return _buildSyncResult(False, "error", "HTTP GET failed for /Maps/")
 
     except Exception as e:
         ottoLogger.error("Otto API - /Maps/ Tag Update Failed - " + str(e))
-        print("Otto API error occurred: {}".format(e))
         return _buildSyncResult(False, "error", "Maps tag update failed - " + str(e))
 
 
