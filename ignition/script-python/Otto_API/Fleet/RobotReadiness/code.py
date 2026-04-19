@@ -1,6 +1,7 @@
-from Otto_API.ResultHelpers import buildOperationResult
-from Otto_API.TagHelpers import readRequiredTagValue
-from Otto_API.TagHelpers import writeTagValue
+from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.TagHelpers import readRequiredTagValue
+from Otto_API.Common.TagHelpers import writeTagValues
+from Otto_API.Common.TagHelpers import writeTagValue
 
 
 DEFAULT_ALLOWED_ACTIVITY_STATES = set([
@@ -210,7 +211,8 @@ def updateAvailableForWork():
             return _buildUpdateResult(False, "warn", message)
 
         browseResults = system.tag.browse(robotsBasePath).getResults()
-        robotResults = []
+        robotRows = []
+        readPaths = []
 
         for tag in browseResults:
             if str(tag["tagType"]) != "UdtInstance":
@@ -218,34 +220,46 @@ def updateAvailableForWork():
 
             robotName = str(tag["name"])
             robotPath = robotsBasePath + "/" + robotName
+            robotRows.append({
+                "robot_name": robotName,
+                "robot_path": robotPath,
+            })
+            readPaths.extend([
+                robotPath + "/SystemState",
+                robotPath + "/ActivityState",
+                robotPath + "/ChargeLevel",
+            ])
 
-            systemStatePath = robotPath + "/SystemState"
-            activityPath = robotPath + "/ActivityState"
-            chargePath = robotPath + "/ChargeLevel"
-            availablePath = robotPath + "/AvailableForWork"
+        robotResults = []
+        writePaths = []
+        writeValues = []
 
+        readResults = []
+        if readPaths:
+            readResults = system.tag.readBlocking(readPaths)
+
+        for index, robotRow in enumerate(robotRows):
+            offset = index * 3
             try:
-                reads = system.tag.readBlocking([
-                    systemStatePath,
-                    activityPath,
-                    chargePath
-                ])
-
                 readiness = evaluateRobotReadiness(
-                    robotName,
-                    reads[0].value,
-                    reads[1].value,
-                    reads[2].value,
+                    robotRow["robot_name"],
+                    readResults[offset].value if readResults[offset].quality.isGood() else None,
+                    readResults[offset + 1].value if readResults[offset + 1].quality.isGood() else None,
+                    readResults[offset + 2].value if readResults[offset + 2].quality.isGood() else None,
                     minCharge
                 )
                 robotResults.append(readiness)
-                writeTagValue(availablePath, readiness["available"])
+                writePaths.append(robotRow["robot_path"] + "/AvailableForWork")
+                writeValues.append(readiness["available"])
 
             except Exception as e:
                 ottoLogger.warn(
                     "Failed to evaluate AvailableForWork for " +
-                    robotName + " - " + str(e)
+                    robotRow["robot_name"] + " - " + str(e)
                 )
+
+        if writePaths:
+            writeTagValues(writePaths, writeValues)
 
         message = "AvailableForWork updated for {} robot(s)".format(
             len(robotResults)

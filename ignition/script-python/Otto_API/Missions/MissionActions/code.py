@@ -2,7 +2,7 @@ import json
 import time
 import uuid
 
-from Otto_API.ContentSyncHelpers import sanitizeTagName
+from Otto_API.Fleet.ContentSync import sanitizeTagName
 
 
 def parseTemplateJson(templateJsonStr):
@@ -73,7 +73,7 @@ def interpretCreateMissionResponse(responseText):
         missionId = result.get("uuid") or result.get("id")
         if missionId:
             return ("info", "Mission created successfully - ID: {}".format(missionId))
-        return ("warn", "Mission created, but no UUID found: {}".format(json.dumps(result)))
+        return ("warn", "Mission created, but no mission ID found: {}".format(json.dumps(result)))
 
     if "error" in respJson:
         return ("warn", "API Error: {}".format(json.dumps(respJson["error"])))
@@ -81,27 +81,27 @@ def interpretCreateMissionResponse(responseText):
     return ("warn", "Unexpected response: {}".format(responseText))
 
 
-def findActiveMissionIdForRobot(robotUuid, missionRecords):
+def findActiveMissionIdForRobot(robotId, missionRecords):
     """
-    Find the active mission ID assigned to the given robot UUID.
+    Find the active mission ID assigned to the given robot ID.
     Returns (missionId, warningMessage).
     """
     for missionRecord in missionRecords:
-        assignedRobotUuid = missionRecord.get("assigned_robot")
-        if assignedRobotUuid is None:
+        assignedRobotId = missionRecord.get("assigned_robot")
+        if assignedRobotId is None:
             continue
 
-        assignedRobotUuid = str(assignedRobotUuid).strip().lower()
-        if assignedRobotUuid != robotUuid:
+        assignedRobotId = str(assignedRobotId).strip().lower()
+        if assignedRobotId != robotId:
             continue
 
-        missionId = missionRecord.get("id") or missionRecord.get("uuid")
+        missionId = missionRecord.get("id")
         if missionId:
             return (str(missionId), None)
 
         return (
             None,
-            "Matched mission for robot UUID [{}], but no id/uuid found".format(robotUuid)
+            "Matched mission for robot ID [{}], but no mission id found".format(robotId)
         )
 
     return (None, None)

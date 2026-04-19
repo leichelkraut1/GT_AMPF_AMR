@@ -2,7 +2,7 @@ import calendar
 import json
 import re
 
-from Otto_API.TagHelpers import writeTagValues
+from Otto_API.Common.TagHelpers import writeTagValues
 
 
 def parseServerStatus(responseText):
@@ -16,17 +16,44 @@ def parseServerStatus(responseText):
     return payload.get("state", "Unknown")
 
 
-def buildMissionsUrl(baseUrl, missionStatus, limit=None):
+def _normalizeMissionStatusList(missionStatus):
+    if missionStatus is None:
+        return []
+
+    if isinstance(missionStatus, (list, tuple)):
+        values = missionStatus
+    else:
+        values = [missionStatus]
+
+    normalized = []
+    for value in values:
+        if value is None:
+            continue
+        text = str(value).strip()
+        if not text:
+            continue
+        normalized.append(text)
+    return normalized
+
+
+def buildMissionsUrl(baseUrl, missionStatus, limit=None, offset=None):
     """
-    Build the OTTO missions URL for a specific mission status filter.
+    Build the OTTO missions URL for one or more mission status filters.
     """
-    url = (
-        baseUrl
-        + "/missions/?fields=%2A"
-        + "&mission_status=" + str(missionStatus)
-    )
+    statuses = _normalizeMissionStatusList(missionStatus)
+    if not statuses:
+        raise ValueError("At least one mission status is required")
+
+    url = baseUrl + "/missions/?fields=%2A"
+    if offset is not None:
+        url += "&offset=" + str(offset)
+
+    for status in statuses:
+        url += "&mission_status=" + status
+
     if limit is not None:
         url += "&limit=" + str(limit)
+
     return url
 
 
@@ -208,9 +235,91 @@ def buildRobotIdToPathMap(robotRows, basePath, readTagValue):
     return robotIdToPath, invalidRobotRows
 
 
+def buildRobotIdReadPlan(robotRows, basePath):
+    """
+    Build a read plan for robot ID tags from browsed robot UDT rows.
+    """
+    plan = []
+    for row in list(robotRows or []):
+        if str(row.get("tagType")) != "UdtInstance":
+            continue
+
+        robotName = str(row.get("name"))
+        robotPath = basePath + "/" + robotName
+        plan.append({
+            "robot_name": robotName,
+            "robot_path": robotPath,
+            "id_path": robotPath + "/ID",
+        })
+
+    return plan
+
+
+def buildRobotIdToPathMapFromReads(readPlan, qualifiedValues):
+    """
+    Build a robot UUID -> tag path mapping from a bulk ID read.
+    """
+    robotIdToPath = {}
+    invalidRobotRows = []
+
+    for planRow, qualifiedValue in zip(list(readPlan or []), list(qualifiedValues or [])):
+        quality = getattr(qualifiedValue, "quality", None)
+        if quality is None or not quality.isGood():
+            invalidRobotRows.append({
+                "robot_name": planRow["robot_name"],
+                "robot_path": planRow["robot_path"],
+                "reason": "Robot ID tag is not readable",
+            })
+            continue
+
+        robotId = qualifiedValue.value
+        if robotId is None or not str(robotId).strip():
+            invalidRobotRows.append({
+                "robot_name": planRow["robot_name"],
+                "robot_path": planRow["robot_path"],
+                "reason": "Robot ID returned no value",
+            })
+            continue
+
+        robotIdToPath[str(robotId).strip()] = planRow["robot_path"]
+
+    return robotIdToPath, invalidRobotRows
+
+
+def readRobotIdToPathMap(robotRows, basePath):
+    """
+    Browse robot UDT rows, bulk-read IDs, and return UUID -> tag path mappings.
+    """
+    readPlan = buildRobotIdReadPlan(robotRows, basePath)
+    if not readPlan:
+        return {}, [], []
+
+    qualifiedValues = system.tag.readBlocking([
+        row["id_path"] for row in readPlan
+    ])
+    robotIdToPath, invalidRobotRows = buildRobotIdToPathMapFromReads(
+        readPlan,
+        qualifiedValues
+    )
+    return robotIdToPath, invalidRobotRows, readPlan
+
+
 def invalidateRobotSyncState(robotPath):
     """
     Clear derived sync fields for a robot instance whose ID is invalid.
+    """
+    writes = buildInvalidRobotSyncWrites(robotPath)
+    if writes:
+        writeTagValues(
+            [path for path, _ in writes],
+            [value for _, value in writes]
+        )
+    return writes
+
+
+def buildInvalidRobotSyncWrites(robotPath):
+    """
+    Build derived sync field clears for a robot instance whose ID is invalid.
     """
     paths = [
         robotPath + "/SystemState",
@@ -230,8 +339,7 @@ def invalidateRobotSyncState(robotPath):
         None,
         False,
     ]
-    writeTagValues(paths, values)
-    return zip(paths, values)
+    return list(zip(paths, values))
 
 
 def buildRobotMetricWrites(robotIdToPath, metricRecords, robotKey, valueKey, targetSuffix):

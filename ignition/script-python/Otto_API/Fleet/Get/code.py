@@ -1,35 +1,40 @@
 import json
-from Otto_API.ContentSyncHelpers import buildMapInstanceName
-from Otto_API.ContentSyncHelpers import buildMapTagValues
-from Otto_API.ContentSyncHelpers import buildPlaceRecipeWrites
-from Otto_API.ContentSyncHelpers import buildRobotTagValues
-from Otto_API.ContentSyncHelpers import buildUdtInstanceDef
-from Otto_API.ContentSyncHelpers import buildWorkflowTagValues
-from Otto_API.ContentSyncHelpers import listUdtInstanceNames
-from Otto_API.ContentSyncHelpers import normalizePlaceRecord
-from Otto_API.ContentSyncHelpers import sanitizeTagName
-from Otto_API.ContentSyncHelpers import selectMostRecentMap
-from Otto_API.FleetSyncHelpers import buildMissionsUrl
-from Otto_API.FleetSyncHelpers import buildRobotIdToPathMap
-from Otto_API.FleetSyncHelpers import buildRobotMetricWrites
-from Otto_API.FleetSyncHelpers import groupRecordsByRobot
-from Otto_API.HttpHelpers import httpGet
-from Otto_API.HttpHelpers import jsonHeaders
-from Otto_API.FleetSyncHelpers import invalidateRobotSyncState
-from Otto_API.FleetSyncHelpers import normalizeChargePercentage
-from Otto_API.FleetSyncHelpers import parseIsoTimestampToEpochMillis
-from Otto_API.FleetSyncHelpers import parseJsonResponse
-from Otto_API.FleetSyncHelpers import parseListPayload
-from Otto_API.FleetSyncHelpers import parseMissionResults
-from Otto_API.FleetSyncHelpers import parseServerStatus
-from Otto_API.FleetSyncHelpers import selectDominantSystemState
-from Otto_API.ResultHelpers import buildOperationResult
-from Otto_API.TagHelpers import readOptionalTagValue
-from Otto_API.TagHelpers import readRequiredTagValue
-from Otto_API.TagHelpers import writeTagValue
-from Otto_API.TagHelpers import writeTagValueAsync
-from Otto_API.TagHelpers import writeTagValues
-from Otto_API.TagHelpers import writeTagValuesAsync
+from Otto_API.Common.HttpHelpers import httpGet
+from Otto_API.Common.HttpHelpers import jsonHeaders
+from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.TagHelpers import readOptionalTagValue
+from Otto_API.Common.TagHelpers import readRequiredTagValue
+from Otto_API.Common.TagHelpers import writeTagValue
+from Otto_API.Common.TagHelpers import writeTagValueAsync
+from Otto_API.Common.TagHelpers import writeTagValues
+from Otto_API.Common.TagHelpers import writeTagValuesAsync
+from Otto_API.Fleet.ContentSync import buildMapInstanceName
+from Otto_API.Fleet.ContentSync import buildMapTagValues
+from Otto_API.Fleet.ContentSync import buildPlaceRecipeWrites
+from Otto_API.Fleet.ContentSync import buildRobotTagValues
+from Otto_API.Fleet.ContentSync import buildUdtInstanceDef
+from Otto_API.Fleet.ContentSync import buildWorkflowTagValues
+from Otto_API.Fleet.ContentSync import listUdtInstanceNames
+from Otto_API.Fleet.ContentSync import normalizePlaceRecord
+from Otto_API.Fleet.ContentSync import sanitizeTagName
+from Otto_API.Fleet.ContentSync import selectMostRecentMap
+from Otto_API.Fleet.FleetSync import buildMissionsUrl
+from Otto_API.Fleet.FleetSync import buildInvalidRobotSyncWrites
+from Otto_API.Fleet.FleetSync import buildRobotIdToPathMap
+from Otto_API.Fleet.FleetSync import buildRobotMetricWrites
+from Otto_API.Fleet.FleetSync import buildRobotIdReadPlan
+from Otto_API.Fleet.FleetSync import buildRobotIdToPathMapFromReads
+from Otto_API.Fleet.FleetSync import groupRecordsByRobot
+from Otto_API.Fleet.FleetSync import invalidateRobotSyncState
+from Otto_API.Fleet.FleetSync import normalizeChargePercentage
+from Otto_API.Fleet.FleetSync import parseIsoTimestampToEpochMillis
+from Otto_API.Fleet.FleetSync import parseJsonResponse
+from Otto_API.Fleet.FleetSync import parseListPayload
+from Otto_API.Fleet.FleetSync import parseMissionResults
+from Otto_API.Fleet.FleetSync import parseServerStatus
+from Otto_API.Fleet.FleetSync import readRobotIdToPathMap
+from Otto_API.Fleet.FleetSync import selectDominantSystemState
+from Otto_API.Fleet.RobotReadiness import evaluateRobotReadiness
 
 
 def _jsonHeaders():
@@ -51,6 +56,35 @@ def _buildSyncResult(ok, level, message, records=None, writes=None, data=None):
         records=records,
         writes=writes,
     )
+
+
+def _readRobotInventory(robotsBasePath):
+    browseResults = system.tag.browse(robotsBasePath).getResults()
+    robotTags, invalidRobotRows, readPlan = readRobotIdToPathMap(
+        browseResults,
+        robotsBasePath
+    )
+    return browseResults, robotTags, invalidRobotRows, readPlan
+
+
+def _collectInvalidRobotWrites(invalidRobotRows, ottoLogger):
+    invalidated = []
+    for invalidRow in list(invalidRobotRows or []):
+        robotPath = invalidRow["robot_path"]
+        reason = invalidRow["reason"]
+        ottoLogger.warn(
+            "Invalid robot ID for {} - {}".format(robotPath, reason)
+        )
+        try:
+            invalidated.extend(list(buildInvalidRobotSyncWrites(robotPath)))
+        except Exception as exc:
+            ottoLogger.warn(
+                "Failed to invalidate sync state for {} - {}".format(
+                    robotPath,
+                    str(exc)
+                )
+            )
+    return invalidated
 
 
 def getServerStatus():
@@ -77,8 +111,8 @@ def getServerStatus():
 
 def getMissions(logger, debug, mission_status=None, limit=None):
     """
-    Gets Mission status info from Otto for a specific mission_status.
-    If mission_status is None, returns empty list (intentional safety).
+    Gets mission status info from OTTO for one or more mission statuses.
+    If mission_status is None, returns an empty list (intentional safety).
     """
     try:
         if not mission_status:
@@ -88,11 +122,15 @@ def getMissions(logger, debug, mission_status=None, limit=None):
 
         base = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL")
         url = buildMissionsUrl(base, mission_status, limit)
+        if isinstance(mission_status, (list, tuple)):
+            statusLabel = ",".join([str(x) for x in mission_status])
+        else:
+            statusLabel = str(mission_status)
 
         if debug:
             logger.debug(
                 "Otto API - Requesting missions status={} url={}".format(
-                    mission_status, url
+                    statusLabel, url
                 )
             )
 
@@ -103,7 +141,7 @@ def getMissions(logger, debug, mission_status=None, limit=None):
         if debug:
             logger.debug(
                 "Otto API - Received {} missions for status {}".format(
-                    len(results), mission_status
+                    len(results), statusLabel
                 )
             )
 
@@ -226,47 +264,24 @@ def updateSystemStates():
         results = data.get("results", [])
 
         statesByRobot = groupRecordsByRobot(results, "robot")
-
-        def _readRobotId(path):
-            return readRequiredTagValue(path)
-
-        robotTags, invalidRobotRows = buildRobotIdToPathMap(
-            system.tag.browse(robotsBasePath).getResults(),
-            robotsBasePath,
-            _readRobotId
-        )
+        _, robotTags, invalidRobotRows, _ = _readRobotInventory(robotsBasePath)
 
         writes = []
-        invalidated = []
+        invalidated = _collectInvalidRobotWrites(invalidRobotRows, ottoLogger)
+        nowDate = system.date.now()
 
-        for invalidRow in invalidRobotRows:
-            robotPath = invalidRow["robot_path"]
-            reason = invalidRow["reason"]
-            ottoLogger.warn(
-                "Invalid robot ID for {} - {}".format(robotPath, reason)
-            )
-            try:
-                invalidated.extend(list(invalidateRobotSyncState(robotPath)))
-            except Exception as exc:
+        for robotId, stateList in statesByRobot.items():
+            if robotId not in robotTags:
                 ottoLogger.warn(
-                    "Failed to invalidate sync state for {} - {}".format(
-                        robotPath,
-                        str(exc)
-                    )
-                )
-
-        for robotUUID, stateList in statesByRobot.items():
-            if robotUUID not in robotTags:
-                ottoLogger.warn(
-                    "SystemState received for unknown robot UUID " +
-                    robotUUID
+                    "SystemState received for unknown robot ID " +
+                    robotId
                 )
                 continue
 
             dominant = selectDominantSystemState(stateList)
             if dominant is None:
                 continue
-            robotPath = robotTags[robotUUID]
+            robotPath = robotTags[robotId]
 
             try:
                 paths = [
@@ -279,22 +294,28 @@ def updateSystemStates():
                     dominant.get("system_state"),
                     dominant.get("sub_system_state"),
                     dominant.get("priority"),
-                    system.date.now()
+                    nowDate
                 ]
-                writeTagValues(paths, values)
                 writes.extend(zip(paths, values))
             except Exception as e:
                 ottoLogger.warn(
                     "Failed to write SystemState for robot " +
-                    robotUUID + " - " + str(e)
+                    robotId + " - " + str(e)
                 )
+
+        finalWrites = writes + invalidated
+        if finalWrites:
+            writeTagValues(
+                [path for path, _ in finalWrites],
+                [value for _, value in finalWrites]
+            )
 
         return _buildSyncResult(
             True,
             "info",
             "System states updated for {} robot(s)".format(len(writes) // 4),
             records=results,
-            writes=writes + invalidated
+            writes=finalWrites
         )
 
     except Exception as e:
@@ -307,7 +328,7 @@ def updateSystemStates():
 def updateChargeLevels():
     """
     Updates the .ChargeLevel tag for all vehicles in [Otto_FleetManager]Robots
-    by retrieving battery percentages from the API and matching by robot UUID.
+    by retrieving battery percentages from the API and matching by robot ID.
     """
     baseUrl = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL")
     url = baseUrl + "/robots/batteries/?fields=percentage,robot"
@@ -323,30 +344,8 @@ def updateChargeLevels():
         basePath = "[Otto_FleetManager]Robots"
         batteryResults = batteryData.get("results", [])
 
-        def _readRobotId(path):
-            return readRequiredTagValue(path)
-
-        robotTags, invalidRobotRows = buildRobotIdToPathMap(
-            system.tag.browse(basePath).getResults(),
-            basePath,
-            _readRobotId
-        )
-        invalidated = []
-        for invalidRow in invalidRobotRows:
-            robotPath = invalidRow["robot_path"]
-            reason = invalidRow["reason"]
-            ottoLogger.warn(
-                "Invalid robot ID for {} - {}".format(robotPath, reason)
-            )
-            try:
-                invalidated.extend(list(invalidateRobotSyncState(robotPath)))
-            except Exception as exc:
-                ottoLogger.warn(
-                    "Failed to invalidate sync state for {} - {}".format(
-                        robotPath,
-                        str(exc)
-                    )
-                )
+        _, robotTags, invalidRobotRows, _ = _readRobotInventory(basePath)
+        invalidated = _collectInvalidRobotWrites(invalidRobotRows, ottoLogger)
         writes, unmatchedRobotIds = buildRobotMetricWrites(
             robotTags,
             batteryResults,
@@ -362,18 +361,19 @@ def updateChargeLevels():
         for robotId in unmatchedRobotIds:
             ottoLogger.warn("No matching robot tag found for robot ID " + robotId)
 
-        for path, value in writes:
-            try:
-                writeTagValue(path, value)
-            except Exception as e:
-                ottoLogger.warn("Failed to write ChargeLevel for " + path + " - " + str(e))
+        finalWrites = writes + invalidated
+        if finalWrites:
+            writeTagValues(
+                [path for path, _ in finalWrites],
+                [value for _, value in finalWrites]
+            )
 
         return _buildSyncResult(
             True,
             "info",
             "Charge levels updated for {} robot(s)".format(len(writes)),
             records=batteryResults,
-            writes=writes + invalidated
+            writes=finalWrites
         )
 
     except Exception as e:
@@ -384,7 +384,7 @@ def updateChargeLevels():
 def updateActivityStates():
     """
     Updates the .ActivityState tag for all vehicles in [Otto_FleetManager]Robots
-    by retrieving activity states from the API and matching by robot UUID.
+    by retrieving activity states from the API and matching by robot ID.
     """
     baseUrl = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL")
     url = baseUrl + "/robots/activities/?fields=activity,robot&offset=0&limit=100"
@@ -400,30 +400,8 @@ def updateActivityStates():
         basePath = "[Otto_FleetManager]Robots"
         activityResults = activityData.get("results", [])
 
-        def _readRobotId(path):
-            return readRequiredTagValue(path)
-
-        robotTags, invalidRobotRows = buildRobotIdToPathMap(
-            system.tag.browse(basePath).getResults(),
-            basePath,
-            _readRobotId
-        )
-        invalidated = []
-        for invalidRow in invalidRobotRows:
-            robotPath = invalidRow["robot_path"]
-            reason = invalidRow["reason"]
-            ottoLogger.warn(
-                "Invalid robot ID for {} - {}".format(robotPath, reason)
-            )
-            try:
-                invalidated.extend(list(invalidateRobotSyncState(robotPath)))
-            except Exception as exc:
-                ottoLogger.warn(
-                    "Failed to invalidate sync state for {} - {}".format(
-                        robotPath,
-                        str(exc)
-                    )
-                )
+        _, robotTags, invalidRobotRows, _ = _readRobotInventory(basePath)
+        invalidated = _collectInvalidRobotWrites(invalidRobotRows, ottoLogger)
         writes, unmatchedRobotIds = buildRobotMetricWrites(
             robotTags,
             activityResults,
@@ -438,24 +416,19 @@ def updateActivityStates():
                 robotId
             )
 
-        for path, value in writes:
-            try:
-                writeTagValues(
-                    [path],
-                    [value]
-                )
-            except Exception as e:
-                ottoLogger.warn(
-                    "Failed to write ActivityState for " +
-                    path + " - " + str(e)
-                )
+        finalWrites = writes + invalidated
+        if finalWrites:
+            writeTagValues(
+                [path for path, _ in finalWrites],
+                [value for _, value in finalWrites]
+            )
 
         return _buildSyncResult(
             True,
             "info",
             "Activity states updated for {} robot(s)".format(len(writes)),
             records=activityResults,
-            writes=writes + invalidated
+            writes=finalWrites
         )
 
     except Exception as e:
@@ -463,6 +436,160 @@ def updateActivityStates():
             "Otto API - Failed to update activity states - " + str(e)
         )
         return _buildSyncResult(False, "error", "Failed to update activity states - " + str(e))
+
+
+def updateRobotOperationalState():
+    """
+    Sync robot operational state in one pass:
+    system state, activity state, charge level, and AvailableForWork.
+    """
+    ottoLogger = system.util.getLogger("Otto_API_Logger")
+    robotsBasePath = "[Otto_FleetManager]Robots"
+
+    try:
+        minCharge = readRequiredTagValue(
+            "[Otto_FleetManager]Missions/minChargeLevelForMissioning",
+            "Minimum charge threshold"
+        )
+    except ValueError as e:
+        message = str(e)
+        ottoLogger.warn(message)
+        return _buildSyncResult(False, "warn", message)
+
+    try:
+        browseResults, robotTags, invalidRobotRows, readPlan = _readRobotInventory(robotsBasePath)
+        invalidated = _collectInvalidRobotWrites(invalidRobotRows, ottoLogger)
+
+        robotPaths = [row["robot_path"] for row in readPlan]
+        currentValuePaths = []
+        for robotPath in robotPaths:
+            currentValuePaths.extend([
+                robotPath + "/SystemState",
+                robotPath + "/SubSystemState",
+                robotPath + "/SystemStatePriority",
+                robotPath + "/SystemStateUpdatedTs",
+                robotPath + "/ActivityState",
+                robotPath + "/ChargeLevel",
+            ])
+
+        currentValues = {}
+        if currentValuePaths:
+            readResults = system.tag.readBlocking(currentValuePaths)
+            for path, qualifiedValue in zip(currentValuePaths, readResults):
+                currentValues[path] = qualifiedValue.value if qualifiedValue.quality.isGood() else None
+
+        baseUrl = readRequiredTagValue("[Otto_FleetManager]Url_ApiBase", "API base URL")
+        systemStateResponse = httpGet(
+            url=baseUrl + "/robots/states/?fields=%2A",
+            headerValues=_jsonHeaders()
+        )
+        activityResponse = httpGet(
+            url=baseUrl + "/robots/activities/?fields=activity,robot&offset=0&limit=100",
+            headerValues=_jsonHeaders()
+        )
+        batteryResponse = httpGet(
+            url=baseUrl + "/robots/batteries/?fields=percentage,robot",
+            headerValues=_jsonHeaders()
+        )
+
+        if not systemStateResponse:
+            return _buildSyncResult(False, "error", "HTTP GET failed for /robots/system_states/")
+        if not activityResponse:
+            return _buildSyncResult(False, "error", "HTTP GET failed for /robots/activities/")
+        if not batteryResponse:
+            return _buildSyncResult(False, "error", "HTTP GET failed for /robots/batteries/")
+
+        systemStateResults = json.loads(systemStateResponse).get("results", [])
+        activityResults = json.loads(activityResponse).get("results", [])
+        batteryResults = json.loads(batteryResponse).get("results", [])
+
+        statesByRobot = groupRecordsByRobot(systemStateResults, "robot")
+        activityByRobot = {}
+        for record in list(activityResults or []):
+            robotId = record.get("robot")
+            if robotId is None:
+                continue
+            activityByRobot[str(robotId).strip()] = record.get("activity")
+
+        chargeByRobot = {}
+        for record in list(batteryResults or []):
+            robotId = record.get("robot")
+            if robotId is None:
+                continue
+            chargeByRobot[str(robotId).strip()] = normalizeChargePercentage(record.get("percentage"))
+
+        writesByPath = {}
+        nowDate = system.date.now()
+
+        for invalidPath, invalidValue in invalidated:
+            writesByPath[invalidPath] = invalidValue
+
+        for robotId, robotPath in robotTags.items():
+            dominant = selectDominantSystemState(statesByRobot.get(robotId, []))
+
+            systemStatePath = robotPath + "/SystemState"
+            subSystemPath = robotPath + "/SubSystemState"
+            priorityPath = robotPath + "/SystemStatePriority"
+            updatedTsPath = robotPath + "/SystemStateUpdatedTs"
+            activityPath = robotPath + "/ActivityState"
+            chargePath = robotPath + "/ChargeLevel"
+            availablePath = robotPath + "/AvailableForWork"
+
+            effectiveSystemState = currentValues.get(systemStatePath)
+            effectiveSubSystemState = currentValues.get(subSystemPath)
+            effectivePriority = currentValues.get(priorityPath)
+            effectiveUpdatedTs = currentValues.get(updatedTsPath)
+            effectiveActivity = currentValues.get(activityPath)
+            effectiveCharge = currentValues.get(chargePath)
+
+            if dominant is not None:
+                effectiveSystemState = dominant.get("system_state")
+                effectiveSubSystemState = dominant.get("sub_system_state")
+                effectivePriority = dominant.get("priority")
+                effectiveUpdatedTs = nowDate
+                writesByPath[systemStatePath] = effectiveSystemState
+                writesByPath[subSystemPath] = effectiveSubSystemState
+                writesByPath[priorityPath] = effectivePriority
+                writesByPath[updatedTsPath] = effectiveUpdatedTs
+
+            if robotId in activityByRobot:
+                effectiveActivity = activityByRobot.get(robotId)
+                writesByPath[activityPath] = effectiveActivity
+
+            if robotId in chargeByRobot:
+                effectiveCharge = chargeByRobot.get(robotId)
+                writesByPath[chargePath] = effectiveCharge
+
+            readiness = evaluateRobotReadiness(
+                robotId,
+                effectiveSystemState,
+                effectiveActivity,
+                effectiveCharge,
+                minCharge
+            )
+            writesByPath[availablePath] = readiness["available"]
+
+        if writesByPath:
+            writeTagValues(
+                list(writesByPath.keys()),
+                list(writesByPath.values())
+            )
+
+        allRecords = list(systemStateResults) + list(activityResults) + list(batteryResults)
+        writes = list(writesByPath.items())
+        return _buildSyncResult(
+            True,
+            "info",
+            "Robot operational state updated for {} robot(s)".format(len(robotTags)),
+            records=allRecords,
+            writes=writes
+        )
+
+    except Exception as e:
+        ottoLogger.error(
+            "Otto API - Failed to update robot operational state - " + str(e)
+        )
+        return _buildSyncResult(False, "error", "Failed to update robot operational state - " + str(e))
 
 
 def updatePlaces():

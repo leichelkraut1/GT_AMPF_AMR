@@ -1,14 +1,14 @@
-from Otto_API.HttpHelpers import httpPost
-from Otto_API.MissionActionHelpers import buildCreateMissionPayload
-from Otto_API.MissionActionHelpers import buildFinalizeMissionPayload
-from Otto_API.MissionActionHelpers import findActiveMissionIdForRobot
-from Otto_API.MissionActionHelpers import interpretCreateMissionResponse
-from Otto_API.MissionActionHelpers import interpretFinalizeMissionResponse
-from Otto_API.MissionActionHelpers import parseTemplateJson
-from Otto_API.ResultHelpers import buildOperationResult
-from Otto_API.TagHelpers import readOptionalTagValue
-from Otto_API.TagHelpers import readRequiredTagValue
-from Otto_API.TagHelpers import writeTagValueAsync
+from Otto_API.Common.HttpHelpers import httpPost
+from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.TagHelpers import readOptionalTagValue
+from Otto_API.Common.TagHelpers import readRequiredTagValue
+from Otto_API.Common.TagHelpers import writeTagValueAsync
+from Otto_API.Missions.MissionActions import buildCreateMissionPayload
+from Otto_API.Missions.MissionActions import buildFinalizeMissionPayload
+from Otto_API.Missions.MissionActions import findActiveMissionIdForRobot
+from Otto_API.Missions.MissionActions import interpretCreateMissionResponse
+from Otto_API.Missions.MissionActions import interpretFinalizeMissionResponse
+from Otto_API.Missions.MissionActions import parseTemplateJson
 
 
 def _buildResult(ok, level, message, missionId=None, responseText=None, payload=None):
@@ -45,6 +45,9 @@ def createMissionFromInputs(templateDict, robotId, missionName, fleetManagerURL,
 		logLevel, message = interpretCreateMissionResponse(response)
 		missionId = None
 		if "ID:" in message:
+			# The createMission response ID is currently used only for logging/diagnostics.
+			# Mission state is reconciled from the periodic mission list sync rather than
+			# seeding the Active mission tag tree directly from this response.
 			missionId = message.split("ID:", 1)[1].strip()
 
 		return _buildResult(
@@ -64,29 +67,29 @@ def createMissionFromInputs(templateDict, robotId, missionName, fleetManagerURL,
 		)
 
 
-def finalizeMissionFromInputs(robotUuid, missionRecords, fleetManagerURL, postFunc):
+def finalizeMissionFromInputs(robotId, missionRecords, fleetManagerURL, postFunc):
 	"""
 	Finalizes a mission from explicit inputs and returns a structured result.
 	"""
-	targetMissionUUID, warningMessage = findActiveMissionIdForRobot(robotUuid, missionRecords)
-	if targetMissionUUID is None:
-		message = warningMessage or "No active mission found for robot UUID [{}]".format(robotUuid)
+	targetMissionId, warningMessage = findActiveMissionIdForRobot(robotId, missionRecords)
+	if targetMissionId is None:
+		message = warningMessage or "No active mission found for robot ID [{}]".format(robotId)
 		return _buildResult(ok=False, level="warn", message=message)
 
 	try:
-		missionPayload = buildFinalizeMissionPayload(targetMissionUUID)
+		missionPayload = buildFinalizeMissionPayload(targetMissionId)
 		jsonBody = system.util.jsonEncode(missionPayload)
 		response = postFunc(
 			url=fleetManagerURL,
 			postData=jsonBody,
 		)
 
-		logLevel, message = interpretFinalizeMissionResponse(response, targetMissionUUID)
+		logLevel, message = interpretFinalizeMissionResponse(response, targetMissionId)
 		return _buildResult(
 			ok=(logLevel == "info"),
 			level=logLevel,
 			message=message,
-			missionId=targetMissionUUID,
+			missionId=targetMissionId,
 			responseText=response,
 			payload=missionPayload,
 		)
@@ -94,19 +97,19 @@ def finalizeMissionFromInputs(robotUuid, missionRecords, fleetManagerURL, postFu
 		return _buildResult(
 			ok=False,
 			level="error",
-			message="Error finalizing mission for robot UUID [{}]: {}".format(robotUuid, str(e)),
-			missionId=targetMissionUUID,
+			message="Error finalizing mission for robot ID [{}]: {}".format(robotId, str(e)),
+			missionId=targetMissionId,
 		)
 
 
 def createMission(templateTagPath, robotTagPath, missionName):
 	"""
 	Posts a mission to the OTTO Fleet Manager using the mission templates and robot ID specified by tag paths.
-	Mission templates (workflows) can be pulled into Ignition using Otto_API.Gets.updateMissionTemplates()
+	Mission templates (workflows) can be pulled into Ignition using Otto_API.Fleet.Get.updateWorkflows()
 
 	Args:
 		templateTagPath (str): Full tag path to the mission template JSON string.
-		robotTagPath (str): Full tag path to the robot UUID string.
+		robotTagPath (str): Full tag path to the robot ID string.
 		missionName (str): The name of the mission that Fleet will display in the Work Monitor
 	"""
 
@@ -188,7 +191,7 @@ def finalizeMission(robotName):
 	ottoLogger.info("Finalizing mission for robot [{}]".format(robotName))
 
 	try:
-		# --- Resolve robot UUID ---
+		# --- Resolve robot ID ---
 		robotIdPath = "[Otto_FleetManager]Robots/{}/id".format(robotName)
 		try:
 			robotIdValue = readRequiredTagValue(robotIdPath, "Robot ID")
@@ -198,41 +201,55 @@ def finalizeMission(robotName):
 			writeTagValueAsync(responseTag, msg)
 			return _buildResult(ok=False, level="warn", message=msg)
 
-		robot_uuid = str(robotIdValue).strip().lower()
+		robot_id = str(robotIdValue).strip().lower()
 
 		# --- Locate active mission assigned to this robot ---
 		activeMissionsPath = "[Otto_FleetManager]Missions/Active"
 		missionBrowseResults = system.tag.browse(activeMissionsPath).getResults()
 		missionRecords = []
+		missionRows = []
 
 		for mission in missionBrowseResults:
+			if str(mission.get("tagType")) != "UdtInstance":
+				continue
 			missionBasePath = str(mission.get("fullPath"))
+			missionRows.append({
+				"assigned_robot_path": missionBasePath + "/assigned_robot",
+				"id_path": missionBasePath + "/id",
+			})
 
-			assignedRobotPath = missionBasePath + "/assigned_robot"
-			assignedRobotValue = readOptionalTagValue(assignedRobotPath, None)
+		readPaths = []
+		for missionRow in missionRows:
+			readPaths.extend([
+				missionRow["assigned_robot_path"],
+				missionRow["id_path"],
+			])
+
+		readResults = []
+		if readPaths:
+			readResults = system.tag.readBlocking(readPaths)
+
+		for index, missionRow in enumerate(missionRows):
+			offset = index * 2
+			assignedRobotValue = readResults[offset].value if readResults[offset].quality.isGood() else None
 			if not assignedRobotValue:
 				continue
 
-			# --- Resolve mission identifier (prefer uuid, fallback to id) ---
-			uuidPath = missionBasePath + "/uuid"
-			idPath = missionBasePath + "/id"
-
 			missionRecords.append({
 				"assigned_robot": assignedRobotValue,
-				"uuid": readOptionalTagValue(uuidPath, None),
-				"id": readOptionalTagValue(idPath, None),
+				"id": readResults[offset + 1].value if readResults[offset + 1].quality.isGood() else None,
 			})
 
-		targetMissionUUID, warningMessage = findActiveMissionIdForRobot(
-			robot_uuid,
+		targetMissionId, warningMessage = findActiveMissionIdForRobot(
+			robot_id,
 			missionRecords
 		)
 		if warningMessage:
 			ottoLogger.warn(warningMessage)
 
-		if not targetMissionUUID:
-			msg = "No active mission found for robot [{}] (robot_uuid={})".format(
-				robotName, robot_uuid
+		if not targetMissionId:
+			msg = "No active mission found for robot [{}] (robot_id={})".format(
+				robotName, robot_id
 			)
 			ottoLogger.info(msg)
 			writeTagValueAsync(responseTag, msg)
@@ -240,12 +257,12 @@ def finalizeMission(robotName):
 
 		ottoLogger.info(
 			"Found active mission [{}] for robot [{}]".format(
-				targetMissionUUID, robotName
+				targetMissionId, robotName
 			)
 		)
 
 		result = finalizeMissionFromInputs(
-			robot_uuid,
+			robot_id,
 			missionRecords,
 			fleetManagerURL,
 			httpPost

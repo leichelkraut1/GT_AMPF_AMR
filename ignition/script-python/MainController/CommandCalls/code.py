@@ -1,6 +1,6 @@
 import time
 
-from Otto_API import Post
+from Otto_API.Missions import Post
 
 from MainController.CommandHelpers import buildLoopResult
 from MainController.CommandHelpers import decideCommandAction

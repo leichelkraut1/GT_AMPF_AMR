@@ -1,9 +1,9 @@
-from Otto_API.Get import getMissions
-from Otto_API.Get import sanitizeTagName
-from Otto_API.ResultHelpers import buildOperationResult
-from Otto_API.TagHelpers import readOptionalTagValue
-from Otto_API.TagHelpers import readRequiredTagValue
-from Otto_API.TagHelpers import writeTagValues
+from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.TagHelpers import readOptionalTagValue
+from Otto_API.Common.TagHelpers import readRequiredTagValue
+from Otto_API.Common.TagHelpers import writeTagValues
+from Otto_API.Fleet.ContentSync import sanitizeTagName
+from Otto_API.Fleet.Get import getMissions
 
 # ---------------------------------------------------------------------------
 # CONSTANTS
@@ -253,24 +253,38 @@ def cleanup_completed(logger, debug=False):
     cutoff = system.date.addDays(now, -COMPLETED_RETENTION_DAYS)
 
     instances = browse_instances(COMPLETED_PATH)
+    removed = []
+    removedPaths = set()
     enriched = []
 
-    for fullPath, name in instances:
-        try:
-            createdVal = readRequiredTagValue(fullPath + "/Created")
-        except Exception as exc:
+    readPaths = [fullPath + "/Created" for fullPath, _ in instances]
+    readResults = []
+    if readPaths:
+        readResults = system.tag.readBlocking(readPaths)
+
+    for index, instance in enumerate(instances):
+        fullPath, name = instance
+        qualifiedValue = readResults[index]
+        if not qualifiedValue.quality.isGood():
             logger.warn(
-                "Skipping completed mission {} during age cleanup - {}".format(
-                    fullPath,
-                    str(exc)
+                "Skipping completed mission {} during cleanup - Created tag is not readable".format(
+                    fullPath
                 )
             )
             continue
-        createdDate = parse_date(createdVal)
+
+        createdDate = parse_date(qualifiedValue.value)
+        if createdDate is None:
+            logger.warn(
+                "Skipping completed mission {} during cleanup - invalid Created value".format(
+                    fullPath
+                )
+            )
+            continue
         enriched.append((fullPath, name, createdDate))
 
     removed_age = 0
-    removed = []
+    remaining = []
     for fullPath, name, createdDate in enriched:
         if should_remove_completed_by_age(createdDate, cutoff):
             remove_instance(
@@ -280,36 +294,25 @@ def cleanup_completed(logger, debug=False):
                 "older than {} days".format(COMPLETED_RETENTION_DAYS)
             )
             removed_age += 1
+            removedPaths.add(fullPath)
             removed.append((fullPath, "age"))
+        else:
+            remaining.append((fullPath, name, createdDate))
 
     if debug:
         logger.info("Completed cleanup: removed {} by age".format(removed_age))
 
-    instances = browse_instances(COMPLETED_PATH)
-    enriched = []
-
-    for fullPath, name in instances:
-        try:
-            createdVal = readRequiredTagValue(fullPath + "/Created")
-        except Exception as exc:
-            logger.warn(
-                "Skipping completed mission {} during max-count cleanup - {}".format(
-                    fullPath,
-                    str(exc)
-                )
-            )
-            continue
-        createdDate = parse_date(createdVal)
-        enriched.append((fullPath, name, createdDate))
-
-    excess = compute_completed_overflow(enriched, MAX_COMPLETED, now)
+    excess = compute_completed_overflow(remaining, MAX_COMPLETED, now)
     for fullPath, name, ts in excess:
+        if fullPath in removedPaths:
+            continue
         remove_instance(
             fullPath,
             logger,
             debug,
             "pruned to max {}".format(MAX_COMPLETED)
         )
+        removedPaths.add(fullPath)
         removed.append((fullPath, "max"))
 
     if debug and excess:
@@ -341,32 +344,24 @@ def run():
     try:
         missions = []
 
-        # --- Fetch ACTIVE missions (unlimited) ---
-        for status in ACTIVE_STATUSES:
-            missions.extend(
-                getMissions(
-                    logger,
-                    debug,
-                    mission_status=status
-                )
-            )
-
-        # --- Fetch COMPLETED missions (capped total) ---
-        remaining = MAX_COMPLETED
-
-        for status in TERMINAL_STATUSES:
-            if remaining <= 0:
-                break
-
-            batch = getMissions(
+        # --- Fetch ACTIVE missions in one bulk call ---
+        missions.extend(
+            getMissions(
                 logger,
                 debug,
-                mission_status=status,
-                limit=remaining
+                mission_status=ACTIVE_STATUSES
             )
+        )
 
-            missions.extend(batch)
-            remaining -= len(batch)
+        # --- Fetch COMPLETED missions in one capped bulk call ---
+        missions.extend(
+            getMissions(
+                logger,
+                debug,
+                mission_status=TERMINAL_STATUSES,
+                limit=MAX_COMPLETED
+            )
+        )
 
         activeWanted = set()
         completedWanted = set()

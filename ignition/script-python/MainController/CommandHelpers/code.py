@@ -1,9 +1,9 @@
 import time
 import uuid
 
-from Otto_API.ResultHelpers import buildOperationResult
-from Otto_API.TagHelpers import readOptionalTagValue
-from Otto_API.TagHelpers import writeTagValues
+from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.TagHelpers import readOptionalTagValue
+from Otto_API.Common.TagHelpers import writeTagValues
 
 
 def memoryTagDef(name, dataType, value=None):
