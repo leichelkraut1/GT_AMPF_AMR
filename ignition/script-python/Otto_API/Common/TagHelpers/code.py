@@ -278,6 +278,30 @@ def deleteTagPath(tagPath):
     return deleteTagPaths([tagPath])
 
 
+def _isWriteResultGood(result):
+    if hasattr(result, "isGood"):
+        return bool(result.isGood())
+
+    if isinstance(result, dict):
+        quality = result.get("quality")
+        if hasattr(quality, "isGood"):
+            return bool(quality.isGood())
+        return str(quality).strip().lower() == "good"
+
+    try:
+        return int(result) == 0
+    except Exception:
+        return bool(result)
+
+
+def _buildWriteFailureMessage(tagPath, result, label=None):
+    if label:
+        subject = str(label)
+    else:
+        subject = "Tag write"
+    return "{} failed for {}: {}".format(subject, tagPath, result)
+
+
 def writeTagValue(tagPath, value):
     """
     Write a single tag value synchronously.
@@ -290,6 +314,35 @@ def writeTagValues(tagPaths, values):
     Write multiple tag values synchronously.
     """
     return system.tag.writeBlocking(list(tagPaths), list(values))
+
+
+def writeRequiredTagValue(tagPath, value, label=None):
+    """
+    Write a required tag value and raise when the write result is not good.
+    """
+    results = writeTagValue(tagPath, value)
+    result = results[0] if results else None
+    if not _isWriteResultGood(result):
+        raise ValueError(_buildWriteFailureMessage(tagPath, result, label))
+    return results
+
+
+def writeRequiredTagValues(tagPaths, values, labels=None):
+    """
+    Write required tag values and raise when any write result is not good.
+    """
+    tagPaths = list(tagPaths or [])
+    values = list(values or [])
+    labels = list(labels or [])
+    results = writeTagValues(tagPaths, values)
+
+    for index, tagPath in enumerate(tagPaths):
+        result = results[index] if index < len(results) else None
+        label = labels[index] if index < len(labels) else None
+        if not _isWriteResultGood(result):
+            raise ValueError(_buildWriteFailureMessage(tagPath, result, label))
+
+    return results
 
 
 def writeTagValueAsync(tagPath, value):

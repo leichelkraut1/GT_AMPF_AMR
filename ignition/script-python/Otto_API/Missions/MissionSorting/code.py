@@ -1,3 +1,4 @@
+from java.util import Date
 from Otto_API.Common.TagHelpers import browseTagResults
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagHelpers import deleteTagPath
@@ -8,8 +9,10 @@ from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
 from Otto_API.Common.TagHelpers import tagExists
+from Otto_API.Common.TagHelpers import writeRequiredTagValues
 from Otto_API.Common.TagHelpers import writeTagValues
 from Otto_API.Fleet.ContentSync import sanitizeTagName
+from Otto_API.Fleet.FleetSync import parseIsoTimestampToEpochMillis
 from Otto_API.Fleet.FleetSync import readRobotInventoryMetadata
 from Otto_API.Fleet.Get import getMissions
 from Otto_API.Missions.MissionActions import resolveMissionRobotId
@@ -97,8 +100,16 @@ def parse_date(val):
     if hasattr(val, "before"):
         return val
 
+    text = str(val).strip()
+
+    if "T" in text and (text.endswith("Z") or "+" in text[10:] or "-" in text[10:]):
+        try:
+            return Date(parseIsoTimestampToEpochMillis(text))
+        except Exception:
+            pass
+
     try:
-        return system.date.parse(str(val))
+        return system.date.parse(text)
     except Exception:
         return None
 
@@ -125,11 +136,17 @@ def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None
     )
 
 
-def _writeMissionUpdateStatus(success, timestampValue):
-    writeTagValues(
-        [LAST_UPDATE_TS_PATH, LAST_UPDATE_SUCCESS_PATH],
-        [timestampValue, bool(success)]
-    )
+def _writeMissionUpdateStatus(success, timestampValue, logger=None):
+    try:
+        writeRequiredTagValues(
+            [LAST_UPDATE_TS_PATH, LAST_UPDATE_SUCCESS_PATH],
+            [timestampValue, bool(success)],
+            ["Mission LastUpdateTS", "Mission LastUpdateSuccess"]
+        )
+    except Exception as exc:
+        if logger is not None:
+            logger.error("Failed to write mission update status: {}".format(str(exc)))
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -598,7 +615,7 @@ def run():
                 debug
             )
         )
-        _writeMissionUpdateStatus(True, nowTimestamp)
+        _writeMissionUpdateStatus(True, nowTimestamp, logger)
         result = _buildSyncResult(
             True,
             "info",
@@ -613,10 +630,11 @@ def run():
         try:
             _writeMissionUpdateStatus(
                 False,
-                system.date.format(system.date.now(), "yyyy-MM-dd HH:mm:ss.SSS")
+                system.date.format(system.date.now(), "yyyy-MM-dd HH:mm:ss.SSS"),
+                logger
             )
         except Exception:
-            pass
+            logger.error("MissionSorting.run also failed to write failure status tags")
         logger.error("MissionSorting.run FAILED: {}".format(e))
         result = _buildSyncResult(
             False,
