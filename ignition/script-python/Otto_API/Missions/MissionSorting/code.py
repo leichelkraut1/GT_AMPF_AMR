@@ -427,6 +427,129 @@ def resolve_mission_robot_folder(mission, robotMappings=None):
     return UNKNOWN_ROBOT_FOLDER
 
 
+def build_mission_bucket_paths(robotFolder, instanceName):
+    """
+    Return the fully-qualified mission instance path for each bucket.
+    """
+    return {
+        "active": ACTIVE_PATH + "/" + robotFolder + "/" + instanceName,
+        "completed": COMPLETED_PATH + "/" + robotFolder + "/" + instanceName,
+        "failed": FAILED_PATH + "/" + robotFolder + "/" + instanceName,
+    }
+
+
+def _remove_mission_path_if_exists(path, reason, logger, debug=False):
+    """
+    Remove a mission instance path when it exists and return a removal record.
+    """
+    if not tagExists(path):
+        return None
+    remove_instance(path, logger, debug, reason)
+    return (path, reason)
+
+
+def _record_mission_status_if_changed(
+    mission,
+    robotFolder,
+    previousStatus,
+    nowTimestamp,
+    latestStatusByMissionId
+):
+    """
+    Append mission-state history only when the latest logged state changes.
+    """
+    newStatus = mission.get("mission_status")
+    if (
+        previousStatus is None or str(previousStatus) != str(newStatus)
+    ) and should_record_mission_state_change(mission, newStatus, latestStatusByMissionId):
+        record_mission_state_change(
+            nowTimestamp,
+            robotFolder,
+            mission,
+            previousStatus,
+            newStatus
+        )
+        latestStatusByMissionId[str(mission.get("id") or "")] = str(newStatus or "")
+
+
+def sync_mission_into_bucket(
+    mission,
+    robotFolder,
+    bucket,
+    nowTimestamp,
+    latestStatusByMissionId,
+    logger,
+    debug=False
+):
+    """
+    Move a mission into the requested bucket, write its data, and record history.
+    """
+    instanceName = make_instance_name(mission)
+    paths = build_mission_bucket_paths(robotFolder, instanceName)
+    previousStatus = read_previous_mission_status([
+        paths["active"],
+        paths["completed"],
+        paths["failed"],
+    ])
+    removed = []
+
+    moveReasons = {
+        "active": {
+            "completed": "moved_to_active",
+            "failed": "moved_to_active",
+        },
+        "completed": {
+            "active": "moved_to_completed",
+            "failed": "moved_to_completed",
+        },
+        "failed": {
+            "active": "moved_to_failed",
+            "completed": "moved_to_failed",
+        },
+    }
+    logReasons = {
+        "moved_to_active": "moved to Active",
+        "moved_to_completed": "moved to Completed",
+        "moved_to_failed": "moved to Failed",
+    }
+
+    for otherBucket in ["active", "completed", "failed"]:
+        if otherBucket == bucket:
+            continue
+        removalKey = moveReasons[bucket][otherBucket]
+        removal = _remove_mission_path_if_exists(
+            paths[otherBucket],
+            logReasons[removalKey],
+            logger,
+            debug
+        )
+        if removal is not None:
+            removed.append((removal[0], removalKey))
+
+    targetPath = paths[bucket]
+    if not tagExists(targetPath):
+        ensureUdtInstancePath(targetPath, "api_Mission")
+        if debug:
+            logger.info("Created mission instance: {}".format(targetPath))
+
+    write_mission_data(targetPath, mission)
+    _record_mission_status_if_changed(
+        mission,
+        robotFolder,
+        previousStatus,
+        nowTimestamp,
+        latestStatusByMissionId
+    )
+
+    return {
+        "bucket": bucket,
+        "instance_name": instanceName,
+        "target_path": targetPath,
+        "paths": paths,
+        "removed": removed,
+    }
+
+
 # ---------------------------------------------------------------------------
 # COMPLETED CLEANUP
 # ---------------------------------------------------------------------------
@@ -589,82 +712,30 @@ def run():
 
         for mission in missions:
             status = mission.get("mission_status", "")
-            instanceName = make_instance_name(mission)
             robotFolder = resolve_mission_robot_folder(mission, robotMappings)
             attachmentState = deriveMissionAttachmentState(mission)
 
-            activePath = ACTIVE_PATH + "/" + robotFolder + "/" + instanceName
-            completedPath = COMPLETED_PATH + "/" + robotFolder + "/" + instanceName
-            failedPath = FAILED_PATH + "/" + robotFolder + "/" + instanceName
-            previousStatus = read_previous_mission_status(
-                [activePath, completedPath, failedPath]
-            )
-
             bucket = classify_mission_bucket(status)
+            syncResult = sync_mission_into_bucket(
+                mission,
+                robotFolder,
+                bucket,
+                nowTimestamp,
+                latestStatusByMissionId,
+                logger,
+                debug
+            )
+            removed.extend(syncResult["removed"])
 
             if bucket == "completed":
-                if tagExists(activePath):
-                    remove_instance(
-                        activePath,
-                        logger,
-                        debug,
-                        "moved to Completed"
-                    )
-                    removed.append((activePath, "moved_to_completed"))
-                if tagExists(failedPath):
-                    remove_instance(
-                        failedPath,
-                        logger,
-                        debug,
-                        "moved to Completed"
-                    )
-                    removed.append((failedPath, "moved_to_completed"))
-
-                targetFolder = COMPLETED_PATH + "/" + robotFolder
-                completedWanted.add(completedPath)
+                completedWanted.add(syncResult["paths"]["completed"])
 
             elif bucket == "failed":
-                if tagExists(activePath):
-                    remove_instance(
-                        activePath,
-                        logger,
-                        debug,
-                        "moved to Failed"
-                    )
-                    removed.append((activePath, "moved_to_failed"))
-                if tagExists(completedPath):
-                    remove_instance(
-                        completedPath,
-                        logger,
-                        debug,
-                        "moved to Failed"
-                    )
-                    removed.append((completedPath, "moved_to_failed"))
-
-                targetFolder = FAILED_PATH + "/" + robotFolder
-                failedWanted.add(failedPath)
+                failedWanted.add(syncResult["paths"]["failed"])
                 failedCountsByFolder[robotFolder] = failedCountsByFolder.get(robotFolder, 0) + 1
 
             else:
-                if tagExists(completedPath):
-                    remove_instance(
-                        completedPath,
-                        logger,
-                        debug,
-                        "moved to Active"
-                    )
-                    removed.append((completedPath, "moved_to_active"))
-                if tagExists(failedPath):
-                    remove_instance(
-                        failedPath,
-                        logger,
-                        debug,
-                        "moved to Active"
-                    )
-                    removed.append((failedPath, "moved_to_active"))
-
-                targetFolder = ACTIVE_PATH + "/" + robotFolder
-                activeWanted.add(activePath)
+                activeWanted.add(syncResult["paths"]["active"])
                 activeCountsByFolder[robotFolder] = activeCountsByFolder.get(robotFolder, 0) + 1
                 if attachmentState.get("mission_starved") is True:
                     missionStarvedByFolder[robotFolder] = True
@@ -673,26 +744,6 @@ def run():
                     attachmentMissionNameByFolder[robotFolder] = str(
                         attachmentState.get("attachment_mission_name") or mission.get("name") or ""
                     )
-
-            instancePath = targetFolder + "/" + instanceName
-            if not tagExists(instancePath):
-                ensureUdtInstancePath(instancePath, "api_Mission")
-                if debug:
-                    logger.info("Created mission instance: {}".format(instancePath))
-
-            write_mission_data(instancePath, mission)
-            newStatus = mission.get("mission_status")
-            if (
-                previousStatus is None or str(previousStatus) != str(newStatus)
-            ) and should_record_mission_state_change(mission, newStatus, latestStatusByMissionId):
-                record_mission_state_change(
-                    nowTimestamp,
-                    robotFolder,
-                    mission,
-                    previousStatus,
-                    newStatus
-                )
-                latestStatusByMissionId[str(mission.get("id") or "")] = str(newStatus or "")
 
         ensure_maincontrol_robot_attachment_tags(robotMappings)
 
@@ -736,15 +787,15 @@ def run():
             )
 
         # --- Cleanup ACTIVE ---
-        for fullPath, name in browseMissionInstances(ACTIVE_PATH):
-            if fullPath not in activeWanted:
-                remove_instance(
-                    fullPath,
-                    logger,
-                    debug,
-                    "stale (not returned)"
-                )
-                removed.append((fullPath, "stale_active"))
+        removed.extend(
+            cleanup_stale_bucket(
+                ACTIVE_PATH,
+                activeWanted,
+                "active",
+                logger,
+                debug
+            )
+        )
 
         # --- Cleanup FAILED ---
         removed.extend(
@@ -826,55 +877,18 @@ def runTerminalMaintenance():
         )
 
         for mission in missions:
-            instanceName = make_instance_name(mission)
             robotFolder = resolve_mission_robot_folder(mission, robotMappings)
-
-            activePath = ACTIVE_PATH + "/" + robotFolder + "/" + instanceName
-            completedPath = COMPLETED_PATH + "/" + robotFolder + "/" + instanceName
-            failedPath = FAILED_PATH + "/" + robotFolder + "/" + instanceName
-            previousStatus = read_previous_mission_status(
-                [activePath, completedPath, failedPath]
+            syncResult = sync_mission_into_bucket(
+                mission,
+                robotFolder,
+                "completed",
+                nowTimestamp,
+                latestStatusByMissionId,
+                logger,
+                debug
             )
-
-            if tagExists(activePath):
-                remove_instance(
-                    activePath,
-                    logger,
-                    debug,
-                    "moved to Completed"
-                )
-                removed.append((activePath, "moved_to_completed"))
-            if tagExists(failedPath):
-                remove_instance(
-                    failedPath,
-                    logger,
-                    debug,
-                    "moved to Completed"
-                )
-                removed.append((failedPath, "moved_to_completed"))
-
-            targetFolder = COMPLETED_PATH + "/" + robotFolder
-            instancePath = targetFolder + "/" + instanceName
-            completedWanted.add(completedPath)
-
-            if not tagExists(instancePath):
-                ensureUdtInstancePath(instancePath, "api_Mission")
-                if debug:
-                    logger.info("Created mission instance: {}".format(instancePath))
-
-            write_mission_data(instancePath, mission)
-            newStatus = mission.get("mission_status")
-            if (
-                previousStatus is None or str(previousStatus) != str(newStatus)
-            ) and should_record_mission_state_change(mission, newStatus, latestStatusByMissionId):
-                record_mission_state_change(
-                    nowTimestamp,
-                    robotFolder,
-                    mission,
-                    previousStatus,
-                    newStatus
-                )
-                latestStatusByMissionId[str(mission.get("id") or "")] = str(newStatus or "")
+            completedWanted.add(syncResult["paths"]["completed"])
+            removed.extend(syncResult["removed"])
 
         removed.extend(
             cleanup_stale_bucket(

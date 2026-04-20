@@ -271,7 +271,13 @@ def appendRuntimeDatasetRow(
 
     updated = system.dataset.addRow(currentValue, rowValues)
     if hasattr(updated, "getRowCount") and updated.getRowCount() > maxRows:
-        rows = updated.to_rows()[-maxRows:]
+        rows = []
+        startIndex = max(0, updated.getRowCount() - maxRows)
+        for rowIndex in range(startIndex, updated.getRowCount()):
+            rows.append([
+                updated.getValueAt(rowIndex, header)
+                for header in list(headers or [])
+            ])
         updated = system.dataset.toDataSet(headers, rows)
 
     writeTagValues([datasetPath], [updated])
