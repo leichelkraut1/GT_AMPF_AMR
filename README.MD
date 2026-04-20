@@ -27,18 +27,22 @@ The main entrypoint is:
 
 The cycle order is intentional:
 
-1. `Get.getServerStatus()`
+1. `Get.readCachedServerStatus()`
 2. `Get.updateRobotOperationalState()`
 3. `MissionSorting.run()`
 4. `runAllRobotWorkflowCycles(...)`
 
 The important rule is:
 
-- PLC command evaluation only happens after robot state and mission state have been
-  refreshed in the same cycle.
+- PLC command evaluation only happens after robot state and fast mission state have
+  been refreshed in the same cycle.
 
 If robot or mission state is stale, the workflow phase is skipped and the PLC is told
 that control is unhealthy.
+
+The live OTTO server-status HTTP call is no longer part of the 1-second loop.
+It is refreshed by the slower `OttoAPI_GetServerStatus` timer and read from the
+cached `Fleet/System/ServerStatus` tag during the fast controller cycle.
 
 ## MainController Module Layout
 
@@ -206,6 +210,43 @@ Examples:
 
 The `Completed` / `Failed` / `Active` mission folders are only storage buckets.
 They are not what gets logged in the mission state history.
+
+## Mission Sorting Split
+
+Mission sorting is now intentionally split into:
+
+- `MissionSorting.run()`
+  - fast path
+  - fetches `ACTIVE` and `FAILED`
+  - updates active/failed mission tags
+  - updates robot mission facts used by readiness and `MainController`
+  - removes stale `Active`
+  - keeps failed cleanup/retention in the fast path because `FailedMissionCount`
+    is part of robot readiness
+
+- `MissionSorting.runTerminalMaintenance()`
+  - slow path
+  - fetches `COMPLETED`
+  - updates completed mission tags
+  - removes stale `Completed`
+  - applies completed retention pruning
+
+The slow maintenance pass is driven by the `OttoAPI_UpdateMissions` timer.
+This keeps the fast loop focused on state that affects control decisions.
+
+## Current Commissioning Checkpoint
+
+Current known-good checkpoint before live-system testing:
+
+- UDT-backed `MainControl/Robots/<Robot>` and `PLC/<Robot>` structures are in use
+- workflow-number requests can create missions
+- request clear / switch logic can cancel missions
+- command and mission history datasets are working with duplicate suppression
+- server status and completed-mission maintenance have been moved off the fast loop
+
+Next planned step:
+
+- validate the same create/cancel behavior on the live system
 
 ## Command History
 
