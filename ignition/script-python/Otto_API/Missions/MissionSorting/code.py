@@ -654,7 +654,7 @@ def run():
 
             write_mission_data(instancePath, mission)
             newStatus = mission.get("mission_status")
-            if previousStatus is not None and str(previousStatus) != str(newStatus):
+            if previousStatus is None or str(previousStatus) != str(newStatus):
                 record_mission_state_change(
                     nowTimestamp,
                     robotFolder,
