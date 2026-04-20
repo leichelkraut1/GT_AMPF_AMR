@@ -27,6 +27,12 @@
                 "mode": "direct",
                 "tagPath": "[Otto_FleetManager]MainControl/Runtime/CommandHistory"
               },
+              "transforms": [
+                {
+                  "code": "\tif value is None:\n\t\treturn value\n\ttry:\n\t\treturn system.dataset.sort(value, \"Ts\", True)\n\texcept Exception:\n\t\treturn value",
+                  "type": "script"
+                }
+              ],
               "type": "tag"
             }
           }
@@ -115,7 +121,7 @@
               },
               "render": "auto",
               "resizable": true,
-              "sort": "descending",
+              "sort": "none",
               "sortable": true,
               "strictWidth": false,
               "style": {
