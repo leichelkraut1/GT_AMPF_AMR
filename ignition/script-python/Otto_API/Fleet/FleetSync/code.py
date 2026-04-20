@@ -390,8 +390,8 @@ def buildInvalidRobotSyncWrites(robotPath):
         robotPath + "/FailedMissionCount",
         robotPath + "/AvailableForWork",
         robotPath + "/NotReadyReason",
+        mainControlRobotPath + "/MissionStarved",
         mainControlRobotPath + "/MissionReadyforAttachment",
-        mainControlRobotPath + "/MissionIdForAttacment",
         mainControlRobotPath + "/MissionNameForAttachment",
     ]
     values = [

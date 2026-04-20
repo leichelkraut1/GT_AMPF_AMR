@@ -14,6 +14,7 @@ from Otto_API.Common.TagHelpers import getPlcRootPath
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Common.TagHelpers import writeTagValues
+from Otto_API.AttachmentPhaseHelpers import buildMissionControlFlags
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
 
 from MainController.WorkflowConfig import ROBOT_NAMES
@@ -64,7 +65,6 @@ def defaultRobotState():
         "last_log_decision": "",
     }
 
-
 def internalStatePaths(robotName):
     """Centralize MainControl/Internal paths so the runner only has one tag contract to maintain."""
     basePath = INTERNAL_BASE + "/" + robotName
@@ -99,6 +99,7 @@ def plcPaths(robotName):
         "finalize_ok": fromPlc + "/FinalizeOk",
         "available_for_work": toPlc + "/AvailableForWork",
         "active_workflow_number": toPlc + "/ActiveWorkflowNumber",
+        "mission_starved": toPlc + "/MissionStarved",
         "mission_ready_for_attachment": toPlc + "/MissionReadyforAttachment",
         "mission_needs_finalized": toPlc + "/MissionNeedsFinalized",
         "request_received": toPlc + "/RequestReceived",
@@ -195,6 +196,7 @@ def ensureRobotRunnerTags(robotName):
     ensureMemoryTag(plcTagPaths["finalize_ok"], "Boolean", False)
     ensureMemoryTag(plcTagPaths["available_for_work"], "Boolean", False)
     ensureMemoryTag(plcTagPaths["active_workflow_number"], "Int4", 0)
+    ensureMemoryTag(plcTagPaths["mission_starved"], "Boolean", False)
     ensureMemoryTag(plcTagPaths["mission_ready_for_attachment"], "Boolean", False)
     ensureMemoryTag(plcTagPaths["mission_needs_finalized"], "Boolean", False)
     ensureMemoryTag(plcTagPaths["request_received"], "Boolean", False)
@@ -212,8 +214,8 @@ def ensureMainControlRobotTags(robotName):
     robotPath = MAINCONTROL_ROBOTS_BASE + "/" + robotName
     ensureFolder(MAINCONTROL_ROBOTS_BASE)
     ensureFolder(robotPath)
+    ensureMemoryTag(robotPath + "/MissionStarved", "Boolean", False)
     ensureMemoryTag(robotPath + "/MissionReadyforAttachment", "Boolean", False)
-    ensureMemoryTag(robotPath + "/MissionIdForAttacment", "String", "")
     ensureMemoryTag(robotPath + "/MissionNameForAttachment", "String", "")
 
 
@@ -437,6 +439,7 @@ def writePlcOutputs(robotName, outputs):
         [
             paths["available_for_work"],
             paths["active_workflow_number"],
+            paths["mission_starved"],
             paths["mission_ready_for_attachment"],
             paths["mission_needs_finalized"],
             paths["request_received"],
@@ -451,6 +454,7 @@ def writePlcOutputs(robotName, outputs):
         [
             _toBool(outputs.get("available_for_work")),
             normalizeWorkflowNumber(outputs.get("active_workflow_number")) or 0,
+            _toBool(outputs.get("mission_starved")),
             _toBool(outputs.get("mission_ready_for_attachment")),
             _toBool(outputs.get("mission_needs_finalized")),
             _toBool(outputs.get("request_received")),
@@ -486,14 +490,14 @@ def readRobotMirrorInputs(robotName):
     """Read the fleet/main-control signals that feed PLC output mirroring and dispatch gating."""
     robotPath = FLEET_ROBOTS_BASE + "/" + robotName
     mainControlRobotPath = MAINCONTROL_ROBOTS_BASE + "/" + robotName
+    missionStarved = _toBool(
+        readOptionalTagValue(mainControlRobotPath + "/MissionStarved", False)
+    )
+    missionControlFlags = buildMissionControlFlags(missionStarved)
     return {
         "available_for_work": _toBool(readOptionalTagValue(robotPath + "/AvailableForWork", False)),
-        "mission_ready_for_attachment": _toBool(
-            readOptionalTagValue(
-                mainControlRobotPath + "/MissionReadyforAttachment",
-                readOptionalTagValue(robotPath + "/MissionReadyforAttachment", False)
-            )
-        ),
+        "mission_starved": missionControlFlags["mission_starved"],
+        "mission_ready_for_attachment": missionControlFlags["ready_for_attachment"],
     }
 
 
