@@ -3,5 +3,5 @@ def onTagChange(initialChange, newValue, previousValue, event, executionCount):
 	if newValue.value == True:
 		system.tag.writeAsync("[Otto_FleetManager]Fleet/Triggers/Containers/DeleteAtPlace1", False)
 		Otto_API.Containers.Post.DeleteAtPlace(
-			Otto_API.TriggerHelpers.PLACE1_ID
+			Otto_API.TriggerHelpers.readContainerTriggerPlaceId()
 		)

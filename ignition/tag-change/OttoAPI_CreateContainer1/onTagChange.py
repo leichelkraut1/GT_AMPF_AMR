@@ -3,6 +3,6 @@ def onTagChange(initialChange, newValue, previousValue, event, executionCount):
 	if newValue.value == True:
 		system.tag.writeAsync("[Otto_FleetManager]Fleet/Triggers/Containers/CreateContainer1", False)
 		Otto_API.Containers.Post.CreateAtPlace(
-			Otto_API.TriggerHelpers.CONTAINER1_TEMPLATE_PATH,
-			Otto_API.TriggerHelpers.PLACE1_ID
+			Otto_API.TriggerHelpers.readContainerTriggerTemplatePath(),
+			Otto_API.TriggerHelpers.readContainerTriggerPlaceId()
 		)

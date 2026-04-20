@@ -3,6 +3,7 @@ from Otto_API.Common.TagHelpers import ensureMemoryTag
 from Otto_API.Common.TagHelpers import ensureUdtInstancePath
 from Otto_API.Common.TagHelpers import getFleetContainersPath
 from Otto_API.Common.TagHelpers import getFleetTriggersPath
+from Otto_API.Common.TagHelpers import readRequiredTagValue
 from Otto_API.Common.TagHelpers import writeRequiredTagValues
 
 
@@ -33,6 +34,58 @@ def buildContainerTriggerPath(triggerBase, triggerName):
     Build a container trigger path from a base folder and trigger name.
     """
     return buildMissionTriggerPath(triggerBase, triggerName)
+
+
+def getContainerTriggerBasePath():
+    """
+    Return the base tag path for container test triggers.
+    """
+    return getFleetTriggersPath() + "/Containers"
+
+
+def getContainerTriggerConfigPath(tagName):
+    """
+    Return the full tag path for one container trigger config tag.
+    """
+    return getContainerTriggerBasePath() + "/" + str(tagName)
+
+
+def buildContainerTemplatePath(containerTemplateName):
+    """
+    Build the full template UDT path from the configured template name.
+    """
+    return getFleetContainersPath() + "/Templates/" + str(containerTemplateName or "")
+
+
+def readContainerTriggerTemplatePath():
+    """
+    Read the configured container template tag name and return the full template path.
+    """
+    templateName = readRequiredTagValue(
+        getContainerTriggerConfigPath("ContainerTemplate"),
+        "Container trigger template name"
+    )
+    return buildContainerTemplatePath(templateName)
+
+
+def readContainerTriggerContainerId():
+    """
+    Read the configured container id used by container test triggers.
+    """
+    return readRequiredTagValue(
+        getContainerTriggerConfigPath("ContainerID"),
+        "Container trigger container id"
+    )
+
+
+def readContainerTriggerPlaceId():
+    """
+    Read the configured place id used by container test triggers.
+    """
+    return readRequiredTagValue(
+        getContainerTriggerConfigPath("PlaceID"),
+        "Container trigger place id"
+    )
 
 
 def ensureContainerTestTemplate():
@@ -100,6 +153,15 @@ def ensureContainerTriggerTags():
     ensureFolder(containersBase)
 
     createdPaths = []
+    for tagName, value in [
+        ("ContainerTemplate", "Container1"),
+        ("ContainerID", CONTAINER1_ID),
+        ("PlaceID", PLACE1_ID),
+    ]:
+        configPath = getContainerTriggerConfigPath(tagName)
+        ensureMemoryTag(configPath, "String", value)
+        createdPaths.append(configPath)
+
     for triggerName in [
         "CreateContainer1",
         "UpdateContainer1ToPlace1",
