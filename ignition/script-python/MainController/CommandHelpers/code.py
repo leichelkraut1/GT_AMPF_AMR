@@ -28,6 +28,7 @@ PLC_BASE = getPlcRootPath()
 RUNTIME_BASE = getMainControlRuntimePath()
 
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
+RETRY_DELAY_MS = 5000
 
 
 def timestampString(nowEpochMs=None):
@@ -59,6 +60,9 @@ def defaultRobotState():
         "last_command_ts": "",
         "last_result": "",
         "last_command_id": "",
+        "next_action_allowed_epoch_ms": 0,
+        "last_attempt_action": "",
+        "retry_count": 0,
         "last_logged_signature": "",
         "last_computed_log_signature": "",
         "last_log_decision": "",
@@ -78,6 +82,9 @@ def internalStatePaths(robotName):
         "last_command_ts": basePath + "/LastCommandTs",
         "last_result": basePath + "/LastResult",
         "last_command_id": basePath + "/LastCommandId",
+        "next_action_allowed_epoch_ms": basePath + "/NextActionAllowedEpochMs",
+        "last_attempt_action": basePath + "/LastAttemptAction",
+        "retry_count": basePath + "/RetryCount",
         "last_logged_signature": basePath + "/LastLoggedSignature",
         "last_computed_log_signature": basePath + "/LastComputedLogSignature",
         "last_log_decision": basePath + "/LastLogDecision",
@@ -158,6 +165,9 @@ INTERNAL_STATE_FIELD_NAMES = [
     "last_command_ts",
     "last_result",
     "last_command_id",
+    "next_action_allowed_epoch_ms",
+    "last_attempt_action",
+    "retry_count",
     "last_logged_signature",
     "last_computed_log_signature",
     "last_log_decision",
@@ -287,6 +297,9 @@ def normalizeRobotState(rawState):
     state["last_command_ts"] = str(rawState.get("last_command_ts") or "")
     state["last_result"] = str(rawState.get("last_result") or "")
     state["last_command_id"] = str(rawState.get("last_command_id") or "")
+    state["next_action_allowed_epoch_ms"] = int(rawState.get("next_action_allowed_epoch_ms") or 0)
+    state["last_attempt_action"] = str(rawState.get("last_attempt_action") or "")
+    state["retry_count"] = int(rawState.get("retry_count") or 0)
     state["last_logged_signature"] = str(rawState.get("last_logged_signature") or "")
     state["last_computed_log_signature"] = str(rawState.get("last_computed_log_signature") or "")
     state["last_log_decision"] = str(rawState.get("last_log_decision") or "")
@@ -331,6 +344,9 @@ def readRobotState(robotName):
         paths["last_command_ts"],
         paths["last_result"],
         paths["last_command_id"],
+        paths["next_action_allowed_epoch_ms"],
+        paths["last_attempt_action"],
+        paths["retry_count"],
         paths["last_logged_signature"],
         paths["last_computed_log_signature"],
         paths["last_log_decision"],
