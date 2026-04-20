@@ -314,7 +314,12 @@ def buildCommandLogSignature(
     stateName,
     message
 ):
-    """Build the per-robot signature used to suppress duplicate command-history rows."""
+    """
+    Build the per-robot signature used to suppress duplicate command-history rows.
+
+    This intentionally tracks the controller decision shape, not the full log message,
+    so scan-to-scan rewrites of the same state do not keep creating new history rows.
+    """
     return "|".join([
         str(robotName or ""),
         str(normalizeWorkflowNumber(requestedWorkflowNumber) or 0),
@@ -322,7 +327,6 @@ def buildCommandLogSignature(
         str(action or ""),
         str(level or ""),
         str(stateName or ""),
-        str(message or ""),
     ])
 
 
