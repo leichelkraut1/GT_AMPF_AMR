@@ -378,8 +378,20 @@ def readRobotState(robotName):
 
 def writeRobotState(robotName, state):
     """Persist robot state while preserving fields not being updated in this cycle."""
+    incomingState = dict(state or {})
     mergedState = dict(readRobotState(robotName) or {})
-    mergedState.update(dict(state or {}))
+    for preservedField in [
+        "last_logged_signature",
+        "last_computed_log_signature",
+        "last_log_decision",
+    ]:
+        if (
+            incomingState.get(preservedField) in [None, ""]
+            and mergedState.get(preservedField) not in [None, ""]
+        ):
+            incomingState.pop(preservedField, None)
+
+    mergedState.update(incomingState)
     state = normalizeRobotState(mergedState)
     paths = internalStatePaths(robotName)
     writeTagValues(
