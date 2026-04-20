@@ -362,7 +362,8 @@ def runRobotWorkflowCycle(
                     lastResult="prior workflow canceled; ready to request {}".format(selectedWorkflowNumber),
                     lastCommandId=currentState["last_command_id"],
                 )
-                writeRobotState(robotName, nextState)
+                # Fall through deliberately so the newly requested workflow can be
+                # evaluated and created in the same cycle after the old mission clears.
             else:
                 _updateCycleState(
                     nextState,

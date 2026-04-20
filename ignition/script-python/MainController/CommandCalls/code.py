@@ -5,6 +5,7 @@ from Otto_API.Missions import MissionSorting
 from MainController.CommandHelpers import buildWorkflowReservedMap
 from MainController.CommandHelpers import ensureRobotRunnerTags
 from MainController.CommandHelpers import ROBOT_NAMES
+from MainController.CommandHelpers import writePlcHealthOutputs
 from MainController.RobotCycle import runRobotWorkflowCycle
 
 
@@ -15,7 +16,13 @@ def runAllRobotWorkflowCycles(
     finalizeMission=None,
     cancelMission=None
 ):
-    """Run one workflow-controller pass across every configured robot."""
+    """
+    Run one workflow-controller pass across every configured robot.
+
+    Per-robot warn results are treated as soft failures here so the aggregate only
+    goes hard-failed on real execution errors, not on expected control states like
+    waiting, conflicts, or invalid requests.
+    """
     if robotNames is None:
         robotNames = ROBOT_NAMES
 
@@ -67,7 +74,6 @@ def runMainControllerCycle(nowEpochMs=None, createMission=None, finalizeMission=
     else:
         for robotName in ROBOT_NAMES:
             ensureRobotRunnerTags(robotName)
-            from MainController.CommandHelpers import writePlcHealthOutputs
             writePlcHealthOutputs(
                 robotName,
                 fleetFault=True,
