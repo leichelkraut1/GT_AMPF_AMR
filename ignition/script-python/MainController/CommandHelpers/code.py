@@ -274,6 +274,46 @@ def appendRuntimeDatasetRow(
     writeTagValues([datasetPath], [updated])
 
 
+def readRuntimeDataset(fieldName, headers):
+    """Read a runtime dataset tag, returning an empty dataset when missing."""
+    ensureRuntimeTags()
+    datasetPath = runtimePaths().get(fieldName)
+    if not datasetPath:
+        return system.dataset.toDataSet(headers, [])
+
+    datasetValue = readOptionalTagValue(
+        datasetPath,
+        system.dataset.toDataSet(headers, [])
+    )
+    if not datasetValue:
+        return system.dataset.toDataSet(headers, [])
+    return datasetValue
+
+
+def readLatestMissionStateHistoryStatus(missionId):
+    """
+    Return the most recent logged mission status for one mission id.
+
+    Mission state history is append-only, so scanning backward is enough and keeps
+    duplicate sort passes from re-logging the same status forever.
+    """
+    missionId = str(missionId or "")
+    if not missionId:
+        return None
+
+    datasetValue = readRuntimeDataset(
+        "mission_state_history",
+        MISSION_STATE_HISTORY_HEADERS
+    )
+    if not hasattr(datasetValue, "getRowCount"):
+        return None
+
+    for rowIndex in range(datasetValue.getRowCount() - 1, -1, -1):
+        if str(datasetValue.getValueAt(rowIndex, "MissionId") or "") == missionId:
+            return str(datasetValue.getValueAt(rowIndex, "NewStatus") or "")
+    return None
+
+
 def _toBool(value):
     if isinstance(value, bool):
         return value

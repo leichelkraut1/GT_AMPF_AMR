@@ -23,6 +23,7 @@ from Otto_API.Fleet.FleetSync import readRobotInventoryMetadata
 from Otto_API.Fleet.Get import getMissions
 from MainController.CommandHelpers import MISSION_STATE_HISTORY_HEADERS
 from MainController.CommandHelpers import appendRuntimeDatasetRow
+from MainController.CommandHelpers import readLatestMissionStateHistoryStatus
 from Otto_API.Missions.MissionActions import resolveMissionRobotId
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
 
@@ -249,6 +250,17 @@ def record_mission_state_change(nowTimestamp, robotFolder, mission, oldStatus, n
             parse_workflow_number_from_mission_name(mission.get("name")) or 0,
         ],
     )
+
+
+def should_record_mission_state_change(mission, newStatus):
+    """
+    Return True only when the mission's latest logged status differs from newStatus.
+
+    This keeps repeated mission-sort passes from re-appending the same status when
+    previous-status lookup is unstable or the same mission is simply read again.
+    """
+    latestLoggedStatus = readLatestMissionStateHistoryStatus(mission.get("id"))
+    return latestLoggedStatus != str(newStatus or "")
 
 
 def read_previous_mission_status(candidatePaths):
@@ -654,7 +666,9 @@ def run():
 
             write_mission_data(instancePath, mission)
             newStatus = mission.get("mission_status")
-            if previousStatus is None or str(previousStatus) != str(newStatus):
+            if (
+                previousStatus is None or str(previousStatus) != str(newStatus)
+            ) and should_record_mission_state_change(mission, newStatus):
                 record_mission_state_change(
                     nowTimestamp,
                     robotFolder,
