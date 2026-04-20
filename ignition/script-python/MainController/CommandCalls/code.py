@@ -258,6 +258,112 @@ def runRobotWorkflowCycle(
         reservedWorkflows[activeWorkflowNumber] = robotName
 
     if currentState["mission_needs_finalized"]:
+        if not selectedWorkflowNumber:
+            if not activeWorkflowNumber:
+                nextState = _buildState(
+                    "idle",
+                    nowEpochMs,
+                    selectedWorkflowNumber=0,
+                    requestLatched=False,
+                    missionCreated=False,
+                    missionNeedsFinalized=False,
+                    lastResult="request cleared; no active mission remained",
+                    lastCommandId=currentState["last_command_id"],
+                )
+                outputs = _buildOutputs(
+                    mirrorInputs,
+                    activeWorkflowNumber,
+                    requestReceived=False,
+                    missionNeedsFinalized=False
+                )
+                writeRobotState(robotName, nextState)
+                writePlcOutputs(robotName, outputs)
+                return _returnCycle(
+                    True,
+                    "info",
+                    "Robot [{}] cleared request with no active mission remaining".format(robotName),
+                    robotName=robotName,
+                    state=nextState["state"],
+                    action="clear_cancel_pending",
+                )
+
+            outputs = _buildOutputs(
+                mirrorInputs,
+                activeWorkflowNumber,
+                requestReceived=False,
+                missionNeedsFinalized=False
+            )
+            if currentState["state"] == "cancel_requested":
+                writeRobotState(
+                    robotName,
+                    _buildState(
+                        "cancel_requested",
+                        nowEpochMs,
+                        selectedWorkflowNumber=0,
+                        requestLatched=False,
+                        missionCreated=True,
+                        missionNeedsFinalized=False,
+                        lastResult=currentState["last_result"] or "waiting for canceled mission to clear",
+                        lastCommandId=currentState["last_command_id"],
+                    )
+                )
+                writePlcOutputs(robotName, outputs)
+                return _returnCycle(
+                    True,
+                    "info",
+                    "Robot [{}] waiting for canceled mission to clear".format(robotName),
+                    robotName=robotName,
+                    state="cancel_requested",
+                    action="hold_cancel_request",
+                    data={"workflow_number": activeWorkflowNumber},
+                )
+
+            result = _callCancelMission(robotName, cancelMission)
+            if result.get("ok"):
+                nextState = _buildState(
+                    "cancel_requested",
+                    nowEpochMs,
+                    selectedWorkflowNumber=0,
+                    requestLatched=False,
+                    missionCreated=True,
+                    missionNeedsFinalized=False,
+                    lastResult=result.get("message", ""),
+                    lastCommandId=currentState["last_command_id"],
+                )
+                writeRobotState(robotName, nextState)
+                writePlcOutputs(robotName, outputs)
+                return _returnCycle(
+                    True,
+                    result.get("level", "info"),
+                    result.get("message", ""),
+                    robotName=robotName,
+                    state=nextState["state"],
+                    action="cancel_for_clear_request",
+                    data={"workflow_number": activeWorkflowNumber},
+                )
+
+            nextState = _buildState(
+                "failed",
+                nowEpochMs,
+                selectedWorkflowNumber=0,
+                requestLatched=False,
+                missionCreated=currentState["mission_created"],
+                missionNeedsFinalized=False,
+                lastResult=result.get("message", ""),
+                lastCommandId=currentState["last_command_id"],
+            )
+            writeRobotState(robotName, nextState)
+            writePlcOutputs(robotName, outputs)
+            return _returnCycle(
+                False,
+                result.get("level", "error"),
+                result.get("message", ""),
+                robotName=robotName,
+                state=nextState["state"],
+                action="cancel_for_clear_request_failed",
+                data={"workflow_number": activeWorkflowNumber},
+            )
+
         switchingWorkflow = bool(
             selectedWorkflowNumber
             and currentState["selected_workflow_number"]
@@ -478,30 +584,55 @@ def runRobotWorkflowCycle(
 
     if not plcInputs["request_active"]:
         if activeWorkflowNumber:
-            nextState = _buildState(
-                "finalize_pending",
-                nowEpochMs,
-                selectedWorkflowNumber=activeWorkflowNumber,
-                requestLatched=False,
-                missionCreated=True,
-                missionNeedsFinalized=True,
-                lastResult="request dropped; finalize required",
-                lastCommandId=currentState["last_command_id"],
-            )
             outputs = _buildOutputs(
                 mirrorInputs,
                 activeWorkflowNumber,
-                missionNeedsFinalized=True
+                requestReceived=False,
+                missionNeedsFinalized=False
+            )
+            if currentState["state"] == "cancel_requested":
+                nextState = _buildState(
+                    "cancel_requested",
+                    nowEpochMs,
+                    selectedWorkflowNumber=0,
+                    requestLatched=False,
+                    missionCreated=True,
+                    missionNeedsFinalized=False,
+                    lastResult=currentState["last_result"] or "waiting for canceled mission to clear",
+                    lastCommandId=currentState["last_command_id"],
+                )
+                writeRobotState(robotName, nextState)
+                writePlcOutputs(robotName, outputs)
+                return _returnCycle(
+                    True,
+                    "info",
+                    "Robot [{}] waiting for canceled mission to clear".format(robotName),
+                    robotName=robotName,
+                    state=nextState["state"],
+                    action="hold_cancel_request",
+                    data={"workflow_number": activeWorkflowNumber},
+                )
+
+            result = _callCancelMission(robotName, cancelMission)
+            nextState = _buildState(
+                "cancel_requested" if result.get("ok") else "failed",
+                nowEpochMs,
+                selectedWorkflowNumber=0,
+                requestLatched=False,
+                missionCreated=True,
+                missionNeedsFinalized=False,
+                lastResult=result.get("message", ""),
+                lastCommandId=currentState["last_command_id"],
             )
             writeRobotState(robotName, nextState)
             writePlcOutputs(robotName, outputs)
             return _returnCycle(
-                True,
-                "info",
-                "Robot [{}] request dropped; finalize pending".format(robotName),
+                result.get("ok", False),
+                result.get("level", "info" if result.get("ok") else "error"),
+                result.get("message", ""),
                 robotName=robotName,
                 state=nextState["state"],
-                action="finalize_pending",
+                action="cancel_for_clear_request" if result.get("ok") else "cancel_for_clear_request_failed",
                 data={"workflow_number": activeWorkflowNumber},
             )
 
