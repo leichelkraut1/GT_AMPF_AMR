@@ -91,6 +91,15 @@ The logic is organized in this order:
 This means the controller always prefers reconciliation and stability before sending
 new actions.
 
+When more than one mission exists in `Fleet/Missions/Active/<Robot>`, the controller
+still chooses one "current mission" for reporting and request comparison using this
+priority:
+
+- `STARVED`
+- executing-style statuses such as `EXECUTING`, `ASSIGNED`, `BLOCKED`,
+  `CANCELLING`, `REASSIGNED`, `RESTARTING`
+- `QUEUED`
+
 ## State Handling Model
 
 Per-robot controller state lives under:
@@ -157,8 +166,9 @@ Examples:
   - anti-repeat: mission-level issued-command signature prevents repeating the same cancel every scan once it succeeds
 
 - Finalize / cancel clear path
-  - evaluate: a non-queued `Active` mission does not match the PLC request
-  - action: wait for PLC `FinalizeOk`, then `finalize_mission` for `STARVED` or `cancel_mission` for everything else
+  - evaluate: at least one non-queued `Active` mission does not match the PLC request or the request is `0`
+  - action: wait for PLC `FinalizeOk`, then reconcile the whole mismatched active set:
+    `finalize_mission` for `STARVED`, `cancel_mission` for everything else
   - anti-repeat: mission-level issued-command signature prevents repeating the same clear command every scan once it succeeds
 
 ## Anti-Repeat Rules That Matter
@@ -179,10 +189,14 @@ These are the most important anti-repeat behaviors in the current design:
   - prevents `CommandHistory` from getting the same row every scan for the same robot
 
 - api_Mission runtime helper members
+  - `_LastLoggedStatus`
+  - `_LastWriteSignature`
   - `_LastIssuedCommandSignature`
   - `_LastCommandLogSignature`
-  - let mission-level clear commands and their command-history rows dedupe cleanly while
-    the mission remains in `Fleet/Missions/Active/...`
+  - let mission-state logging, mission writes, and mission-level clear commands all
+    dedupe cleanly while the mission remains in `Fleet/Missions/...`
+  - if one of these members is missing from the UDT, the gateway warns once and the
+    corresponding dedupe behavior degrades safely until the UDT is updated
 
 ## Retry Behavior
 
@@ -263,7 +277,7 @@ This keeps the fast loop focused on state that affects control decisions.
 
 ## Current Commissioning Checkpoint
 
-Current known-good checkpoint before live-system testing:
+Current known-good checkpoint before production validation:
 
 - UDT-backed `MainControl/Robots/<Robot>` and `PLC/<Robot>` structures are in use
 - workflow-number requests can create missions
@@ -273,9 +287,9 @@ Current known-good checkpoint before live-system testing:
 - command and mission history datasets are working with duplicate suppression
 - server status and completed-mission maintenance have been moved off the fast loop
 
-Next planned step:
+Current focus:
 
-- validate the same create/cancel behavior on the live system
+- verify the same active-set reconciliation behavior on the production gateway
 
 ## Command History
 
