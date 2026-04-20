@@ -141,6 +141,13 @@ def _recordCommandHistory(nowEpochMs, cycleResult):
     )
     currentState = readRobotState(robotName)
     if currentState.get("last_logged_signature") == signature:
+        writeRobotState(
+            robotName,
+            {
+                "last_computed_log_signature": signature,
+                "last_log_decision": "skip_duplicate",
+            }
+        )
         return
 
     appendRuntimeDatasetRow(
@@ -157,7 +164,14 @@ def _recordCommandHistory(nowEpochMs, cycleResult):
             cycleResult.get("message") or "",
         ],
     )
-    writeRobotState(robotName, {"last_logged_signature": signature})
+    writeRobotState(
+        robotName,
+        {
+            "last_logged_signature": signature,
+            "last_computed_log_signature": signature,
+            "last_log_decision": "append",
+        }
+    )
 
 
 def runRobotWorkflowCycle(

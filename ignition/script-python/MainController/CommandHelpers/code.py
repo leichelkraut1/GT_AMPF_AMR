@@ -60,6 +60,8 @@ def defaultRobotState():
         "last_result": "",
         "last_command_id": "",
         "last_logged_signature": "",
+        "last_computed_log_signature": "",
+        "last_log_decision": "",
     }
 
 
@@ -78,6 +80,8 @@ def internalStatePaths(robotName):
         "last_result": basePath + "/LastResult",
         "last_command_id": basePath + "/LastCommandId",
         "last_logged_signature": basePath + "/LastLoggedSignature",
+        "last_computed_log_signature": basePath + "/LastComputedLogSignature",
+        "last_log_decision": basePath + "/LastLogDecision",
     }
 
 
@@ -168,6 +172,8 @@ def ensureRobotRunnerTags(robotName):
     ensureMemoryTag(internalPaths["last_result"], "String", "")
     ensureMemoryTag(internalPaths["last_command_id"], "String", "")
     ensureMemoryTag(internalPaths["last_logged_signature"], "String", "")
+    ensureMemoryTag(internalPaths["last_computed_log_signature"], "String", "")
+    ensureMemoryTag(internalPaths["last_log_decision"], "String", "")
 
     ensureMemoryTag(plcTagPaths["request_active"], "Boolean", False)
     ensureMemoryTag(plcTagPaths["requested_workflow_number"], "Int4", 0)
@@ -302,6 +308,8 @@ def normalizeRobotState(rawState):
     state["last_result"] = str(rawState.get("last_result") or "")
     state["last_command_id"] = str(rawState.get("last_command_id") or "")
     state["last_logged_signature"] = str(rawState.get("last_logged_signature") or "")
+    state["last_computed_log_signature"] = str(rawState.get("last_computed_log_signature") or "")
+    state["last_log_decision"] = str(rawState.get("last_log_decision") or "")
     return state
 
 
@@ -344,6 +352,8 @@ def readRobotState(robotName):
         paths["last_result"],
         paths["last_command_id"],
         paths["last_logged_signature"],
+        paths["last_computed_log_signature"],
+        paths["last_log_decision"],
     ])
 
     rawState = {}
@@ -358,6 +368,8 @@ def readRobotState(robotName):
         "last_result",
         "last_command_id",
         "last_logged_signature",
+        "last_computed_log_signature",
+        "last_log_decision",
     ]
     for key, qualifiedValue in zip(keys, values):
         rawState[key] = qualifiedValue.value if qualifiedValue.quality.isGood() else None
@@ -382,6 +394,8 @@ def writeRobotState(robotName, state):
             paths["last_result"],
             paths["last_command_id"],
             paths["last_logged_signature"],
+            paths["last_computed_log_signature"],
+            paths["last_log_decision"],
         ],
         [
             state["force_robot_ready"],
@@ -394,6 +408,8 @@ def writeRobotState(robotName, state):
             state["last_result"],
             state["last_command_id"],
             state["last_logged_signature"],
+            state["last_computed_log_signature"],
+            state["last_log_decision"],
         ]
     )
 
