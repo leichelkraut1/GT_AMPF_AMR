@@ -515,6 +515,27 @@ def cleanup_terminal_folder(folderPath, retentionDays, maxCount, label, logger, 
     return removed
 
 
+def cleanup_stale_bucket(folderPath, wantedPaths, label, logger, debug=False):
+    """
+    Remove mission instances in folderPath that are not present in wantedPaths.
+    """
+    removed = []
+    wantedPaths = set(wantedPaths or [])
+
+    for fullPath, name in browseMissionInstances(folderPath):
+        if fullPath in wantedPaths:
+            continue
+        remove_instance(
+            fullPath,
+            logger,
+            debug,
+            "stale (not returned)"
+        )
+        removed.append((fullPath, "stale_{}".format(label)))
+
+    return removed
+
+
 # ---------------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------------
@@ -541,16 +562,6 @@ def run():
                 logger,
                 debug,
                 mission_status=ACTIVE_STATUSES
-            )
-        )
-
-        # --- Fetch COMPLETED missions in one capped bulk call ---
-        missions.extend(
-            getMissions(
-                logger,
-                debug,
-                mission_status=TERMINAL_STATUSES,
-                limit=MAX_COMPLETED
             )
         )
 
@@ -735,34 +746,12 @@ def run():
                 )
                 removed.append((fullPath, "stale_active"))
 
-        # --- Cleanup COMPLETED ---
-        for fullPath, name in browseMissionInstances(COMPLETED_PATH):
-            if fullPath not in completedWanted:
-                remove_instance(
-                    fullPath,
-                    logger,
-                    debug,
-                    "stale (not returned)"
-                )
-                removed.append((fullPath, "stale_completed"))
-
         # --- Cleanup FAILED ---
-        for fullPath, name in browseMissionInstances(FAILED_PATH):
-            if fullPath not in failedWanted:
-                remove_instance(
-                    fullPath,
-                    logger,
-                    debug,
-                    "stale (not returned)"
-                )
-                removed.append((fullPath, "stale_failed"))
-
         removed.extend(
-            cleanup_terminal_folder(
-                COMPLETED_PATH,
-                COMPLETED_RETENTION_DAYS,
-                MAX_COMPLETED,
-                "completed",
+            cleanup_stale_bucket(
+                FAILED_PATH,
+                failedWanted,
+                "failed",
                 logger,
                 debug
             )
@@ -805,4 +794,122 @@ def run():
         )
 
     _dlog(logger, debug, "MissionSorting.run END")
+    return result
+
+
+def runTerminalMaintenance():
+    """
+    Slower maintenance pass for completed missions.
+
+    Completed mission sync is kept out of the fast loop because it is not part of
+    the real-time readiness gate. Active and failed mission handling stay in the
+    fast pass.
+    """
+    logger = _log()
+    debug = _debug_enabled()
+
+    _dlog(logger, debug, "MissionSorting.runTerminalMaintenance START")
+
+    try:
+        nowDate = system.date.now()
+        nowTimestamp = system.date.format(nowDate, "yyyy-MM-dd HH:mm:ss.SSS")
+        robotMappings = _readRobotFolderMappings()
+        latestStatusByMissionId = buildLatestMissionStateHistoryStatusMap()
+        completedWanted = set()
+        removed = []
+
+        missions = getMissions(
+            logger,
+            debug,
+            mission_status=TERMINAL_STATUSES,
+            limit=MAX_COMPLETED
+        )
+
+        for mission in missions:
+            instanceName = make_instance_name(mission)
+            robotFolder = resolve_mission_robot_folder(mission, robotMappings)
+
+            activePath = ACTIVE_PATH + "/" + robotFolder + "/" + instanceName
+            completedPath = COMPLETED_PATH + "/" + robotFolder + "/" + instanceName
+            failedPath = FAILED_PATH + "/" + robotFolder + "/" + instanceName
+            previousStatus = read_previous_mission_status(
+                [activePath, completedPath, failedPath]
+            )
+
+            if tagExists(activePath):
+                remove_instance(
+                    activePath,
+                    logger,
+                    debug,
+                    "moved to Completed"
+                )
+                removed.append((activePath, "moved_to_completed"))
+            if tagExists(failedPath):
+                remove_instance(
+                    failedPath,
+                    logger,
+                    debug,
+                    "moved to Completed"
+                )
+                removed.append((failedPath, "moved_to_completed"))
+
+            targetFolder = COMPLETED_PATH + "/" + robotFolder
+            instancePath = targetFolder + "/" + instanceName
+            completedWanted.add(completedPath)
+
+            if not tagExists(instancePath):
+                ensureUdtInstancePath(instancePath, "api_Mission")
+                if debug:
+                    logger.info("Created mission instance: {}".format(instancePath))
+
+            write_mission_data(instancePath, mission)
+            newStatus = mission.get("mission_status")
+            if (
+                previousStatus is None or str(previousStatus) != str(newStatus)
+            ) and should_record_mission_state_change(mission, newStatus, latestStatusByMissionId):
+                record_mission_state_change(
+                    nowTimestamp,
+                    robotFolder,
+                    mission,
+                    previousStatus,
+                    newStatus
+                )
+                latestStatusByMissionId[str(mission.get("id") or "")] = str(newStatus or "")
+
+        removed.extend(
+            cleanup_stale_bucket(
+                COMPLETED_PATH,
+                completedWanted,
+                "completed",
+                logger,
+                debug
+            )
+        )
+        removed.extend(
+            cleanup_terminal_folder(
+                COMPLETED_PATH,
+                COMPLETED_RETENTION_DAYS,
+                MAX_COMPLETED,
+                "completed",
+                logger,
+                debug
+            )
+        )
+
+        result = _buildSyncResult(
+            True,
+            "info",
+            "Completed mission maintenance processed {} mission(s)".format(len(missions)),
+            completedWanted=completedWanted,
+            removed=removed
+        )
+    except Exception as exc:
+        logger.error("MissionSorting.runTerminalMaintenance FAILED: {}".format(exc))
+        result = _buildSyncResult(
+            False,
+            "error",
+            "Completed mission maintenance failed: {}".format(exc)
+        )
+
+    _dlog(logger, debug, "MissionSorting.runTerminalMaintenance END")
     return result

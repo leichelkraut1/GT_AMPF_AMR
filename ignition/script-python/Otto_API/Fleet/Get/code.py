@@ -128,6 +128,34 @@ def getServerStatus():
         return _buildSyncResult(False, "error", "Status update failed - " + str(e))
 
 
+def readCachedServerStatus():
+    """
+    Read the most recent server status value written by the slower status timer.
+
+    The fast MainController loop uses this cached value so it does not need to
+    make a separate HTTP request every pass.
+    """
+    status = readOptionalTagValue(
+        SYSTEM_BASE_PATH + "/ServerStatus",
+        None,
+        allowEmptyString=False
+    )
+    if status in [None, "", "ResponseError"]:
+        return _buildSyncResult(
+            False,
+            "warn",
+            "Cached server status is unavailable",
+            data=status
+        )
+
+    return _buildSyncResult(
+        True,
+        "info",
+        "Cached server status read",
+        data=status
+    )
+
+
 def getMissions(logger, debug, mission_status=None, limit=None):
     """
     Gets mission status info from OTTO for one or more mission statuses.

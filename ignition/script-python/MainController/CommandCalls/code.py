@@ -56,10 +56,11 @@ def runMainControllerCycle(nowEpochMs=None, createMission=None, finalizeMission=
     """
     Run the ordered controller phases for one main-loop cycle.
 
-    The PLC workflow pass only runs after fleet state and mission state have both
-    been refreshed in the same cycle.
+    The PLC workflow pass only runs after robot state and mission state have both
+    been refreshed in the same cycle. Server status is read from the slower
+    cached status timer rather than making a fresh HTTP call in this fast loop.
     """
-    serverStatusResult = Get.getServerStatus()
+    serverStatusResult = Get.readCachedServerStatus()
     robotStateResult = Get.updateRobotOperationalState()
     missionSortResult = MissionSorting.run()
 
