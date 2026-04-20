@@ -2,6 +2,10 @@ from Otto_API.Common.TagHelpers import browseTagResults
 from Otto_API.Common.TagHelpers import readTagValues
 
 
+def _log():
+    return system.util.getLogger("Otto_API.Missions.MissionTreeHelpers")
+
+
 def _browseMissionInstancePaths(rootPath):
     """
     Return all mission UDT instance paths below the given folder.
@@ -13,7 +17,13 @@ def _browseMissionInstancePaths(rootPath):
         currentFolder = pending.pop(0)
         try:
             browseResults = browseTagResults(currentFolder)
-        except Exception:
+        except Exception as exc:
+            _log().warn(
+                "Failed to browse mission folder [{}]: {}".format(
+                    currentFolder,
+                    str(exc)
+                )
+            )
             continue
 
         for row in browseResults:
@@ -85,6 +95,16 @@ def readMissionRobotAwareRecords(rootPath):
         ])
 
     readResults = readTagValues(readPaths)
+    expectedReadCount = len(missionRows) * 8
+    if len(readResults) < expectedReadCount:
+        _log().warn(
+            "Expected {} mission robot-affinity tag values under [{}] but received {}".format(
+                expectedReadCount,
+                rootPath,
+                len(readResults)
+            )
+        )
+        return []
     missionRecords = []
 
     for index, missionRow in enumerate(missionRows):
@@ -118,6 +138,16 @@ def readMissionIdRecords(rootPath):
         ])
 
     readResults = readTagValues(readPaths)
+    expectedReadCount = len(missionRows) * 2
+    if len(readResults) < expectedReadCount:
+        _log().warn(
+            "Expected {} mission id tag values under [{}] but received {}".format(
+                expectedReadCount,
+                rootPath,
+                len(readResults)
+            )
+        )
+        return []
     missionRecords = []
 
     for index, missionRow in enumerate(missionRows):

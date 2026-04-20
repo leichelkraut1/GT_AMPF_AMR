@@ -55,6 +55,10 @@ PLACES_BASE_PATH = getFleetPlacesPath()
 MAPS_BASE_PATH = getFleetMapsPath()
 WORKFLOWS_BASE_PATH = getFleetWorkflowsPath()
 
+
+def _log():
+    return system.util.getLogger("Otto_API.Fleet.Get")
+
 def _buildSyncResult(ok, level, message, records=None, writes=None, data=None):
     records = list(records or [])
     writes = list(writes or [])
@@ -107,7 +111,7 @@ def getServerStatus():
     Gets Fleet Manager server states.
     """
     url = getApiBaseUrl() + "/system/state/"
-    ottoLogger = system.util.getLogger("Otto_API_Logger")
+    ottoLogger = _log()
 
     try:
         response = httpGet(url=url, headerValues=jsonHeaders())
@@ -178,7 +182,7 @@ def updateRobots():
     Intended to be run only when a vehicle is added or removed from the Fleet.
     """
     url = getApiBaseUrl() + "/robots/?fields=id,hostname,name,serial_number"
-    ottoLogger = system.util.getLogger("Otto_API_Logger")
+    ottoLogger = _log()
     ottoLogger.info("Otto API - Updating /Robots/ Tags")
 
     try:
@@ -256,7 +260,7 @@ def updateSystemStates():
         LOWER numeric priority = HIGHER authority
         If priorities tie, newest 'created' timestamp wins
     """
-    ottoLogger = system.util.getLogger("Otto_API_Logger")
+    ottoLogger = _log()
 
     baseUrl = getApiBaseUrl()
     url = baseUrl + "/robots/states/?fields=%2A"
@@ -343,7 +347,7 @@ def updateChargeLevels():
     """
     baseUrl = getApiBaseUrl()
     url = baseUrl + "/robots/batteries/?fields=percentage,robot"
-    ottoLogger = system.util.getLogger("Otto_API_Logger")
+    ottoLogger = _log()
 
     try:
         response = httpGet(url=url, headerValues=jsonHeaders())
@@ -399,7 +403,7 @@ def updateActivityStates():
     """
     baseUrl = getApiBaseUrl()
     url = baseUrl + "/robots/activities/?fields=activity,robot&offset=0&limit=100"
-    ottoLogger = system.util.getLogger("Otto_API_Logger")
+    ottoLogger = _log()
 
     try:
         response = httpGet(url=url, headerValues=jsonHeaders())
@@ -454,7 +458,7 @@ def updateRobotOperationalState():
     Sync robot operational state in one pass:
     system state, activity state, charge level, and AvailableForWork.
     """
-    ottoLogger = system.util.getLogger("Otto_API_Logger")
+    ottoLogger = _log()
     robotsBasePath = ROBOTS_BASE_PATH
 
     try:
@@ -639,7 +643,7 @@ def updatePlaces():
     Ignores TEMPLATE place types entirely.
     """
     url = getApiBaseUrl() + "/places/"
-    ottoLogger = system.util.getLogger("Otto_API_Logger")
+    ottoLogger = _log()
 
     ottoLogger.info("Otto API - Updating /Places/")
 
@@ -741,7 +745,7 @@ def updateMaps():
     Cleanup removes old map UDT instances but ignores the ActiveMapID memory tag.
     """
     url = getApiBaseUrl() + "/maps/?offset=0&tagged=false"
-    ottoLogger = system.util.getLogger("Otto_API_Logger")
+    ottoLogger = _log()
 
     ottoLogger.info("Otto API - Updating /Maps/")
 
@@ -834,7 +838,7 @@ def updateWorkflows():
     url = baseUrl + str(mapUuid)
     responseTag = getSystemLastResponsePath()
     basePath    = WORKFLOWS_BASE_PATH
-    ottoLogger = system.util.getLogger("Otto_API_Logger")
+    ottoLogger = _log()
 
     ottoLogger.info("Otto API - Updating /Workflows/")
     try:

@@ -25,6 +25,10 @@ FAILED_MISSIONS_ROOT = getFleetMissionsPath() + "/Failed"
 ROBOTS_ROOT = getFleetRobotsPath()
 
 
+def _log():
+	return system.util.getLogger("Otto_API.Missions.Post")
+
+
 def _buildResult(ok, level, message, missionId=None, responseText=None, payload=None):
 	"""
 	Builds a structured result object for wrapper and helper callers.
@@ -42,6 +46,96 @@ def _buildResult(ok, level, message, missionId=None, responseText=None, payload=
 		response_text=responseText,
 		payload=payload,
 	)
+
+
+def _cancelMissionIdsFromInputs(
+	targetMissionIds,
+	fleetManagerURL,
+	postFunc,
+	emptyWarnMessage,
+	successMessage,
+	errorMessage
+):
+	"""
+	Cancel an explicit list of mission ids and return a structured result.
+	"""
+	targetMissionIds = [str(missionId) for missionId in list(targetMissionIds or []) if missionId]
+	if not targetMissionIds:
+		return buildOperationResult(
+			False,
+			"warn",
+			emptyWarnMessage,
+			data={
+				"mission_ids": [],
+				"response_texts": [],
+				"payloads": [],
+			},
+			mission_ids=[],
+			response_texts=[],
+			payloads=[],
+		)
+
+	responseTexts = []
+	payloads = []
+	canceledMissionIds = []
+
+	try:
+		for missionId in targetMissionIds:
+			missionPayload = buildCancelMissionPayload(missionId)
+			jsonBody = system.util.jsonEncode(missionPayload)
+			response = postFunc(
+				url=fleetManagerURL,
+				postData=jsonBody,
+			)
+			logLevel, message = interpretCancelMissionResponse(response, missionId)
+			if logLevel != "info":
+				return buildOperationResult(
+					False,
+					logLevel,
+					message,
+					data={
+						"mission_ids": canceledMissionIds,
+						"response_texts": responseTexts + [response],
+						"payloads": payloads + [missionPayload],
+					},
+					mission_ids=canceledMissionIds,
+					response_texts=responseTexts + [response],
+					payloads=payloads + [missionPayload],
+				)
+
+			canceledMissionIds.append(missionId)
+			responseTexts.append(response)
+			payloads.append(missionPayload)
+
+		return buildOperationResult(
+			True,
+			"info",
+			successMessage.format(len(canceledMissionIds)),
+			data={
+				"mission_ids": canceledMissionIds,
+				"response_texts": responseTexts,
+				"payloads": payloads,
+			},
+			mission_ids=canceledMissionIds,
+			response_texts=responseTexts,
+			payloads=payloads,
+			mission_id=canceledMissionIds[0] if canceledMissionIds else None,
+		)
+	except Exception as e:
+		return buildOperationResult(
+			False,
+			"error",
+			errorMessage.format(str(e)),
+			data={
+				"mission_ids": canceledMissionIds,
+				"response_texts": responseTexts,
+				"payloads": payloads,
+			},
+			mission_ids=canceledMissionIds,
+			response_texts=responseTexts,
+			payloads=payloads,
+			mission_id=canceledMissionIds[0] if canceledMissionIds else None,
+		)
 
 
 def createMissionFromInputs(templateDict, robotId, missionName, fleetManagerURL, postFunc):
@@ -125,81 +219,23 @@ def cancelMissionsFromInputs(robotId, missionRecords, fleetManagerURL, postFunc)
 		message = "No active missions found for robot ID [{}]".format(robotId)
 		if warningMessages:
 			message = warningMessages[0]
-		return buildOperationResult(
-			False,
-			"warn",
+		return _cancelMissionIdsFromInputs(
+			[],
+			fleetManagerURL,
+			postFunc,
 			message,
-			data={
-				"mission_ids": [],
-				"response_texts": [],
-				"payloads": [],
-			},
-			mission_ids=[],
-			response_texts=[],
-			payloads=[],
+			"Canceled {} mission(s) for robot ID [{}]".format("{}", robotId),
+			"Error canceling missions for robot ID [{}]: {{}}".format(robotId)
 		)
 
-	responseTexts = []
-	payloads = []
-	canceledMissionIds = []
-
-	try:
-		for missionId in targetMissionIds:
-			missionPayload = buildCancelMissionPayload(missionId)
-			jsonBody = system.util.jsonEncode(missionPayload)
-			response = postFunc(
-				url=fleetManagerURL,
-				postData=jsonBody,
-			)
-			logLevel, message = interpretCancelMissionResponse(response, missionId)
-			if logLevel != "info":
-				return buildOperationResult(
-					False,
-					logLevel,
-					message,
-					data={
-						"mission_ids": canceledMissionIds,
-						"response_texts": responseTexts + [response],
-						"payloads": payloads + [missionPayload],
-					},
-					mission_ids=canceledMissionIds,
-					response_texts=responseTexts + [response],
-					payloads=payloads + [missionPayload],
-				)
-
-			canceledMissionIds.append(missionId)
-			responseTexts.append(response)
-			payloads.append(missionPayload)
-
-		return buildOperationResult(
-			True,
-			"info",
-			"Canceled {} mission(s) for robot ID [{}]".format(len(canceledMissionIds), robotId),
-			data={
-				"mission_ids": canceledMissionIds,
-				"response_texts": responseTexts,
-				"payloads": payloads,
-			},
-			mission_ids=canceledMissionIds,
-			response_texts=responseTexts,
-			payloads=payloads,
-			mission_id=canceledMissionIds[0] if canceledMissionIds else None,
-		)
-	except Exception as e:
-		return buildOperationResult(
-			False,
-			"error",
-			"Error canceling missions for robot ID [{}]: {}".format(robotId, str(e)),
-			data={
-				"mission_ids": canceledMissionIds,
-				"response_texts": responseTexts,
-				"payloads": payloads,
-			},
-			mission_ids=canceledMissionIds,
-			response_texts=responseTexts,
-			payloads=payloads,
-			mission_id=canceledMissionIds[0] if canceledMissionIds else None,
-		)
+	return _cancelMissionIdsFromInputs(
+		targetMissionIds,
+		fleetManagerURL,
+		postFunc,
+		"No active missions found for robot ID [{}]".format(robotId),
+		"Canceled {} mission(s) for robot ID [{}]".format("{}", robotId),
+		"Error canceling missions for robot ID [{}]: {{}}".format(robotId)
+	)
 
 
 def cancelAllActiveMissionsFromInputs(missionRecords, fleetManagerURL, postFunc):
@@ -212,82 +248,14 @@ def cancelAllActiveMissionsFromInputs(missionRecords, fleetManagerURL, postFunc)
 		if missionId:
 			targetMissionIds.append(str(missionId))
 
-	if not targetMissionIds:
-		return buildOperationResult(
-			False,
-			"warn",
-			"No active missions found to cancel",
-			data={
-				"mission_ids": [],
-				"response_texts": [],
-				"payloads": [],
-			},
-			mission_ids=[],
-			response_texts=[],
-			payloads=[],
-		)
-
-	responseTexts = []
-	payloads = []
-	canceledMissionIds = []
-
-	try:
-		for missionId in targetMissionIds:
-			missionPayload = buildCancelMissionPayload(missionId)
-			jsonBody = system.util.jsonEncode(missionPayload)
-			response = postFunc(
-				url=fleetManagerURL,
-				postData=jsonBody,
-			)
-			logLevel, message = interpretCancelMissionResponse(response, missionId)
-			if logLevel != "info":
-				return buildOperationResult(
-					False,
-					logLevel,
-					message,
-					data={
-						"mission_ids": canceledMissionIds,
-						"response_texts": responseTexts + [response],
-						"payloads": payloads + [missionPayload],
-					},
-					mission_ids=canceledMissionIds,
-					response_texts=responseTexts + [response],
-					payloads=payloads + [missionPayload],
-				)
-
-			canceledMissionIds.append(missionId)
-			responseTexts.append(response)
-			payloads.append(missionPayload)
-
-		return buildOperationResult(
-			True,
-			"info",
-			"Canceled {} active mission(s)".format(len(canceledMissionIds)),
-			data={
-				"mission_ids": canceledMissionIds,
-				"response_texts": responseTexts,
-				"payloads": payloads,
-			},
-			mission_ids=canceledMissionIds,
-			response_texts=responseTexts,
-			payloads=payloads,
-			mission_id=canceledMissionIds[0] if canceledMissionIds else None,
-		)
-	except Exception as e:
-		return buildOperationResult(
-			False,
-			"error",
-			"Error canceling active missions: {}".format(str(e)),
-			data={
-				"mission_ids": canceledMissionIds,
-				"response_texts": responseTexts,
-				"payloads": payloads,
-			},
-			mission_ids=canceledMissionIds,
-			response_texts=responseTexts,
-			payloads=payloads,
-			mission_id=canceledMissionIds[0] if canceledMissionIds else None,
-		)
+	return _cancelMissionIdsFromInputs(
+		targetMissionIds,
+		fleetManagerURL,
+		postFunc,
+		"No active missions found to cancel",
+		"Canceled {} active mission(s)",
+		"Error canceling active missions: {}"
+	)
 
 
 def createMission(templateTagPath, robotTagPath, missionName):
@@ -304,7 +272,7 @@ def createMission(templateTagPath, robotTagPath, missionName):
 	# --- Config ---
 	fleetManagerURL = getOttoOperationsUrl()
 	responseTag = getMissionTriggerLastResponsePath()
-	ottoLogger = system.util.getLogger("OTTO_API_Logger")
+	ottoLogger = _log()
 
 	ottoLogger.info("Posting mission from template [{}] for robot [{}]".format(templateTagPath, robotTagPath))
 
@@ -368,7 +336,7 @@ def finalizeMission(robotName):
 	# --- Config ---
 	fleetManagerURL = getOttoOperationsUrl()
 	responseTag = getMissionTriggerLastResponsePath()
-	ottoLogger = system.util.getLogger("OTTO_API_Logger")
+	ottoLogger = _log()
 
 	ottoLogger.info("Finalizing mission for robot [{}]".format(robotName))
 
@@ -444,7 +412,7 @@ def cancelMission(robotName):
 
 	fleetManagerURL = getOttoOperationsUrl()
 	responseTag = getMissionTriggerLastResponsePath()
-	ottoLogger = system.util.getLogger("OTTO_API_Logger")
+	ottoLogger = _log()
 
 	ottoLogger.info("Canceling mission(s) for robot [{}]".format(robotName))
 
@@ -493,7 +461,7 @@ def cancelAllActiveMissions():
 	"""
 	fleetManagerURL = getOttoOperationsUrl()
 	responseTag = getMissionTriggerLastResponsePath()
-	ottoLogger = system.util.getLogger("OTTO_API_Logger")
+	ottoLogger = _log()
 
 	ottoLogger.info("Canceling all active missions")
 
@@ -531,27 +499,32 @@ def cancelAllFailedMissions():
 	"""
 	fleetManagerURL = getOttoOperationsUrl()
 	responseTag = getMissionTriggerLastResponsePath()
-	ottoLogger = system.util.getLogger("OTTO_API_Logger")
+	ottoLogger = _log()
 
 	ottoLogger.info("Canceling all failed missions")
 
 	try:
 		missionRecords = readMissionIdRecords(FAILED_MISSIONS_ROOT)
-		result = cancelAllActiveMissionsFromInputs(
-			missionRecords,
+		targetMissionIds = [
+			str(missionRecord.get("id"))
+			for missionRecord in list(missionRecords or [])
+			if missionRecord.get("id")
+		]
+		result = _cancelMissionIdsFromInputs(
+			targetMissionIds,
 			fleetManagerURL,
-			httpPost
+			httpPost,
+			"No failed missions found to cancel",
+			"Canceled {} failed mission(s)",
+			"Error canceling failed missions: {}"
 		)
 
 		if result.get("response_texts"):
 			writeLastSystemResponse(result["response_texts"][-1], asyncWrite=True)
 
 		if result["level"] == "info":
-			result["message"] = "Canceled {} failed mission(s)".format(len(result.get("mission_ids") or []))
 			ottoLogger.info(result["message"])
 		elif result["level"] == "warn":
-			if result["message"] == "No active missions found to cancel":
-				result["message"] = "No failed missions found to cancel"
 			ottoLogger.warn(result["message"])
 		else:
 			ottoLogger.error(result["message"])

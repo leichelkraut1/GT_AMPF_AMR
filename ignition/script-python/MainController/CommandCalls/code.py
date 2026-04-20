@@ -51,6 +51,7 @@ def _buildOutputs(
     return {
         "available_for_work": bool(mirrorInputs.get("available_for_work")),
         "active_workflow_number": normalizeWorkflowNumber(activeWorkflowNumber) or 0,
+        "mission_starved": bool(mirrorInputs.get("mission_starved")),
         "mission_ready_for_attachment": bool(mirrorInputs.get("mission_ready_for_attachment")),
         "mission_needs_finalized": bool(missionNeedsFinalized),
         "request_received": bool(requestReceived),
@@ -495,6 +496,29 @@ def runRobotWorkflowCycle(
                         robotName=robotName,
                         state=nextState["state"],
                         action="cancel_for_switch_failed",
+                        data={"workflow_number": activeWorkflowNumber},
+                    )
+
+                if not mirrorInputs.get("mission_starved"):
+                    nextState = _buildState(
+                        "finalize_waiting_starved",
+                        nowEpochMs,
+                        selectedWorkflowNumber=currentState["selected_workflow_number"],
+                        requestLatched=False,
+                        missionCreated=True,
+                        missionNeedsFinalized=True,
+                        lastResult="waiting for mission to become STARVED before finalizing",
+                        lastCommandId=currentState["last_command_id"],
+                    )
+                    writeRobotState(robotName, nextState)
+                    writePlcOutputs(robotName, outputs)
+                    return _returnCycle(
+                        True,
+                        "info",
+                        "Robot [{}] waiting for mission to become STARVED before finalizing".format(robotName),
+                        robotName=robotName,
+                        state=nextState["state"],
+                        action="hold_finalize_waiting_starved",
                         data={"workflow_number": activeWorkflowNumber},
                     )
 

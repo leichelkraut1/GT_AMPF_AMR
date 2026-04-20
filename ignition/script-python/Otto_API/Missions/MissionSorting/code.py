@@ -68,7 +68,7 @@ FAILED_RETENTION_DAYS = 5
 DEBUG_TAG_PATH = BASE + "/DebugEnabled"
 ROBOTS_PATH = getFleetRobotsPath()
 UNASSIGNED_FOLDER = "Unassigned"
-UNKNOWN_ROBOT_FOLDER = "Unkown_Robot"
+UNKNOWN_ROBOT_FOLDER = "Unknown_Robot"
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
 
 
@@ -80,7 +80,7 @@ def _log():
     """
     Returns the module logger
     """
-    return system.util.getLogger("Otto_MissionSorting")
+    return system.util.getLogger("Otto_API.Missions.MissionSorting")
 
 
 def _debug_enabled():
@@ -345,8 +345,8 @@ def ensure_maincontrol_robot_attachment_tags(robotMappings):
     for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
         robotPath = MAINCONTROL_ROBOTS_PATH + "/" + robotFolder
         ensureFolder(robotPath)
+        ensureMemoryTag(robotPath + "/MissionStarved", "Boolean", False)
         ensureMemoryTag(robotPath + "/MissionReadyforAttachment", "Boolean", False)
-        ensureMemoryTag(robotPath + "/MissionIdForAttacment", "String", "")
         ensureMemoryTag(robotPath + "/MissionNameForAttachment", "String", "")
 
 
@@ -519,8 +519,8 @@ def run():
         failedWanted = set()
         activeCountsByFolder = {}
         failedCountsByFolder = {}
+        missionStarvedByFolder = {}
         attachmentReadyByFolder = {}
-        attachmentMissionIdByFolder = {}
         attachmentMissionNameByFolder = {}
         removed = []
 
@@ -600,11 +600,10 @@ def run():
                 targetFolder = ACTIVE_PATH + "/" + robotFolder
                 activeWanted.add(activePath)
                 activeCountsByFolder[robotFolder] = activeCountsByFolder.get(robotFolder, 0) + 1
+                if attachmentState.get("mission_starved") is True:
+                    missionStarvedByFolder[robotFolder] = True
                 if attachmentState.get("ready_for_attachment") is True:
                     attachmentReadyByFolder[robotFolder] = True
-                    attachmentMissionIdByFolder[robotFolder] = str(
-                        attachmentState.get("attachment_mission_id") or mission.get("id") or ""
-                    )
                     attachmentMissionNameByFolder[robotFolder] = str(
                         attachmentState.get("attachment_mission_name") or mission.get("name") or ""
                     )
@@ -648,16 +647,16 @@ def run():
             ) +
             build_robot_member_writes(
                 robotMappings,
-                attachmentReadyByFolder,
-                "MissionReadyforAttachment",
+                missionStarvedByFolder,
+                "MissionStarved",
                 transform=lambda value: bool(value),
                 basePath=MAINCONTROL_ROBOTS_PATH
             ) +
             build_robot_member_writes(
                 robotMappings,
-                attachmentMissionIdByFolder,
-                "MissionIdForAttacment",
-                transform=lambda value: str(value or ""),
+                attachmentReadyByFolder,
+                "MissionReadyforAttachment",
+                transform=lambda value: bool(value),
                 basePath=MAINCONTROL_ROBOTS_PATH
             ) +
             build_robot_member_writes(

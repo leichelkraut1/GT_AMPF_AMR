@@ -9,6 +9,21 @@ def cleanupAttachmentAcks(attachmentRows):
     return resetRows
 
 
+def buildMissionControlFlags(missionStarved):
+    """
+    Build the derived mission-phase flags consumed by MainControl.
+
+    For now, attachment-readiness is intentionally the same as STARVED. Keeping
+    this mapping in one small helper makes it obvious where the behavior should
+    grow later if the two concepts diverge.
+    """
+    missionStarved = bool(missionStarved)
+    return {
+        "mission_starved": missionStarved,
+        "ready_for_attachment": missionStarved,
+    }
+
+
 def deriveMissionAttachmentState(missionRecord):
     """
     Derive attachment-facing mission state from a mission row.
@@ -18,13 +33,23 @@ def deriveMissionAttachmentState(missionRecord):
     attachment place/endpoint details from richer mission/task metadata.
     """
     status = str((missionRecord or {}).get("mission_status") or "").strip().upper()
-    readyForAttachment = status == "STARVED"
+    controlFlags = buildMissionControlFlags(status == "STARVED")
 
     return {
-        "ready_for_attachment": readyForAttachment,
-        "attachment_mission_id": (missionRecord or {}).get("id") if readyForAttachment else "",
-        "attachment_mission_name": (missionRecord or {}).get("name") if readyForAttachment else "",
+        "mission_starved": controlFlags["mission_starved"],
+        "ready_for_attachment": controlFlags["ready_for_attachment"],
+        "attachment_mission_name": (
+            (missionRecord or {}).get("name") if controlFlags["ready_for_attachment"] else ""
+        ),
         "attachment_place": None,
-        "state": "ready_for_attachment" if readyForAttachment else "not_ready_for_attachment",
-        "reason": "mission_starved" if readyForAttachment else "mission_not_starved",
+        "state": (
+            "ready_for_attachment"
+            if controlFlags["ready_for_attachment"]
+            else "not_ready_for_attachment"
+        ),
+        "reason": (
+            "mission_starved"
+            if controlFlags["mission_starved"]
+            else "mission_not_starved"
+        ),
     }
