@@ -32,12 +32,6 @@
           }
         },
         "props": {
-          "style": {
-            "backgroundColor": "#ffffff",
-            "border": "1px solid #cfd6df",
-            "borderRadius": "6px",
-            "overflow": "hidden"
-          },
           "columns": [
             {
               "align": "center",
@@ -121,7 +115,7 @@
               },
               "render": "auto",
               "resizable": true,
-              "sort": "ascending",
+              "sort": "descending",
               "sortable": true,
               "strictWidth": false,
               "style": {
@@ -175,9 +169,8 @@
                 "title": ""
               },
               "header": {
-                "align": "left",
+                "align": "center",
                 "justify": "left",
-                "key": "value",
                 "style": {
                   "backgroundColor": "#1f2937",
                   "borderBottom": "1px solid #111827",
@@ -782,7 +775,7 @@
                 "title": ""
               },
               "header": {
-                "align": "left",
+                "align": "center",
                 "justify": "left",
                 "style": {
                   "backgroundColor": "#1f2937",
@@ -854,7 +847,9 @@
           },
           "rows": {
             "striped": {
-              "color": "#f4f7fb"
+              "color": {
+                "even": "#D5D5D5"
+              }
             },
             "style": {
               "borderBottom": "1px solid #e3e8ef",
@@ -864,16 +859,22 @@
           "selection": {
             "data": [
               {
-                "Message": "Mission [968198ba-4cc4-426e-a9fe-0fc58885879a] finalized successfully"
+                "State": "finalize_pending"
               }
             ],
             "enableColumnSelection": true,
-            "selectedColumn": "Message",
-            "selectedRow": 401
+            "selectedColumn": "State",
+            "selectedRow": 438
           },
           "sortOrder": [
             "Ts"
-          ]
+          ],
+          "style": {
+            "backgroundColor": "#ffffff",
+            "border": "1px solid #cfd6df",
+            "borderRadius": "6px",
+            "overflow": "hidden"
+          }
         },
         "type": "ia.display.table"
       }
