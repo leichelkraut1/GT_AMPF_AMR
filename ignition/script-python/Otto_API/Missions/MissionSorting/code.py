@@ -68,7 +68,7 @@ FAILED_RETENTION_DAYS = 5
 DEBUG_TAG_PATH = BASE + "/DebugEnabled"
 ROBOTS_PATH = getFleetRobotsPath()
 UNASSIGNED_FOLDER = "Unassigned"
-UNKNOWN_ROBOT_FOLDER = "Unkown_Robot"
+UNKNOWN_ROBOT_FOLDER = "Unknown_Robot"
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
 
 
@@ -80,7 +80,7 @@ def _log():
     """
     Returns the module logger
     """
-    return system.util.getLogger("Otto_MissionSorting")
+    return system.util.getLogger("Otto_API.Missions.MissionSorting")
 
 
 def _debug_enabled():

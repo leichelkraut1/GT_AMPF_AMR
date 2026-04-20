@@ -8,6 +8,10 @@ from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Common.TagHelpers import writeTagValues
 
 
+def _log():
+    return system.util.getLogger("Otto_API.Fleet.FleetSync")
+
+
 def parseServerStatus(responseText):
     """
     Parse a Fleet Manager server-state response and return a status string.
@@ -103,7 +107,13 @@ def _createdSortValue(created):
 
     try:
         return parseIsoTimestampToEpochMillis(created)
-    except Exception:
+    except Exception as exc:
+        _log().warn(
+            "Falling back to digit-only mission created sort for [{}]: {}".format(
+                str(created),
+                str(exc)
+            )
+        )
         digits = "".join([
             ch for ch in str(created)
             if ch.isdigit()

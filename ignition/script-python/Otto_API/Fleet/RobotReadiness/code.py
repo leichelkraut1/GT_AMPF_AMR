@@ -18,6 +18,21 @@ DEFAULT_ALLOWED_ACTIVITY_STATES = set([
 ])
 
 
+def _log():
+    return system.util.getLogger("Otto_API.Fleet.RobotReadiness")
+
+
+def _robotStatusReadPaths(robotPath):
+    """Return the readiness-related tag paths read for one robot."""
+    return [
+        robotPath + "/SystemState",
+        robotPath + "/ActivityState",
+        robotPath + "/ChargeLevel",
+        robotPath + "/ActiveMissionCount",
+        robotPath + "/FailedMissionCount",
+    ]
+
+
 def _normalizeStateValue(value):
     if value is None:
         return None
@@ -223,6 +238,7 @@ def evaluateRobotReadiness(
             chargeLevel,
             minCharge,
             activeMissionCount,
+            failedMissionCount,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -406,7 +422,7 @@ def updateAvailableForWork():
     runtime flow should prefer Otto_API.Fleet.Get.updateRobotOperationalState()
     so OTTO sync and readiness evaluation happen in one pass.
     """
-    ottoLogger = system.util.getLogger("Otto_Logic_Logger")
+    ottoLogger = _log()
 
     robotsBasePath = getFleetRobotsPath()
     minChargePath = getMissionMinChargePath()
@@ -447,17 +463,19 @@ def updateAvailableForWork():
                 "robot_name": robotName,
                 "robot_path": robotPath,
             })
-            readPaths.extend([
-                robotPath + "/SystemState",
-                robotPath + "/ActivityState",
-                robotPath + "/ChargeLevel",
-                robotPath + "/ActiveMissionCount",
-                robotPath + "/FailedMissionCount",
-            ])
+            readPaths.extend(_robotStatusReadPaths(robotPath))
 
         readResults = []
         if readPaths:
             readResults = readTagValues(readPaths)
+
+        expectedReadCount = len(robotRows) * 5
+        if len(readResults) < expectedReadCount:
+            message = (
+                "AvailableForWork evaluation failed - expected {} readiness tag values but received {}"
+            ).format(expectedReadCount, len(readResults))
+            ottoLogger.warn(message)
+            return _buildUpdateResult(False, "warn", message, minCharge)
 
         robotSnapshots = []
         for index, robotRow in enumerate(robotRows):
