@@ -9,6 +9,10 @@
     },
     "/charts": {
       "viewPath": "Page/Charts"
+    },
+    "/missioncontrol": {
+      "title": "Mission Control",
+      "viewPath": "Page/MissionControl"
     }
   },
   "sharedDocks": {
