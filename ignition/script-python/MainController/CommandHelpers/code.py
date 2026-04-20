@@ -16,6 +16,8 @@ from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Common.TagHelpers import writeRequiredTagValues
 from Otto_API.Common.TagHelpers import writeTagValues
 from Otto_API.AttachmentPhaseHelpers import buildMissionControlFlags
+from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
+from Otto_API.Missions.MissionActions import sortActiveMissionRecords
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
 
 from MainController.WorkflowConfig import ROBOT_NAMES
@@ -335,6 +337,27 @@ def _toBool(value):
     return str(value).strip().lower() in ["true", "1", "yes", "on"]
 
 
+def _normalizeControllerStateName(stateName):
+    """Collapse legacy detailed state labels into the compact four-state model."""
+    stateName = str(stateName or "idle")
+    if stateName in ["idle", "mission_requested", "mission_active", "fault"]:
+        return stateName
+    if stateName.startswith("clear_"):
+        return "mission_active"
+    if stateName in [
+        "cancel_requested",
+        "switch_cancel_requested",
+        "request_invalid",
+        "request_conflict",
+        "waiting_available",
+        "create_backoff",
+        "failed",
+        "plc_comm_fault",
+    ]:
+        return "fault"
+    return "fault"
+
+
 def normalizeRobotState(rawState):
     """Normalize persisted tag values back into the controller's expected state shape."""
     rawState = dict(rawState or {})
@@ -344,7 +367,7 @@ def normalizeRobotState(rawState):
     state["selected_workflow_number"] = normalizeWorkflowNumber(
         rawState.get("selected_workflow_number")
     ) or 0
-    state["state"] = str(rawState.get("state") or "idle")
+    state["state"] = _normalizeControllerStateName(rawState.get("state"))
     state["mission_created"] = _toBool(rawState.get("mission_created"))
     state["mission_needs_finalized"] = _toBool(rawState.get("mission_needs_finalized"))
     state["last_command_ts"] = str(rawState.get("last_command_ts") or "")
@@ -550,35 +573,87 @@ def parseActiveWorkflowNumberFromMissionName(missionName):
 
 
 def readActiveMissionSummary(robotName):
-    """Summarize the single active mission view that MainController cares about for one robot."""
+    """Summarize the robot's active mission set and choose one current mission deterministically."""
     rootPath = MISSIONS_ACTIVE_BASE + "/" + robotName
     missionInstances = browseMissionInstances(rootPath)
     if not missionInstances:
         return {
             "count": 0,
+            "missions": [],
+            "current_mission": None,
+            "current_mission_status": "",
+            "current_mission_id": "",
+            "current_mission_path": "",
             "mission_name": "",
             "workflow_number": None,
         }
 
-    namePaths = [fullPath + "/Name" for fullPath, _ in missionInstances]
-    nameResults = readTagValues(namePaths)
+    readPaths = []
+    for fullPath, _instanceName in missionInstances:
+        readPaths.extend([
+            fullPath + "/Name",
+            fullPath + "/name",
+            fullPath + "/Mission_Status",
+            fullPath + "/mission_status",
+            fullPath + "/ID",
+            fullPath + "/id",
+        ])
+    readResults = readTagValues(readPaths)
 
-    missionNames = []
-    for qualifiedValue in nameResults:
-        if not qualifiedValue.quality.isGood():
-            continue
-        value = qualifiedValue.value
-        if value is None:
-            continue
-        text = str(value).strip()
-        if text:
-            missionNames.append(text)
+    missions = []
+    for index, missionRow in enumerate(missionInstances):
+        fullPath = missionRow[0]
+        offset = index * 6
+        nameValue = None
+        statusValue = None
+        missionIdValue = None
 
-    missionName = missionNames[0] if missionNames else ""
+        for candidate in [readResults[offset], readResults[offset + 1]]:
+            if candidate.quality.isGood() and candidate.value is not None and str(candidate.value).strip():
+                nameValue = str(candidate.value).strip()
+                break
+        for candidate in [readResults[offset + 2], readResults[offset + 3]]:
+            if candidate.quality.isGood() and candidate.value is not None and str(candidate.value).strip():
+                statusValue = str(candidate.value).strip().upper()
+                break
+        for candidate in [readResults[offset + 4], readResults[offset + 5]]:
+            if candidate.quality.isGood() and candidate.value is not None and str(candidate.value).strip():
+                missionIdValue = str(candidate.value).strip()
+                break
+
+        missions.append({
+            "instance_path": fullPath,
+            "path": fullPath,
+            "mission_name": nameValue or "",
+            "name": nameValue or "",
+            "mission_status": statusValue or "",
+            "workflow_number": parseActiveWorkflowNumberFromMissionName(nameValue),
+            "id": missionIdValue or "",
+        })
+
+    missions = sortActiveMissionRecords(missions)
+    currentMission = selectCurrentActiveMissionRecord(missions)
+    missionName = ""
+    workflowNumber = None
+    currentStatus = ""
+    currentMissionId = ""
+    currentMissionPath = ""
+    if currentMission:
+        missionName = str(currentMission.get("mission_name") or currentMission.get("name") or "")
+        workflowNumber = currentMission.get("workflow_number")
+        currentStatus = str(currentMission.get("mission_status") or "")
+        currentMissionId = str(currentMission.get("id") or "")
+        currentMissionPath = str(currentMission.get("instance_path") or currentMission.get("path") or "")
+
     return {
         "count": len(missionInstances),
+        "missions": missions,
+        "current_mission": currentMission,
+        "current_mission_status": currentStatus,
+        "current_mission_id": currentMissionId,
+        "current_mission_path": currentMissionPath,
         "mission_name": missionName,
-        "workflow_number": parseActiveWorkflowNumberFromMissionName(missionName),
+        "workflow_number": workflowNumber,
     }
 
 

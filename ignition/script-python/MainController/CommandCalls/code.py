@@ -13,8 +13,8 @@ def runAllRobotWorkflowCycles(
     robotNames=None,
     nowEpochMs=None,
     createMission=None,
-    finalizeMission=None,
-    cancelMission=None
+    finalizeMissionId=None,
+    cancelMissionIds=None
 ):
     """
     Run one workflow-controller pass across every configured robot.
@@ -36,8 +36,8 @@ def runAllRobotWorkflowCycles(
                 reservedWorkflows=reservedWorkflows,
                 nowEpochMs=nowEpochMs,
                 createMission=createMission,
-                finalizeMission=finalizeMission,
-                cancelMission=cancelMission,
+                finalizeMissionId=finalizeMissionId,
+                cancelMissionIds=cancelMissionIds,
             )
         )
 
@@ -52,7 +52,12 @@ def runAllRobotWorkflowCycles(
     )
 
 
-def runMainControllerCycle(nowEpochMs=None, createMission=None, finalizeMission=None, cancelMission=None):
+def runMainControllerCycle(
+    nowEpochMs=None,
+    createMission=None,
+    finalizeMissionId=None,
+    cancelMissionIds=None
+):
     """
     Run the ordered controller phases for one main-loop cycle.
 
@@ -69,8 +74,8 @@ def runMainControllerCycle(nowEpochMs=None, createMission=None, finalizeMission=
         workflowResult = runAllRobotWorkflowCycles(
             nowEpochMs=nowEpochMs,
             createMission=createMission,
-            finalizeMission=finalizeMission,
-            cancelMission=cancelMission,
+            finalizeMissionId=finalizeMissionId,
+            cancelMissionIds=cancelMissionIds,
         )
     else:
         for robotName in ROBOT_NAMES:

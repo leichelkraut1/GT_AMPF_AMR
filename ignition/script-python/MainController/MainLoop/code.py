@@ -10,8 +10,8 @@ def runRobotWorkflowCycle(
     reservedWorkflows=None,
     nowEpochMs=None,
     createMission=None,
-    finalizeMission=None,
-    cancelMission=None
+    finalizeMissionId=None,
+    cancelMissionIds=None
 ):
     """Compatibility passthrough to the real workflow-cycle implementation."""
     return CommandCalls.runRobotWorkflowCycle(
@@ -19,23 +19,33 @@ def runRobotWorkflowCycle(
         reservedWorkflows=reservedWorkflows,
         nowEpochMs=nowEpochMs,
         createMission=createMission,
-        finalizeMission=finalizeMission,
-        cancelMission=cancelMission,
+        finalizeMissionId=finalizeMissionId,
+        cancelMissionIds=cancelMissionIds,
     )
 
 
-def runAllRobotWorkflowCycles(nowEpochMs=None, createMission=None, finalizeMission=None, cancelMission=None):
+def runAllRobotWorkflowCycles(
+    nowEpochMs=None,
+    createMission=None,
+    finalizeMissionId=None,
+    cancelMissionIds=None
+):
     """Run one cycle for all configured robots."""
     return CommandCalls.runAllRobotWorkflowCycles(
         robotNames=ROBOT_NAMES,
         nowEpochMs=nowEpochMs,
         createMission=createMission,
-        finalizeMission=finalizeMission,
-        cancelMission=cancelMission,
+        finalizeMissionId=finalizeMissionId,
+        cancelMissionIds=cancelMissionIds,
     )
 
 
-def runMainControllerCycle(nowEpochMs=None, createMission=None, finalizeMission=None, cancelMission=None):
+def runMainControllerCycle(
+    nowEpochMs=None,
+    createMission=None,
+    finalizeMissionId=None,
+    cancelMissionIds=None
+):
     """
     Top-level timer entrypoint with overlap protection and runtime timing telemetry.
 
@@ -78,8 +88,8 @@ def runMainControllerCycle(nowEpochMs=None, createMission=None, finalizeMission=
         result = CommandCalls.runMainControllerCycle(
             nowEpochMs=startEpochMs,
             createMission=createMission,
-            finalizeMission=finalizeMission,
-            cancelMission=cancelMission,
+            finalizeMissionId=finalizeMissionId,
+            cancelMissionIds=cancelMissionIds,
         )
         return result
     finally:

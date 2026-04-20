@@ -19,15 +19,29 @@ def callCreateMission(robotName, workflowNumber, createMission=None):
     )
 
 
-def callFinalizeMission(robotName, finalizeMission=None):
-    """Finalize the active mission for a robot."""
-    if finalizeMission is None:
-        finalizeMission = Post.finalizeMission
-    return finalizeMission(robotName)
+def callFinalizeMissionId(missionId, finalizeMissionId=None):
+    """Finalize one explicit mission id."""
+    if finalizeMissionId is None:
+        finalizeMissionId = Post.finalizeMissionId
+    return finalizeMissionId(missionId)
 
 
-def callCancelMission(robotName, cancelMission=None):
-    """Cancel the active mission for a robot."""
-    if cancelMission is None:
-        cancelMission = Post.cancelMission
-    return cancelMission(robotName)
+def callCancelMissionIds(missionIds, cancelMissionIds=None):
+    """Cancel an explicit list of mission ids."""
+    if cancelMissionIds is None:
+        cancelMissionIds = Post.cancelMissionIds
+    return cancelMissionIds(missionIds)
+
+
+def callMissionCommand(actionName, missionId, finalizeMissionId=None, cancelMissionIds=None):
+    """Dispatch one explicit mission command through the mission-id OTTO wrappers."""
+    actionName = str(actionName or "")
+    if actionName == "finalize_mission":
+        return callFinalizeMissionId(missionId, finalizeMissionId=finalizeMissionId)
+    if actionName == "cancel_mission":
+        return callCancelMissionIds([missionId], cancelMissionIds=cancelMissionIds)
+    return {
+        "ok": False,
+        "level": "error",
+        "message": "Unsupported mission command [{}]".format(actionName),
+    }

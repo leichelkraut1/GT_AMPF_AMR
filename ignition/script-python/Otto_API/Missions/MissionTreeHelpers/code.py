@@ -66,11 +66,12 @@ def _pickValue(*qualifiedValues):
 
 def readMissionRobotAwareRecords(rootPath):
     """
-    Read mission robot affinity fields plus id in one recursive browse + bulk read pass.
+    Read mission robot affinity fields, mission status, and id in one recursive browse + bulk read pass.
     """
     missionRows = []
     for missionBasePath, _ in browseMissionInstances(rootPath):
         missionRows.append({
+            "path": missionBasePath,
             "assigned_robot_path": missionBasePath + "/assigned_robot",
             "assigned_robot_alt_path": missionBasePath + "/Assigned_Robot",
             "force_robot_path": missionBasePath + "/force_robot",
@@ -79,6 +80,8 @@ def readMissionRobotAwareRecords(rootPath):
             "forced_robot_alt_path": missionBasePath + "/Forced_Robot",
             "id_path": missionBasePath + "/id",
             "id_alt_path": missionBasePath + "/ID",
+            "mission_status_path": missionBasePath + "/mission_status",
+            "mission_status_alt_path": missionBasePath + "/Mission_Status",
         })
 
     readPaths = []
@@ -92,13 +95,15 @@ def readMissionRobotAwareRecords(rootPath):
             missionRow["forced_robot_alt_path"],
             missionRow["id_path"],
             missionRow["id_alt_path"],
+            missionRow["mission_status_path"],
+            missionRow["mission_status_alt_path"],
         ])
 
     readResults = readTagValues(readPaths)
-    expectedReadCount = len(missionRows) * 8
+    expectedReadCount = len(missionRows) * 10
     if len(readResults) < expectedReadCount:
         _log().warn(
-            "Expected {} mission robot-affinity tag values under [{}] but received {}".format(
+            "Expected {} mission robot/status tag values under [{}] but received {}".format(
                 expectedReadCount,
                 rootPath,
                 len(readResults)
@@ -108,12 +113,14 @@ def readMissionRobotAwareRecords(rootPath):
     missionRecords = []
 
     for index, missionRow in enumerate(missionRows):
-        offset = index * 8
+        offset = index * 10
         missionRecords.append({
+            "path": missionRow["path"],
             "assigned_robot": _pickValue(readResults[offset], readResults[offset + 1]),
             "force_robot": _pickValue(readResults[offset + 2], readResults[offset + 3]),
             "forced_robot": _pickValue(readResults[offset + 4], readResults[offset + 5]),
             "id": _pickValue(readResults[offset + 6], readResults[offset + 7]),
+            "mission_status": _pickValue(readResults[offset + 8], readResults[offset + 9]),
         })
 
     return missionRecords

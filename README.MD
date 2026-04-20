@@ -54,8 +54,10 @@ The `MainController` code is split by responsibility:
   - shared paths, tag reads/writes, runtime datasets, state normalization
 - `RobotCycle`
   - per-robot orchestration
+- `MissionCommandHelpers`
+  - mission-level clear command issue/log/dedupe helpers
 - `RobotDecisions`
-  - pure decision helpers and stable message builders
+  - small pure decision helpers
 - `RobotActions`
   - create / cancel / finalize calls into the mission layer
 - `PlcMirror`
@@ -64,6 +66,11 @@ The `MainController` code is split by responsibility:
 If you are troubleshooting one robot’s behavior, start in:
 
 - `ignition/script-python/MainController/RobotCycle/code.py`
+
+If you are troubleshooting explicit mission cancel/finalize dedupe or command-history
+rows for clear actions, the next stop is:
+
+- `ignition/script-python/MainController/MissionCommandHelpers/code.py`
 
 ## Command Structure
 
@@ -76,11 +83,10 @@ The per-robot entrypoint is:
 The logic is organized in this order:
 
 1. Health gating
-2. Reconcile any robot that already owes a finalize or cancel outcome
-3. Handle "no requested workflow"
-4. Validate new or changed workflow requests
-5. Hold existing request/mission states when appropriate
-6. Create a new mission if no hold path applies
+2. Reconcile the current `Active` mission set against the requested workflow
+3. Validate create candidates once the `Active` folder is clear
+4. Hold existing request/mission states when appropriate
+5. Create a new mission if no hold path applies
 
 This means the controller always prefers reconciliation and stability before sending
 new actions.
@@ -109,6 +115,21 @@ The robot cycle uses this pattern:
 That "build once, mutate, finish once" structure is deliberate. It avoids the old
 pattern where every branch rebuilt nearly the same state patch over and over.
 
+The per-robot `State` tag is intentionally compact now. It should only be one of:
+
+- `idle`
+- `mission_requested`
+- `mission_active`
+- `fault`
+
+Detailed meaning lives in:
+
+- `Action`
+- `Level`
+- `LastResult`
+- PLC-facing booleans like `MissionNeedsFinalized`, `RequestInvalid`,
+  `RequestConflict`, and `RequestRobotNotReady`
+
 ## Evaluation, Then Action, Then Anti-Repeat
 
 The easiest way to reason about the controller is:
@@ -127,17 +148,18 @@ Examples:
 - Hold path
   - evaluate: same requested workflow is still latched or already active
   - action: no OTTO side effect
-  - anti-repeat: keep the controller in a hold state and do not retrigger create
+  - anti-repeat: keep the controller in `mission_requested` or `mission_active`
+    and do not retrigger create
 
-- Finalize path
-  - evaluate: `MissionNeedsFinalized`, PLC `FinalizeOk`, and `MissionStarved`
-  - action: `callFinalizeMission(...)`
-  - anti-repeat: clear finalize state on success
+- Queued sidecar cleanup
+  - evaluate: an `Active` mission is `QUEUED` and its workflow number does not match the PLC request
+  - action: `cancel_mission` immediately, without waiting for `FinalizeOk`
+  - anti-repeat: mission-level issued-command signature prevents repeating the same cancel every scan once it succeeds
 
-- Switch path
-  - evaluate: requested workflow changed while another one is active
-  - action: cancel current mission if PLC allows the switch
-  - anti-repeat: move into `switch_cancel_requested` until the old mission clears
+- Finalize / cancel clear path
+  - evaluate: a non-queued `Active` mission does not match the PLC request
+  - action: wait for PLC `FinalizeOk`, then `finalize_mission` for `STARVED` or `cancel_mission` for everything else
+  - anti-repeat: mission-level issued-command signature prevents repeating the same clear command every scan once it succeeds
 
 ## Anti-Repeat Rules That Matter
 
@@ -150,15 +172,21 @@ These are the most important anti-repeat behaviors in the current design:
   - tracks whether the controller already owns a created mission for the request cycle
 
 - `MissionNeedsFinalized`
-  - means the robot is in reconciliation mode and should not be treated like a clean
-    new request
+  - means at least one non-queued active mission still needs PLC-authorized clearing
+    before a new request can take over
 
 - `LastLoggedSignature`
   - prevents `CommandHistory` from getting the same row every scan for the same robot
 
+- api_Mission runtime helper members
+  - `_LastIssuedCommandSignature`
+  - `_LastCommandLogSignature`
+  - let mission-level clear commands and their command-history rows dedupe cleanly while
+    the mission remains in `Fleet/Missions/Active/...`
+
 ## Retry Behavior
 
-The controller now uses a per-robot retry delay for failed actions.
+The controller now keeps per-robot retry delay only for create attempts.
 
 What happens today:
 
@@ -169,24 +197,23 @@ What happens today:
     is still active, the controller holds in a backoff state instead of sending
     create again
 
-- Finalize
-  - if finalize fails, the robot remains in a finalize-needed condition and records
-    a finalize retry window
-  - the same finalize action is not retried again until that window expires
-
-- Cancel
-  - if cancel fails, the controller records a cancel retry window
-  - the same cancel action is not retried again until that window expires
+- Finalize / cancel clear commands
+  - there is no robot-level retry window anymore
+  - the controller reevaluates the `Active` mission set every scan
+  - successful mission clear commands are suppressed by mission-level issued-command
+    signatures
+  - failed mission clear commands can retry on later scans because no issued signature
+    is written on failure
 
 So the short version is:
 
-- retries have a delay/backoff
-- the backoff only applies to retries of the same action
-- if the evaluated action changes, the old retry state is cleared
+- create has a delay/backoff
+- mission clear commands use mission-level anti-repeat instead of robot-level backoff
 - retry state is tracked with:
   - `LastAttemptAction`
   - `NextActionAllowedEpochMs`
   - `RetryCount`
+- after the cleanup, `LastAttemptAction` should only be meaningful for create
 - the current shared retry delay is controlled by
   `MainController.CommandHelpers.RETRY_DELAY_MS`
 
@@ -240,7 +267,9 @@ Current known-good checkpoint before live-system testing:
 
 - UDT-backed `MainControl/Robots/<Robot>` and `PLC/<Robot>` structures are in use
 - workflow-number requests can create missions
-- request clear / switch logic can cancel missions
+- request reconciliation now cancels mismatched queued sidecars immediately
+- non-queued mismatches wait for `FinalizeOk`, then finalize `STARVED` missions and
+  cancel the rest
 - command and mission history datasets are working with duplicate suppression
 - server status and completed-mission maintenance have been moved off the fast loop
 
@@ -260,7 +289,7 @@ Duplicate rows are suppressed per robot using:
 
 - `LastLoggedSignature`
 
-This keeps repeated hold states like `waiting_available` from filling the dataset
+This keeps repeated actions like `waiting_available` from filling the dataset
 every loop.
 
 ## Soft Failures vs Hard Failures

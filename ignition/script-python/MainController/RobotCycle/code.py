@@ -15,29 +15,17 @@ from MainController.CommandHelpers import timestampString
 from MainController.CommandHelpers import writePlcHealthOutputs
 from MainController.CommandHelpers import writePlcOutputs
 from MainController.CommandHelpers import writeRobotState
+from MainController.MissionCommandHelpers import issueMissionCommands
 from MainController.PlcMirror import buildOutputs
-from MainController.RobotActions import callCancelMission
 from MainController.RobotActions import callCreateMission
-from MainController.RobotActions import callFinalizeMission
-from MainController.RobotDecisions import buildChangedRequestMessage
-from MainController.RobotDecisions import buildSwitchPendingMessage
 from MainController.RobotDecisions import isRequestCleared
-from MainController.RobotDecisions import isSwitchingWorkflow
 from MainController.RobotDecisions import isWorkflowConflict
 from MainController.RobotDecisions import isWorkflowRequestInvalid
-from MainController.RobotDecisions import shouldClearFinalizeBecauseNoActiveMission
 from MainController.RobotDecisions import shouldHoldActive
-from MainController.RobotDecisions import shouldHoldCancelRequest
 from MainController.RobotDecisions import shouldHoldLatchedRequest
-from MainController.RobotDecisions import shouldHoldSwitchCancel
-from MainController.RobotDecisions import shouldWaitForStarved
 from MainController.WorkflowConfig import getWorkflowDef
 from MainController.WorkflowConfig import isWorkflowAllowedForRobot
 from MainController.WorkflowConfig import normalizeWorkflowNumber
-
-
-def _robotLogger():
-    return system.util.getLogger("MainController_WorkflowRunner")
 
 
 def _newCycleState(currentState, nowEpochMs):
@@ -156,16 +144,7 @@ def _finishCycle(
     data=None
 ):
     """Persist the branch result, mirror PLC outputs, then build the cycle result."""
-    if action not in [
-        "create_failed",
-        "cancel_for_clear_request_failed",
-        "cancel_for_switch_failed",
-        "finalize_failed",
-        "hold_create_backoff",
-        "hold_cancel_backoff",
-        "hold_switch_cancel_backoff",
-        "hold_finalize_backoff",
-    ]:
+    if action not in ["create_failed", "hold_create_backoff"]:
         _updateCycleState(
             nextState,
             nextActionAllowedEpochMs=0,
@@ -205,14 +184,30 @@ def _workflowData(workflowNumber):
     return {"workflow_number": workflowNumber}
 
 
+def _clearPendingMessage(activeWorkflowNumber, selectedWorkflowNumber):
+    """Build the stable wait message for FinalizeOk-gated robot clears."""
+    if isRequestCleared(selectedWorkflowNumber):
+        return "waiting for FinalizeOk before clearing active missions for workflow {}".format(
+            activeWorkflowNumber or "unknown"
+        )
+    if activeWorkflowNumber:
+        return "waiting for FinalizeOk before clearing workflow {} and switching to {}".format(
+            activeWorkflowNumber,
+            selectedWorkflowNumber
+        )
+    return "waiting for FinalizeOk before clearing active missions and starting {}".format(
+        selectedWorkflowNumber
+    )
+
+
 def _buildCycleContext(robotName, **kwargs):
     """Bundle the mutable per-cycle state so phase handlers stay focused."""
     return {
         "robot_name": robotName,
-        "logger": kwargs.get("logger"),
         "plc_inputs": kwargs.get("plcInputs"),
         "mirror_inputs": kwargs.get("mirrorInputs"),
         "current_state": kwargs.get("currentState"),
+        "active_summary": kwargs.get("activeSummary"),
         "active_workflow_number": kwargs.get("activeWorkflowNumber"),
         "selected_workflow_number": kwargs.get("selectedWorkflowNumber"),
         "reserved_workflows": kwargs.get("reservedWorkflows"),
@@ -221,9 +216,49 @@ def _buildCycleContext(robotName, **kwargs):
         "return_cycle": kwargs.get("returnCycle"),
         "now_epoch_ms": kwargs.get("nowEpochMs"),
         "create_mission": kwargs.get("createMission"),
-        "finalize_mission": kwargs.get("finalizeMission"),
-        "cancel_mission": kwargs.get("cancelMission"),
+        "finalize_mission_id": kwargs.get("finalizeMissionId"),
+        "cancel_mission_ids": kwargs.get("cancelMissionIds"),
     }
+
+def _splitActiveMissionsByRequest(activeMissions, selectedWorkflowNumber):
+    """Split active missions into matching work, queued mismatches, and FinalizeOk-gated mismatches."""
+    selectedWorkflowNumber = normalizeWorkflowNumber(selectedWorkflowNumber)
+    matchingMissions = []
+    queuedMismatches = []
+    gatedMismatches = []
+
+    for missionRecord in list(activeMissions or []):
+        missionRecord = dict(missionRecord or {})
+        missionWorkflowNumber = normalizeWorkflowNumber(missionRecord.get("workflow_number"))
+        missionStatus = str(missionRecord.get("mission_status") or "").upper()
+        matchesRequestedWorkflow = bool(
+            selectedWorkflowNumber
+            and missionWorkflowNumber
+            and selectedWorkflowNumber == missionWorkflowNumber
+        )
+
+        if matchesRequestedWorkflow:
+            matchingMissions.append(missionRecord)
+        elif missionStatus == "QUEUED":
+            queuedMismatches.append(missionRecord)
+        else:
+            gatedMismatches.append(missionRecord)
+
+    return {
+        "matching": matchingMissions,
+        "queued_mismatches": queuedMismatches,
+        "gated_mismatches": gatedMismatches,
+    }
+
+
+def _mergeMissionCommandMessages(*messages):
+    """Join non-empty reconcile messages without creating noisy empty separators."""
+    normalized = []
+    for message in list(messages or []):
+        message = str(message or "").strip()
+        if message:
+            normalized.append(message)
+    return "; ".join(normalized)
 
 
 def _outputs(ctx, **kwargs):
@@ -268,7 +303,7 @@ def _handleHealthGate(ctx):
 
     _updateCycleState(
         nextState,
-        stateName="plc_comm_fault",
+        stateName="fault",
         selectedWorkflowNumber=currentState["selected_workflow_number"],
         requestLatched=currentState["request_latched"],
         missionCreated=currentState["mission_created"],
@@ -293,477 +328,229 @@ def _handleHealthGate(ctx):
     )
 
 
-def _handleCancelForClearRequest(ctx, outputs):
-    """Cancel the current mission because the PLC request has been cleared."""
-    robotName = ctx["robot_name"]
+def _handleClearIntent(ctx):
+    """Keep matching active work, cancel queued mismatches immediately, and gate non-queued clears on FinalizeOk."""
     currentState = ctx["current_state"]
     nextState = ctx["next_state"]
-    activeWorkflowNumber = ctx["active_workflow_number"]
-    nowEpochMs = ctx["now_epoch_ms"]
-
-    if shouldHoldCancelRequest(currentState):
-        _updateCycleState(
-            nextState,
-            stateName="cancel_requested",
-            selectedWorkflowNumber=0,
-            requestLatched=False,
-            missionCreated=True,
-            missionNeedsFinalized=False,
-            lastResult=currentState["last_result"] or "waiting for canceled mission to clear",
-            lastCommandId=currentState["last_command_id"],
-        )
-        return _complete(
-            ctx,
-            True,
-            "info",
-            "Robot [{}] waiting for canceled mission to clear".format(robotName),
-            action="hold_cancel_request",
-            outputs=outputs,
-            workflowNumber=activeWorkflowNumber,
-        )
-
-    if _isActionBackoffActive(currentState, "cancel_clear", nowEpochMs):
-        _updateCycleState(
-            nextState,
-            stateName="cancel_backoff",
-            selectedWorkflowNumber=0,
-            requestLatched=False,
-            missionCreated=True,
-            missionNeedsFinalized=False,
-            lastResult="waiting {} ms before retrying cancel".format(
-                _remainingActionBackoffMs(currentState, nowEpochMs)
-            ),
-            lastCommandId=currentState["last_command_id"],
-        )
-        return _complete(
-            ctx,
-            True,
-            "warn",
-            "Robot [{}] waiting before retrying cancel".format(robotName),
-            action="hold_cancel_backoff",
-            outputs=outputs,
-            workflowNumber=activeWorkflowNumber,
-        )
-
-    result = callCancelMission(robotName, ctx["cancel_mission"])
-    if result.get("ok"):
-        _updateCycleState(
-            nextState,
-            stateName="cancel_requested",
-            selectedWorkflowNumber=0,
-            requestLatched=False,
-            missionCreated=True,
-            missionNeedsFinalized=False,
-            lastResult=result.get("message", ""),
-            lastCommandId=currentState["last_command_id"],
-        )
-        return _complete(
-            ctx,
-            True,
-            result.get("level", "info"),
-            result.get("message", ""),
-            action="cancel_for_clear_request",
-            outputs=outputs,
-            workflowNumber=activeWorkflowNumber,
-        )
-
-    _updateCycleState(
-        nextState,
-        stateName="failed",
-        selectedWorkflowNumber=0,
-        requestLatched=False,
-        missionCreated=currentState["mission_created"] or bool(activeWorkflowNumber),
-        missionNeedsFinalized=False,
-        lastResult=result.get("message", ""),
-        lastCommandId=currentState["last_command_id"],
-        nextActionAllowedEpochMs=nowEpochMs + RETRY_DELAY_MS,
-        lastAttemptAction="cancel_clear",
-        retryCount=int(currentState.get("retry_count") or 0) + 1,
-    )
-    return _complete(
-        ctx,
-        False,
-        result.get("level", "error"),
-        result.get("message", ""),
-        action="cancel_for_clear_request_failed",
-        outputs=outputs,
-        workflowNumber=activeWorkflowNumber,
-    )
-
-
-def _handleSwitchCancel(ctx, outputs):
-    """Cancel the old mission after the PLC authorizes switching workflows."""
-    robotName = ctx["robot_name"]
-    currentState = ctx["current_state"]
-    nextState = ctx["next_state"]
-    activeWorkflowNumber = ctx["active_workflow_number"]
-    selectedWorkflowNumber = ctx["selected_workflow_number"]
-    nowEpochMs = ctx["now_epoch_ms"]
-
-    if shouldHoldSwitchCancel(currentState):
-        _updateCycleState(
-            nextState,
-            stateName="switch_cancel_requested",
-            selectedWorkflowNumber=selectedWorkflowNumber,
-            requestLatched=False,
-            missionCreated=True,
-            missionNeedsFinalized=True,
-            lastResult=currentState["last_result"] or "waiting for canceled mission to clear",
-            lastCommandId=currentState["last_command_id"],
-        )
-        return _complete(
-            ctx,
-            True,
-            "info",
-            "Robot [{}] waiting for canceled workflow {} to clear".format(
-                robotName,
-                activeWorkflowNumber
-            ),
-            action="hold_switch_cancel",
-            outputs=outputs,
-            workflowNumber=activeWorkflowNumber,
-        )
-
-    if _isActionBackoffActive(currentState, "cancel_switch", nowEpochMs):
-        _updateCycleState(
-            nextState,
-            stateName="switch_cancel_backoff",
-            selectedWorkflowNumber=selectedWorkflowNumber,
-            requestLatched=False,
-            missionCreated=True,
-            missionNeedsFinalized=True,
-            lastResult="waiting {} ms before retrying switch cancel".format(
-                _remainingActionBackoffMs(currentState, nowEpochMs)
-            ),
-            lastCommandId=currentState["last_command_id"],
-        )
-        return _complete(
-            ctx,
-            True,
-            "warn",
-            "Robot [{}] waiting before retrying switch cancel".format(robotName),
-            action="hold_switch_cancel_backoff",
-            outputs=outputs,
-            workflowNumber=activeWorkflowNumber,
-        )
-
-    result = callCancelMission(robotName, ctx["cancel_mission"])
-    if result.get("ok"):
-        _updateCycleState(
-            nextState,
-            stateName="switch_cancel_requested",
-            selectedWorkflowNumber=selectedWorkflowNumber,
-            requestLatched=False,
-            missionCreated=True,
-            missionNeedsFinalized=True,
-            lastResult=result.get("message", ""),
-            lastCommandId=currentState["last_command_id"],
-        )
-        return _complete(
-            ctx,
-            True,
-            result.get("level", "info"),
-            result.get("message", ""),
-            action="cancel_for_switch",
-            outputs=outputs,
-            workflowNumber=activeWorkflowNumber,
-        )
-
-    _updateCycleState(
-        nextState,
-        stateName="failed",
-        selectedWorkflowNumber=selectedWorkflowNumber,
-        requestLatched=False,
-        missionCreated=currentState["mission_created"] or bool(activeWorkflowNumber),
-        missionNeedsFinalized=True,
-        lastResult=result.get("message", ""),
-        lastCommandId=currentState["last_command_id"],
-        nextActionAllowedEpochMs=nowEpochMs + RETRY_DELAY_MS,
-        lastAttemptAction="cancel_switch",
-        retryCount=int(currentState.get("retry_count") or 0) + 1,
-    )
-    return _complete(
-        ctx,
-        False,
-        result.get("level", "error"),
-        result.get("message", ""),
-        action="cancel_for_switch_failed",
-        outputs=outputs,
-        workflowNumber=activeWorkflowNumber,
-    )
-
-
-def _handleFinalize(ctx, outputs):
-    """Finalize the current mission once STARVED and PLC-approved."""
-    robotName = ctx["robot_name"]
-    logger = ctx["logger"]
-    currentState = ctx["current_state"]
-    nextState = ctx["next_state"]
-    mirrorInputs = ctx["mirror_inputs"]
-    activeWorkflowNumber = ctx["active_workflow_number"]
-    nowEpochMs = ctx["now_epoch_ms"]
-
-    if shouldWaitForStarved(mirrorInputs):
-        if currentState["state"] != "finalize_waiting_starved":
-            logger.info(
-                "Robot [{}] waiting for mission to become STARVED before finalizing".format(robotName)
-            )
-        _updateCycleState(
-            nextState,
-            stateName="finalize_waiting_starved",
-            selectedWorkflowNumber=currentState["selected_workflow_number"],
-            requestLatched=False,
-            missionCreated=True,
-            missionNeedsFinalized=True,
-            lastResult="waiting for mission to become STARVED before finalizing",
-            lastCommandId=currentState["last_command_id"],
-        )
-        return _complete(
-            ctx,
-            True,
-            "info",
-            "Robot [{}] waiting for mission to become STARVED before finalizing".format(robotName),
-            action="hold_finalize_waiting_starved",
-            outputs=outputs,
-            workflowNumber=activeWorkflowNumber,
-        )
-
-    if _isActionBackoffActive(currentState, "finalize", nowEpochMs):
-        _updateCycleState(
-            nextState,
-            stateName="finalize_backoff",
-            selectedWorkflowNumber=currentState["selected_workflow_number"],
-            requestLatched=currentState["request_latched"],
-            missionCreated=currentState["mission_created"],
-            missionNeedsFinalized=True,
-            lastResult="waiting {} ms before retrying finalize".format(
-                _remainingActionBackoffMs(currentState, nowEpochMs)
-            ),
-            lastCommandId=currentState["last_command_id"],
-        )
-        return _complete(
-            ctx,
-            True,
-            "warn",
-            "Robot [{}] waiting before retrying finalize".format(robotName),
-            action="hold_finalize_backoff",
-            outputs=outputs,
-            workflowNumber=activeWorkflowNumber,
-        )
-
-    result = callFinalizeMission(robotName, ctx["finalize_mission"])
-    if result.get("ok"):
-        _updateCycleState(
-            nextState,
-            stateName="success",
-            selectedWorkflowNumber=currentState["selected_workflow_number"],
-            requestLatched=False,
-            missionCreated=False,
-            missionNeedsFinalized=False,
-            lastResult=result.get("message", ""),
-            lastCommandId=currentState["last_command_id"],
-        )
-        outputs["mission_needs_finalized"] = False
-        return _complete(
-            ctx,
-            True,
-            result.get("level", "info"),
-            result.get("message", ""),
-            action="finalize",
-            outputs=outputs,
-            workflowNumber=activeWorkflowNumber,
-        )
-
-    _updateCycleState(
-        nextState,
-        stateName="failed",
-        selectedWorkflowNumber=currentState["selected_workflow_number"],
-        requestLatched=currentState["request_latched"],
-        missionCreated=currentState["mission_created"],
-        missionNeedsFinalized=True,
-        lastResult=result.get("message", ""),
-        lastCommandId=currentState["last_command_id"],
-        nextActionAllowedEpochMs=nowEpochMs + RETRY_DELAY_MS,
-        lastAttemptAction="finalize",
-        retryCount=int(currentState.get("retry_count") or 0) + 1,
-    )
-    return _complete(
-        ctx,
-        False,
-        result.get("level", "error"),
-        result.get("message", ""),
-        action="finalize_failed",
-        outputs=outputs,
-        workflowNumber=activeWorkflowNumber,
-    )
-
-
-def _handleReconcile(ctx):
-    """Resolve robots that already owe a finalize or cancel outcome."""
-    currentState = ctx["current_state"]
-    nextState = ctx["next_state"]
+    activeSummary = dict(ctx.get("active_summary") or {})
     activeWorkflowNumber = ctx["active_workflow_number"]
     selectedWorkflowNumber = ctx["selected_workflow_number"]
     currentCommandId = currentState["last_command_id"]
+    activeMissions = list(activeSummary.get("missions") or [])
+    hasActiveMissions = bool(activeMissions)
 
-    if not currentState["mission_needs_finalized"]:
-        return None
-
-    if isRequestCleared(selectedWorkflowNumber):
-        if shouldClearFinalizeBecauseNoActiveMission(activeWorkflowNumber):
-            _updateCycleState(
-                nextState,
-                stateName="idle",
-                selectedWorkflowNumber=0,
-                requestLatched=False,
-                missionCreated=False,
-                missionNeedsFinalized=False,
-                lastResult="request cleared; no active mission remained",
-                lastCommandId=currentCommandId,
-            )
+    if not hasActiveMissions:
+        staleClearState = bool(
+            currentState.get("mission_needs_finalized")
+            or str(currentState.get("state") or "").startswith("clear_")
+        )
+        _updateCycleState(
+            nextState,
+            stateName="idle",
+            selectedWorkflowNumber=selectedWorkflowNumber,
+            requestLatched=False if staleClearState else currentState["request_latched"],
+            missionCreated=False if staleClearState else currentState["mission_created"],
+            missionNeedsFinalized=False,
+            lastResult="" if staleClearState else currentState["last_result"],
+            lastCommandId="" if staleClearState else currentState["last_command_id"],
+        )
+        if isRequestCleared(selectedWorkflowNumber):
             return _complete(
                 ctx,
                 True,
                 "info",
-                "Robot [{}] cleared request with no active mission remaining".format(ctx["robot_name"]),
-                action="clear_cancel_pending",
+                "Robot [{}] idle".format(ctx["robot_name"]),
+                action="idle",
                 outputs=_outputs(
                     ctx,
                     requestReceived=False,
                     missionNeedsFinalized=False
                 ),
             )
+        return None
 
-        return _handleCancelForClearRequest(
-            ctx,
-            _outputs(
-                ctx,
-                requestReceived=False,
-                missionNeedsFinalized=False
-            )
-        )
-
-    switchingWorkflow = isSwitchingWorkflow(
+    activeSplit = _splitActiveMissionsByRequest(activeMissions, selectedWorkflowNumber)
+    queuedSummary = issueMissionCommands(
+        ctx["robot_name"],
+        activeSplit["queued_mismatches"],
         selectedWorkflowNumber,
         activeWorkflowNumber,
-        currentState,
+        ctx["now_epoch_ms"],
+        finalizeMissionId=ctx["finalize_mission_id"],
+        cancelMissionIds=ctx["cancel_mission_ids"],
     )
+    queuedMessage = queuedSummary.get("message") if (
+        queuedSummary.get("issued_count")
+        or queuedSummary.get("skipped_count")
+        or queuedSummary.get("any_failures")
+    ) else ""
 
-    if shouldClearFinalizeBecauseNoActiveMission(activeWorkflowNumber):
-        if shouldHoldSwitchCancel(currentState) and selectedWorkflowNumber:
+    if activeSplit["gated_mismatches"]:
+        outputs = _outputs(
+            ctx,
+            requestReceived=bool(selectedWorkflowNumber),
+            missionNeedsFinalized=True
+        )
+        if not ctx["plc_inputs"]["finalize_ok"]:
+            pendingMessage = _mergeMissionCommandMessages(
+                queuedMessage,
+                _clearPendingMessage(activeWorkflowNumber, selectedWorkflowNumber)
+            )
             _updateCycleState(
                 nextState,
-                stateName="idle",
+                stateName="mission_active",
                 selectedWorkflowNumber=selectedWorkflowNumber,
                 requestLatched=False,
-                missionCreated=False,
-                missionNeedsFinalized=False,
-                lastResult="prior workflow canceled; ready to request {}".format(selectedWorkflowNumber),
+                missionCreated=True,
+                missionNeedsFinalized=True,
+                lastResult=pendingMessage,
                 lastCommandId=currentCommandId,
             )
-            return None
+            return _complete(
+                ctx,
+                True,
+                "info",
+                "Robot [{}] waiting for FinalizeOk".format(ctx["robot_name"]),
+                action="hold_clear_pending",
+                outputs=outputs,
+                workflowNumber=activeWorkflowNumber,
+            )
+
+        gatedSummary = issueMissionCommands(
+            ctx["robot_name"],
+            activeSplit["gated_mismatches"],
+            selectedWorkflowNumber,
+            activeWorkflowNumber,
+            ctx["now_epoch_ms"],
+            finalizeMissionId=ctx["finalize_mission_id"],
+            cancelMissionIds=ctx["cancel_mission_ids"],
+        )
+        clearMessage = _mergeMissionCommandMessages(
+            queuedMessage,
+            gatedSummary.get("message")
+        )
+        anyFailures = queuedSummary.get("any_failures") or gatedSummary.get("any_failures")
+        failedLevels = list(queuedSummary.get("failed_levels") or []) + list(gatedSummary.get("failed_levels") or [])
+        issuedCount = int(queuedSummary.get("issued_count") or 0) + int(gatedSummary.get("issued_count") or 0)
 
         _updateCycleState(
             nextState,
-            stateName="idle",
-            selectedWorkflowNumber=0,
+            stateName="fault" if anyFailures else "mission_active",
+            selectedWorkflowNumber=selectedWorkflowNumber,
             requestLatched=False,
-            missionCreated=False,
+            missionCreated=True,
+            missionNeedsFinalized=True,
+            lastResult=clearMessage,
+            lastCommandId=currentCommandId,
+        )
+        return _complete(
+            ctx,
+            not anyFailures,
+            "error" if "error" in failedLevels else ("warn" if anyFailures else "info"),
+            clearMessage,
+            action=(
+                "clear_reconcile_failed"
+                if anyFailures
+                else ("clear_reconcile" if issuedCount else "hold_clear_inflight")
+            ),
+            outputs=outputs,
+            workflowNumber=activeWorkflowNumber,
+        )
+
+    if queuedSummary.get("any_failures"):
+        _updateCycleState(
+            nextState,
+            stateName="fault",
+            selectedWorkflowNumber=selectedWorkflowNumber,
+            requestLatched=False,
+            missionCreated=True,
             missionNeedsFinalized=False,
-            lastResult="finalize cleared; no active mission remained",
+            lastResult=queuedMessage,
+            lastCommandId=currentCommandId,
+        )
+        return _complete(
+            ctx,
+            False,
+            "error" if "error" in list(queuedSummary.get("failed_levels") or []) else "warn",
+            queuedMessage,
+            action="clear_reconcile_failed",
+            outputs=_outputs(
+                ctx,
+                requestReceived=bool(selectedWorkflowNumber)
+            ),
+            workflowNumber=activeWorkflowNumber,
+        )
+
+    if shouldHoldActive(activeWorkflowNumber, selectedWorkflowNumber):
+        activeMessage = _mergeMissionCommandMessages(
+            "active mission matches requested workflow",
+            queuedMessage
+        )
+        _updateCycleState(
+            nextState,
+            stateName="mission_active",
+            selectedWorkflowNumber=selectedWorkflowNumber,
+            requestLatched=True,
+            missionCreated=True,
+            missionNeedsFinalized=False,
+            lastResult=activeMessage,
             lastCommandId=currentCommandId,
         )
         return _complete(
             ctx,
             True,
             "info",
-            "Robot [{}] finalize cleared because no active mission remained".format(ctx["robot_name"]),
-            action="clear_finalize_pending",
+            "Robot [{}] active workflow {} is in progress".format(
+                ctx["robot_name"],
+                selectedWorkflowNumber
+            ),
+            action="hold_active",
             outputs=_outputs(
                 ctx,
-                requestReceived=bool(selectedWorkflowNumber),
-                missionNeedsFinalized=False
+                requestReceived=True,
+                requestSuccess=True
             ),
+            workflowNumber=selectedWorkflowNumber,
         )
 
-    outputs = _outputs(
-        ctx,
-        requestReceived=bool(selectedWorkflowNumber),
-        missionNeedsFinalized=True
-    )
-    if ctx["plc_inputs"]["finalize_ok"]:
-        if switchingWorkflow:
-            return _handleSwitchCancel(ctx, outputs)
-        return _handleFinalize(ctx, outputs)
-
-    pendingStateName = "switch_pending" if switchingWorkflow else "finalize_pending"
-    pendingMessage = (
-        buildSwitchPendingMessage(activeWorkflowNumber, selectedWorkflowNumber)
-        if switchingWorkflow
-        else (currentState["last_result"] or "waiting for FinalizeOk")
-    )
-    _updateCycleState(
-        nextState,
-        stateName=pendingStateName,
-        selectedWorkflowNumber=(
-            currentState["selected_workflow_number"]
-            or selectedWorkflowNumber
-            or activeWorkflowNumber
-        ),
-        requestLatched=False,
-        missionCreated=True,
-        missionNeedsFinalized=True,
-        lastResult=pendingMessage,
-        lastCommandId=currentCommandId,
-    )
-    return _complete(
-        ctx,
-        True,
-        "info",
-        "Robot [{}] waiting for FinalizeOk".format(ctx["robot_name"]),
-        action="hold_finalize",
-        outputs=outputs,
-        workflowNumber=activeWorkflowNumber,
-    )
-
-
-def _handleNoRequest(ctx):
-    """Either stay idle or clear active work when the PLC requests workflow 0."""
-    nextState = ctx["next_state"]
-    currentState = ctx["current_state"]
-    activeWorkflowNumber = ctx["active_workflow_number"]
-
-    if not isRequestCleared(ctx["selected_workflow_number"]):
-        return None
-
-    if activeWorkflowNumber:
-        return _handleCancelForClearRequest(
+    if queuedSummary.get("issued_count") or queuedSummary.get("skipped_count"):
+        inflightMessage = queuedMessage or "waiting for active missions to clear before creating new work"
+        _updateCycleState(
+            nextState,
+            stateName="mission_active",
+            selectedWorkflowNumber=selectedWorkflowNumber,
+            requestLatched=False,
+            missionCreated=True,
+            missionNeedsFinalized=False,
+            lastResult=inflightMessage,
+            lastCommandId=currentCommandId,
+        )
+        return _complete(
             ctx,
-            _outputs(
+            True,
+            "info",
+            inflightMessage,
+            action="hold_clear_inflight",
+            outputs=_outputs(
                 ctx,
-                requestReceived=False,
-                missionNeedsFinalized=False
-            )
+                requestReceived=bool(selectedWorkflowNumber)
+            ),
+            workflowNumber=activeWorkflowNumber,
         )
 
-    _updateCycleState(
-        nextState,
-        stateName="idle",
-        selectedWorkflowNumber=0,
-        requestLatched=False,
-        missionCreated=False,
-        missionNeedsFinalized=False,
-        lastResult="",
-        lastCommandId="",
-    )
-    return _complete(
-        ctx,
-        True,
-        "info",
-        "Robot [{}] idle".format(ctx["robot_name"]),
-        action="idle",
-        outputs=_outputs(ctx),
-    )
+    if currentState["mission_needs_finalized"]:
+        _updateCycleState(
+            nextState,
+            stateName="mission_active",
+            selectedWorkflowNumber=selectedWorkflowNumber,
+            requestLatched=False,
+            missionCreated=True,
+            missionNeedsFinalized=False,
+            lastResult="clear request withdrawn",
+            lastCommandId=currentCommandId,
+        )
+
+    return None
 
 
 def _handleValidation(ctx):
@@ -771,38 +558,11 @@ def _handleValidation(ctx):
     robotName = ctx["robot_name"]
     nextState = ctx["next_state"]
     currentState = ctx["current_state"]
-    activeWorkflowNumber = ctx["active_workflow_number"]
     selectedWorkflowNumber = ctx["selected_workflow_number"]
     reservedWorkflows = ctx["reserved_workflows"]
 
-    if activeWorkflowNumber and activeWorkflowNumber != selectedWorkflowNumber:
-        _updateCycleState(
-            nextState,
-            stateName="finalize_pending",
-            selectedWorkflowNumber=selectedWorkflowNumber,
-            requestLatched=False,
-            missionCreated=True,
-            missionNeedsFinalized=True,
-            lastResult=buildChangedRequestMessage(activeWorkflowNumber, selectedWorkflowNumber),
-            lastCommandId=currentState["last_command_id"],
-        )
-        return _complete(
-            ctx,
-            True,
-            "info",
-            "Robot [{}] requested workflow changed; finalize current workflow {} before starting {}".format(
-                robotName,
-                activeWorkflowNumber,
-                selectedWorkflowNumber
-            ),
-            action="finalize_pending_changed_request",
-            outputs=_outputs(
-                ctx,
-                requestReceived=True,
-                missionNeedsFinalized=True
-            ),
-            workflowNumber=activeWorkflowNumber,
-        )
+    if isRequestCleared(selectedWorkflowNumber):
+        return None
 
     workflowDef = getWorkflowDef(selectedWorkflowNumber)
     if isWorkflowRequestInvalid(
@@ -813,7 +573,7 @@ def _handleValidation(ctx):
     ):
         _updateCycleState(
             nextState,
-            stateName="request_invalid",
+            stateName="fault",
             selectedWorkflowNumber=selectedWorkflowNumber,
             requestLatched=False,
             missionCreated=False,
@@ -839,7 +599,7 @@ def _handleValidation(ctx):
     if isWorkflowConflict(owner, robotName):
         _updateCycleState(
             nextState,
-            stateName="request_conflict",
+            stateName="fault",
             selectedWorkflowNumber=selectedWorkflowNumber,
             requestLatched=False,
             missionCreated=False,
@@ -868,48 +628,21 @@ def _handleValidation(ctx):
 def _handleHolds(ctx):
     """Hold stable request/mission states instead of retriggering OTTO actions."""
     nextState = ctx["next_state"]
-    currentState = ctx["current_state"]
-    activeWorkflowNumber = ctx["active_workflow_number"]
     selectedWorkflowNumber = ctx["selected_workflow_number"]
 
-    if shouldHoldActive(activeWorkflowNumber, selectedWorkflowNumber):
-        _updateCycleState(
-            nextState,
-            stateName="mission_active",
-            selectedWorkflowNumber=selectedWorkflowNumber,
-            requestLatched=True,
-            missionCreated=True,
-            missionNeedsFinalized=False,
-            lastResult="active mission matches requested workflow",
-            lastCommandId=currentState["last_command_id"],
-        )
-        return _complete(
-            ctx,
-            True,
-            "info",
-            "Robot [{}] active workflow {} is in progress".format(
-                ctx["robot_name"],
-                selectedWorkflowNumber
-            ),
-            action="hold_active",
-            outputs=_outputs(
-                ctx,
-                requestReceived=True,
-                requestSuccess=True
-            ),
-            workflowNumber=selectedWorkflowNumber,
-        )
-
-    if shouldHoldLatchedRequest(currentState, selectedWorkflowNumber):
+    # Intentionally use the mutable next-state snapshot here so same-scan
+    # mutations from earlier phases (for example clear-intent reconciliation)
+    # can suppress a duplicate create in this pass.
+    if shouldHoldLatchedRequest(nextState, selectedWorkflowNumber):
         _updateCycleState(
             nextState,
             stateName="mission_requested",
             selectedWorkflowNumber=selectedWorkflowNumber,
             requestLatched=True,
-            missionCreated=currentState["mission_created"],
+            missionCreated=nextState["mission_created"],
             missionNeedsFinalized=False,
-            lastResult=currentState["last_result"] or "waiting for active mission reconciliation",
-            lastCommandId=currentState["last_command_id"],
+            lastResult=nextState["last_result"] or "waiting for active mission reconciliation",
+            lastCommandId=nextState["last_command_id"],
         )
         return _complete(
             ctx,
@@ -923,7 +656,7 @@ def _handleHolds(ctx):
             outputs=_outputs(
                 ctx,
                 requestReceived=True,
-                requestSuccess=bool(currentState["mission_created"])
+                requestSuccess=bool(nextState["mission_created"])
             ),
             workflowNumber=selectedWorkflowNumber,
         )
@@ -943,7 +676,7 @@ def _handleCreate(ctx):
     if not ctx["controller_available_for_work"]:
         _updateCycleState(
             nextState,
-            stateName="waiting_available",
+            stateName="fault",
             selectedWorkflowNumber=selectedWorkflowNumber,
             requestLatched=False,
             missionCreated=False,
@@ -968,7 +701,7 @@ def _handleCreate(ctx):
     if _isActionBackoffActive(currentState, "create", nowEpochMs):
         _updateCycleState(
             nextState,
-            stateName="create_backoff",
+            stateName="fault",
             selectedWorkflowNumber=selectedWorkflowNumber,
             requestLatched=False,
             missionCreated=False,
@@ -995,7 +728,7 @@ def _handleCreate(ctx):
     result = callCreateMission(robotName, selectedWorkflowNumber, ctx["create_mission"])
     _updateCycleState(
         nextState,
-        stateName="mission_requested" if result.get("ok") else "failed",
+        stateName="mission_requested" if result.get("ok") else "fault",
         selectedWorkflowNumber=selectedWorkflowNumber,
         requestLatched=result.get("ok", False),
         missionCreated=result.get("ok", False),
@@ -1026,17 +759,15 @@ def runRobotWorkflowCycle(
     reservedWorkflows=None,
     nowEpochMs=None,
     createMission=None,
-    finalizeMission=None,
-    cancelMission=None
+    finalizeMissionId=None,
+    cancelMissionIds=None
 ):
     """
     Evaluate one robot for one loop cycle.
 
-    This is the main orchestration decision point: read PLC demand, compare it to
-    fleet state, then either hold, create, finalize, or cancel/switch.
+    This is the main orchestration decision point: read PLC demand, reconcile the
+    current Active mission set, then either hold or create.
     """
-    logger = _robotLogger()
-
     def _returnCycle(*args, **kwargs):
         result = buildCycleResult(*args, **kwargs)
         payload = dict(result.get("data") or {})
@@ -1066,10 +797,10 @@ def runRobotWorkflowCycle(
     nextState = _newCycleState(currentState, nowEpochMs)
     ctx = _buildCycleContext(
         robotName,
-        logger=logger,
         plcInputs=plcInputs,
         mirrorInputs=mirrorInputs,
         currentState=currentState,
+        activeSummary=activeSummary,
         activeWorkflowNumber=activeWorkflowNumber,
         selectedWorkflowNumber=selectedWorkflowNumber,
         reservedWorkflows=reservedWorkflows,
@@ -1078,8 +809,8 @@ def runRobotWorkflowCycle(
         returnCycle=_returnCycle,
         nowEpochMs=nowEpochMs,
         createMission=createMission,
-        finalizeMission=finalizeMission,
-        cancelMission=cancelMission,
+        finalizeMissionId=finalizeMissionId,
+        cancelMissionIds=cancelMissionIds,
     )
 
     result = _handleHealthGate(ctx)
@@ -1091,12 +822,7 @@ def runRobotWorkflowCycle(
 
     # The command runner is intentionally phased. Each handler either claims the
     # cycle and returns a result or yields to the next phase.
-    phaseHandlers = [
-        _handleReconcile,
-        _handleNoRequest,
-        _handleValidation,
-        _handleHolds,
-    ]
+    phaseHandlers = [_handleClearIntent, _handleValidation, _handleHolds]
     for handler in phaseHandlers:
         result = handler(ctx)
         if result is not None:

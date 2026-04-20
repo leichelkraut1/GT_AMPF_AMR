@@ -61,7 +61,7 @@ FAILED_STATUSES = [
     "FAILED"
 ]
 
-MAX_COMPLETED = 50
+MAX_COMPLETED = 20
 MAX_FAILED = 50
 COMPLETED_RETENTION_DAYS = 5
 FAILED_RETENTION_DAYS = 5
@@ -73,6 +73,7 @@ UNKNOWN_ROBOT_FOLDER = "Unknown_Robot"
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
 MISSION_LAST_LOGGED_STATUS_MEMBER = "_LastLoggedStatus"
 MISSION_LAST_WRITE_SIGNATURE_MEMBER = "_LastWriteSignature"
+_WARNED_MISSING_MISSION_RUNTIME_MEMBERS = set()
 
 
 # ---------------------------------------------------------------------------
@@ -102,6 +103,21 @@ def _dlog(logger, debug, msg):
     """
     if debug:
         logger.info(msg)
+
+
+def _warn_missing_mission_runtime_member(memberName, logger):
+    """
+    Warn once per runtime helper member when api_Mission does not define it.
+    """
+    memberName = str(memberName or "")
+    if not memberName or memberName in _WARNED_MISSING_MISSION_RUNTIME_MEMBERS:
+        return
+    _WARNED_MISSING_MISSION_RUNTIME_MEMBERS.add(memberName)
+    logger.warn(
+        "api_Mission is missing [{}]; mission anti-repeat behavior will be degraded until the UDT includes it".format(
+            memberName
+        )
+    )
 
 
 def parse_date(val):
@@ -339,6 +355,11 @@ def write_mission_data(instancePath, mission):
         )
         if str(currentSignature or "") == signature:
             return False
+    else:
+        _warn_missing_mission_runtime_member(
+            MISSION_LAST_WRITE_SIGNATURE_MEMBER,
+            _log()
+        )
 
     paths = [instancePath + "/" + k for k in values]
     vals = [values[k] for k in values]
@@ -499,6 +520,11 @@ def _record_mission_status_if_changed(
     hasLastLoggedStatusTag = tagExists(
         mission_runtime_paths(instancePath)["last_logged_status"]
     )
+    if not hasLastLoggedStatusTag:
+        _warn_missing_mission_runtime_member(
+            MISSION_LAST_LOGGED_STATUS_MEMBER,
+            _log()
+        )
     if hasLastLoggedStatusTag:
         if str(lastLoggedStatus or "") == newStatus:
             return False
@@ -521,17 +547,46 @@ def _record_mission_status_if_changed(
     return True
 
 
+def _carry_forward_last_logged_status(instancePath, lastLoggedStatus):
+    """
+    Seed the new bucket instance with the prior logged status when it moves folders.
+    """
+    if not str(lastLoggedStatus or ""):
+        return False
+
+    runtimePath = mission_runtime_paths(instancePath)["last_logged_status"]
+    if not tagExists(runtimePath):
+        return False
+
+    currentValue = readOptionalTagValue(
+        runtimePath,
+        "",
+        allowEmptyString=True
+    )
+    if str(currentValue or ""):
+        return False
+
+    writeRequiredTagValues(
+        [runtimePath],
+        [str(lastLoggedStatus or "")],
+        labels=["MissionSorting carry-forward status"]
+    )
+    return True
+
+
 def _record_removed_mission_if_needed(instancePath, folderPath, nowTimestamp):
     """
     Log a stale mission disappearing from OTTO as REMOVED before deleting the tag.
     """
     runtimePaths = mission_runtime_paths(instancePath)
     hasLastLoggedStatusTag = tagExists(runtimePaths["last_logged_status"])
-    lastLoggedStatus = readOptionalTagValue(
-        runtimePaths["last_logged_status"],
-        "",
-        allowEmptyString=True
-    )
+    lastLoggedStatus = ""
+    if hasLastLoggedStatusTag:
+        lastLoggedStatus = readOptionalTagValue(
+            runtimePaths["last_logged_status"],
+            "",
+            allowEmptyString=True
+        )
     if hasLastLoggedStatusTag and str(lastLoggedStatus or "") == "REMOVED":
         return False
 
@@ -639,6 +694,7 @@ def sync_mission_into_bucket(
         if debug:
             logger.info("Created mission instance: {}".format(targetPath))
 
+    _carry_forward_last_logged_status(targetPath, lastLoggedStatus)
     write_mission_data(targetPath, mission)
     _record_mission_status_if_changed(
         targetPath,
@@ -662,12 +718,13 @@ def sync_mission_into_bucket(
 # COMPLETED CLEANUP
 # ---------------------------------------------------------------------------
 
-def cleanup_terminal_folder(folderPath, retentionDays, maxCount, label, logger, debug=False):
+def cleanup_terminal_folder(folderPath, retentionDays, maxCount, label, logger, debug=False, protectedPaths=None):
     """
     Enforces terminal mission retention and max count for the given folder.
     """
     now = system.date.now()
     cutoff = system.date.addDays(now, -retentionDays)
+    protectedPaths = set(protectedPaths or [])
 
     instances = browseMissionInstances(folderPath)
     removed = []
@@ -705,6 +762,9 @@ def cleanup_terminal_folder(folderPath, retentionDays, maxCount, label, logger, 
     removed_age = 0
     remaining = []
     for fullPath, name, createdDate in enriched:
+        if fullPath in protectedPaths:
+            remaining.append((fullPath, name, createdDate))
+            continue
         if should_remove_completed_by_age(createdDate, cutoff):
             remove_instance(
                 fullPath,
@@ -835,6 +895,8 @@ def run():
             removed.extend(syncResult["removed"])
 
             if bucket == "completed":
+                # Completed sync is tracked in the result payload here for visibility,
+                # but completed cleanup stays exclusively in runTerminalMaintenance().
                 completedWanted.add(syncResult["paths"]["completed"])
 
             elif bucket == "failed":
@@ -924,7 +986,8 @@ def run():
                 MAX_FAILED,
                 "failed",
                 logger,
-                debug
+                debug,
+                protectedPaths=failedWanted
             )
         )
         _writeMissionUpdateStatus(True, nowTimestamp, logger)
@@ -1015,7 +1078,8 @@ def runTerminalMaintenance():
                 MAX_COMPLETED,
                 "completed",
                 logger,
-                debug
+                debug,
+                protectedPaths=completedWanted
             )
         )
 

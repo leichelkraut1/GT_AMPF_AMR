@@ -5,6 +5,18 @@ import uuid
 from Otto_API.Fleet.ContentSync import sanitizeTagName
 
 
+ACTIVE_MISSION_STATUS_PRIORITY = {
+    "STARVED": 0,
+    "EXECUTING": 10,
+    "ASSIGNED": 20,
+    "BLOCKED": 30,
+    "CANCELLING": 40,
+    "REASSIGNED": 50,
+    "RESTARTING": 60,
+    "QUEUED": 100,
+}
+
+
 def parseTemplateJson(templateJsonStr):
     """
     Parse a workflow template JSON string and return the template dict.
@@ -108,11 +120,50 @@ def resolveMissionRobotId(missionRecord):
     return None
 
 
+def activeMissionStatusPriority(missionStatus):
+    """
+    Rank active mission statuses so true-active missions win over queued sidecars.
+    """
+    return ACTIVE_MISSION_STATUS_PRIORITY.get(
+        str(missionStatus or "").strip().upper(),
+        90
+    )
+
+
+def sortActiveMissionRecords(missionRecords):
+    """
+    Return mission records in deterministic controller/finalize priority order.
+    """
+    def sort_key(missionRecord):
+        missionRecord = dict(missionRecord or {})
+        return (
+            activeMissionStatusPriority(
+                missionRecord.get("mission_status") or missionRecord.get("Mission_Status")
+            ),
+            str(missionRecord.get("path") or missionRecord.get("instance_path") or ""),
+            str(missionRecord.get("name") or missionRecord.get("Name") or ""),
+            str(missionRecord.get("id") or missionRecord.get("ID") or ""),
+        )
+
+    return sorted(list(missionRecords or []), key=sort_key)
+
+
+def selectCurrentActiveMissionRecord(missionRecords):
+    """
+    Pick the one current active mission record using status-priority ordering.
+    """
+    ordered = sortActiveMissionRecords(missionRecords)
+    if not ordered:
+        return None
+    return dict(ordered[0])
+
+
 def findActiveMissionIdForRobot(robotId, missionRecords):
     """
     Find the active mission ID assigned to the given robot ID.
     Returns (missionId, warningMessage).
     """
+    matchingRecords = []
     for missionRecord in missionRecords:
         resolvedRobotId = resolveMissionRobotId(missionRecord)
         if resolvedRobotId is None:
@@ -120,6 +171,10 @@ def findActiveMissionIdForRobot(robotId, missionRecords):
 
         if resolvedRobotId != robotId:
             continue
+
+        matchingRecords.append(missionRecord)
+
+    for missionRecord in sortActiveMissionRecords(matchingRecords):
 
         missionId = missionRecord.get("id")
         if missionId:

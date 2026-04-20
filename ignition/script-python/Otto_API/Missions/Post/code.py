@@ -1,10 +1,7 @@
 from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Common.TagHelpers import getMissionTriggerLastResponsePath
 from Otto_API.Common.TagHelpers import getOttoOperationsUrl
 from Otto_API.Common.TagHelpers import getFleetMissionsPath
-from Otto_API.Common.TagHelpers import getFleetRobotsPath
-from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
 from Otto_API.Common.TagHelpers import writeLastSystemResponse
 from Otto_API.Common.TagHelpers import writeLastTriggerResponse
@@ -18,11 +15,9 @@ from Otto_API.Missions.MissionActions import interpretCreateMissionResponse
 from Otto_API.Missions.MissionActions import interpretFinalizeMissionResponse
 from Otto_API.Missions.MissionActions import parseTemplateJson
 from Otto_API.Missions.MissionTreeHelpers import readMissionIdRecords
-from Otto_API.Missions.MissionTreeHelpers import readMissionRobotAwareRecords
 
 ACTIVE_MISSIONS_ROOT = getFleetMissionsPath() + "/Active"
 FAILED_MISSIONS_ROOT = getFleetMissionsPath() + "/Failed"
-ROBOTS_ROOT = getFleetRobotsPath()
 
 
 def _log():
@@ -46,6 +41,61 @@ def _buildResult(ok, level, message, missionId=None, responseText=None, payload=
 		response_text=responseText,
 		payload=payload,
 	)
+
+
+def _runMissionCommandFromInputs(actionName, missionId, fleetManagerURL, postFunc):
+	"""
+	Run one explicit finalize/cancel mission command and return a structured result.
+	"""
+	actionName = str(actionName or "")
+	if not missionId:
+		message = "No mission id supplied for {}".format(actionName.replace("_", " ") or "command")
+		return _buildResult(
+			ok=False,
+			level="warn",
+			message=message,
+		)
+
+	if actionName == "finalize_mission":
+		buildPayload = buildFinalizeMissionPayload
+		interpretResponse = interpretFinalizeMissionResponse
+		errorTemplate = "Error finalizing mission [{}]: {}"
+	elif actionName == "cancel_mission":
+		buildPayload = buildCancelMissionPayload
+		interpretResponse = interpretCancelMissionResponse
+		errorTemplate = "Error canceling mission [{}]: {}"
+	else:
+		return _buildResult(
+			ok=False,
+			level="error",
+			message="Unsupported mission command [{}]".format(actionName),
+			missionId=missionId,
+		)
+
+	try:
+		missionPayload = buildPayload(missionId)
+		jsonBody = system.util.jsonEncode(missionPayload)
+		response = postFunc(
+			url=fleetManagerURL,
+			postData=jsonBody,
+		)
+
+		logLevel, message = interpretResponse(response, missionId)
+		return _buildResult(
+			ok=(logLevel == "info"),
+			level=logLevel,
+			message=message,
+			missionId=missionId,
+			responseText=response,
+			payload=missionPayload,
+		)
+	except Exception as e:
+		return _buildResult(
+			ok=False,
+			level="error",
+			message=errorTemplate.format(missionId, str(e)),
+			missionId=missionId,
+		)
 
 
 def _cancelMissionIdsFromInputs(
@@ -81,31 +131,30 @@ def _cancelMissionIdsFromInputs(
 
 	try:
 		for missionId in targetMissionIds:
-			missionPayload = buildCancelMissionPayload(missionId)
-			jsonBody = system.util.jsonEncode(missionPayload)
-			response = postFunc(
-				url=fleetManagerURL,
-				postData=jsonBody,
+			result = _runMissionCommandFromInputs(
+				"cancel_mission",
+				missionId,
+				fleetManagerURL,
+				postFunc,
 			)
-			logLevel, message = interpretCancelMissionResponse(response, missionId)
-			if logLevel != "info":
+			if not result.get("ok"):
 				return buildOperationResult(
 					False,
-					logLevel,
-					message,
+					result.get("level", "warn"),
+					result.get("message", ""),
 					data={
 						"mission_ids": canceledMissionIds,
-						"response_texts": responseTexts + [response],
-						"payloads": payloads + [missionPayload],
+						"response_texts": responseTexts + [result.get("response_text")],
+						"payloads": payloads + [result.get("payload")],
 					},
 					mission_ids=canceledMissionIds,
-					response_texts=responseTexts + [response],
-					payloads=payloads + [missionPayload],
+					response_texts=responseTexts + [result.get("response_text")],
+					payloads=payloads + [result.get("payload")],
 				)
 
 			canceledMissionIds.append(missionId)
-			responseTexts.append(response)
-			payloads.append(missionPayload)
+			responseTexts.append(result.get("response_text"))
+			payloads.append(result.get("payload"))
 
 		return buildOperationResult(
 			True,
@@ -210,6 +259,18 @@ def finalizeMissionFromInputs(robotId, missionRecords, fleetManagerURL, postFunc
 		)
 
 
+def finalizeMissionIdFromInputs(missionId, fleetManagerURL, postFunc):
+	"""
+	Finalize one explicit mission id and return a structured result.
+	"""
+	return _runMissionCommandFromInputs(
+		"finalize_mission",
+		missionId,
+		fleetManagerURL,
+		postFunc,
+	)
+
+
 def cancelMissionsFromInputs(robotId, missionRecords, fleetManagerURL, postFunc):
 	"""
 	Cancels all known active missions for the given robot ID and returns a structured result.
@@ -271,7 +332,6 @@ def createMission(templateTagPath, robotTagPath, missionName):
 
 	# --- Config ---
 	fleetManagerURL = getOttoOperationsUrl()
-	responseTag = getMissionTriggerLastResponsePath()
 	ottoLogger = _log()
 
 	ottoLogger.info("Posting mission from template [{}] for robot [{}]".format(templateTagPath, robotTagPath))
@@ -324,135 +384,65 @@ def createMission(templateTagPath, robotTagPath, missionName):
 		writeLastTriggerResponse(msg, asyncWrite=True)
 		return _buildResult(ok=False, level="error", message=msg)
 
-def finalizeMission(robotName):
+def finalizeMissionId(missionId):
 	"""
-	Finalizes the active mission currently assigned to the specified robot by
-	posting an updateMission JSON-RPC request to the OTTO Fleet Manager.
-
-	Args:
-		robotName (str): Name of the robot UDT instance under [Otto_FleetManager]Fleet/Robots
+	Finalize one explicit mission id.
 	"""
-
-	# --- Config ---
 	fleetManagerURL = getOttoOperationsUrl()
-	responseTag = getMissionTriggerLastResponsePath()
 	ottoLogger = _log()
 
-	ottoLogger.info("Finalizing mission for robot [{}]".format(robotName))
+	ottoLogger.info("Finalizing mission [{}]".format(missionId))
 
-	try:
-		# --- Resolve robot ID ---
-		robotIdPath = "{}/{}/id".format(ROBOTS_ROOT, robotName)
-		try:
-			robotIdValue = readRequiredTagValue(robotIdPath, "Robot ID")
-		except ValueError:
-			msg = "Robot [{}] has no valid id tag".format(robotName)
-			ottoLogger.warn(msg)
-			writeLastTriggerResponse(msg, asyncWrite=True)
-			return _buildResult(ok=False, level="warn", message=msg)
+	result = finalizeMissionIdFromInputs(
+		missionId,
+		fleetManagerURL,
+		httpPost
+	)
 
-		robot_id = str(robotIdValue).strip().lower()
+	if result["response_text"] is not None:
+		writeLastSystemResponse(result["response_text"], asyncWrite=True)
 
-		# --- Locate active mission assigned to this robot ---
-		missionRecords = readMissionRobotAwareRecords(ACTIVE_MISSIONS_ROOT)
+	if result["level"] == "info":
+		ottoLogger.info(result["message"])
+	elif result["level"] == "warn":
+		ottoLogger.warn(result["message"])
+	else:
+		ottoLogger.error(result["message"])
 
-		targetMissionId, warningMessage = findActiveMissionIdForRobot(
-			robot_id,
-			missionRecords
-		)
-		if warningMessage:
-			ottoLogger.warn(warningMessage)
-
-		if not targetMissionId:
-			msg = "No active mission found for robot [{}] (robot_id={})".format(
-				robotName, robot_id
-			)
-			ottoLogger.info(msg)
-			writeLastTriggerResponse(msg, asyncWrite=True)
-			return _buildResult(ok=False, level="warn", message=msg)
-
-		ottoLogger.info(
-			"Found active mission [{}] for robot [{}]".format(
-				targetMissionId, robotName
-			)
-		)
-
-		result = finalizeMissionFromInputs(
-			robot_id,
-			missionRecords,
-			fleetManagerURL,
-			httpPost
-		)
-
-		if result["level"] == "info":
-			ottoLogger.info(result["message"])
-		elif result["level"] == "warn":
-			ottoLogger.warn(result["message"])
-		else:
-			ottoLogger.error(result["message"])
-
-		writeLastTriggerResponse(result["message"], asyncWrite=True)
-		return result
-
-	except Exception as e:
-		msg = "Error finalizing mission for robot [{}]: {}".format(robotName, str(e))
-		ottoLogger.error(msg)
-		writeLastTriggerResponse(msg, asyncWrite=True)
-		return _buildResult(ok=False, level="error", message=msg)
+	writeLastTriggerResponse(result["message"], asyncWrite=True)
+	return result
 
 
-def cancelMission(robotName):
+def cancelMissionIds(missionIds):
 	"""
-	Cancels all active missions currently assigned to the specified robot by
-	posting cancelMission JSON-RPC requests to the OTTO Fleet Manager.
-
-	Args:
-		robotName (str): Name of the robot UDT instance under [Otto_FleetManager]Fleet/Robots
+	Cancel an explicit list of mission ids.
 	"""
-
 	fleetManagerURL = getOttoOperationsUrl()
-	responseTag = getMissionTriggerLastResponsePath()
 	ottoLogger = _log()
 
-	ottoLogger.info("Canceling mission(s) for robot [{}]".format(robotName))
+	ottoLogger.info("Canceling explicit mission id list [{}]".format(list(missionIds or [])))
 
-	try:
-		robotIdPath = "{}/{}/id".format(ROBOTS_ROOT, robotName)
-		try:
-			robotIdValue = readRequiredTagValue(robotIdPath, "Robot ID")
-		except ValueError:
-			msg = "Robot [{}] has no valid id tag".format(robotName)
-			ottoLogger.warn(msg)
-			writeLastTriggerResponse(msg, asyncWrite=True)
-			return _buildResult(ok=False, level="warn", message=msg)
+	result = _cancelMissionIdsFromInputs(
+		missionIds,
+		fleetManagerURL,
+		httpPost,
+		"No explicit mission ids found to cancel",
+		"Canceled {} explicit mission(s)",
+		"Error canceling explicit missions: {}"
+	)
 
-		robot_id = str(robotIdValue).strip().lower()
-		missionRecords = readMissionRobotAwareRecords(ACTIVE_MISSIONS_ROOT)
-		result = cancelMissionsFromInputs(
-			robot_id,
-			missionRecords,
-			fleetManagerURL,
-			httpPost
-		)
+	if result.get("response_texts"):
+		writeLastSystemResponse(result["response_texts"][-1], asyncWrite=True)
 
-		if result.get("response_texts"):
-			writeLastSystemResponse(result["response_texts"][-1], asyncWrite=True)
+	if result["level"] == "info":
+		ottoLogger.info(result["message"])
+	elif result["level"] == "warn":
+		ottoLogger.warn(result["message"])
+	else:
+		ottoLogger.error(result["message"])
 
-		if result["level"] == "info":
-			ottoLogger.info(result["message"])
-		elif result["level"] == "warn":
-			ottoLogger.warn(result["message"])
-		else:
-			ottoLogger.error(result["message"])
-
-		writeLastTriggerResponse(result["message"], asyncWrite=True)
-		return result
-
-	except Exception as e:
-		msg = "Error canceling mission(s) for robot [{}]: {}".format(robotName, str(e))
-		ottoLogger.error(msg)
-		writeLastTriggerResponse(msg, asyncWrite=True)
-		return _buildResult(ok=False, level="error", message=msg)
+	writeLastTriggerResponse(result["message"], asyncWrite=True)
+	return result
 
 
 def cancelAllActiveMissions():
@@ -460,7 +450,6 @@ def cancelAllActiveMissions():
 	Cancels all known active missions currently present under [Otto_FleetManager]Fleet/Missions/Active.
 	"""
 	fleetManagerURL = getOttoOperationsUrl()
-	responseTag = getMissionTriggerLastResponsePath()
 	ottoLogger = _log()
 
 	ottoLogger.info("Canceling all active missions")
@@ -498,7 +487,6 @@ def cancelAllFailedMissions():
 	Cancels all known failed missions currently present under [Otto_FleetManager]Fleet/Missions/Failed.
 	"""
 	fleetManagerURL = getOttoOperationsUrl()
-	responseTag = getMissionTriggerLastResponsePath()
 	ottoLogger = _log()
 
 	ottoLogger.info("Canceling all failed missions")
