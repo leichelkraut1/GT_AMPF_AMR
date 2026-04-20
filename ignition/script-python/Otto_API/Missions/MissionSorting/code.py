@@ -295,8 +295,23 @@ def remove_instance(path, logger=None, debug=False, reason=None):
                 logger.info("Deleted {} ({})".format(path, reason))
             else:
                 logger.info("Deleted {}".format(path))
-    except Exception:
-        pass
+    except Exception as exc:
+        if logger:
+            if reason:
+                logger.warn(
+                    "Failed to delete {} ({}): {}".format(
+                        path,
+                        reason,
+                        str(exc)
+                    )
+                )
+            else:
+                logger.warn(
+                    "Failed to delete {}: {}".format(
+                        path,
+                        str(exc)
+                    )
+                )
 
 def _readRobotFolderMappings():
     """
@@ -304,7 +319,13 @@ def _readRobotFolderMappings():
     """
     try:
         inventory = readRobotInventoryMetadata(ROBOTS_PATH)
-    except Exception:
+    except Exception as exc:
+        _log().warn(
+            "Failed to read robot inventory metadata from [{}]: {}".format(
+                ROBOTS_PATH,
+                str(exc)
+            )
+        )
         return {
             "name_by_lower": {},
             "name_by_id": {},
