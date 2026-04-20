@@ -55,6 +55,7 @@ def defaultRobotState():
     """Canonical internal state for one robot runner."""
     return {
         "force_robot_ready": False,
+        "disable_ignition_control": False,
         "request_latched": False,
         "selected_workflow_number": 0,
         "state": "idle",
@@ -77,6 +78,7 @@ def internalStatePaths(robotName):
     return {
         "base": basePath,
         "force_robot_ready": basePath + "/ForceRobotReady",
+        "disable_ignition_control": basePath + "/DisableIgnitionControl",
         "request_latched": basePath + "/RequestLatched",
         "selected_workflow_number": basePath + "/SelectedWorkflowNumber",
         "state": basePath + "/State",
@@ -164,6 +166,7 @@ MISSION_STATE_HISTORY_MAX_ROWS = 100
 
 INTERNAL_STATE_FIELD_NAMES = [
     "force_robot_ready",
+    "disable_ignition_control",
     "request_latched",
     "selected_workflow_number",
     "state",
@@ -364,6 +367,7 @@ def normalizeRobotState(rawState):
     rawState = dict(rawState or {})
     state = defaultRobotState()
     state["force_robot_ready"] = _toBool(rawState.get("force_robot_ready"))
+    state["disable_ignition_control"] = _toBool(rawState.get("disable_ignition_control"))
     state["request_latched"] = _toBool(rawState.get("request_latched"))
     state["selected_workflow_number"] = normalizeWorkflowNumber(
         rawState.get("selected_workflow_number")
@@ -413,6 +417,7 @@ def readRobotState(robotName):
     paths = internalStatePaths(robotName)
     values = readTagValues([
         paths["force_robot_ready"],
+        paths["disable_ignition_control"],
         paths["request_latched"],
         paths["selected_workflow_number"],
         paths["state"],

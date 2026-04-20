@@ -200,6 +200,17 @@ def _clearPendingMessage(activeWorkflowNumber, selectedWorkflowNumber):
     )
 
 
+def _ignitionControlDisabledMessage(selectedWorkflowNumber, hasGatedMismatches, hasQueuedMismatches):
+    """Explain why the controller is holding without sending OTTO mission commands."""
+    if hasGatedMismatches:
+        if isRequestCleared(selectedWorkflowNumber):
+            return "Ignition control disabled; active mission clear suppressed"
+        return "Ignition control disabled; workflow switch clear suppressed"
+    if hasQueuedMismatches:
+        return "Ignition control disabled; queued mission cleanup suppressed"
+    return "Ignition control disabled; mission command suppressed"
+
+
 def _buildCycleContext(robotName, **kwargs):
     """Bundle the mutable per-cycle state so phase handlers stay focused."""
     return {
@@ -370,6 +381,40 @@ def _handleClearIntent(ctx):
         return None
 
     activeSplit = _splitActiveMissionsByRequest(activeMissions, selectedWorkflowNumber)
+    hasQueuedMismatches = bool(activeSplit["queued_mismatches"])
+    hasGatedMismatches = bool(activeSplit["gated_mismatches"])
+    if currentState.get("disable_ignition_control") and (hasQueuedMismatches or hasGatedMismatches):
+        disabledMessage = _ignitionControlDisabledMessage(
+            selectedWorkflowNumber,
+            hasGatedMismatches,
+            hasQueuedMismatches,
+        )
+        matchingActiveWorkflow = shouldHoldActive(activeWorkflowNumber, selectedWorkflowNumber)
+        _updateCycleState(
+            nextState,
+            stateName="mission_active",
+            selectedWorkflowNumber=selectedWorkflowNumber,
+            requestLatched=bool(matchingActiveWorkflow and not hasGatedMismatches),
+            missionCreated=True,
+            missionNeedsFinalized=hasGatedMismatches,
+            lastResult=disabledMessage,
+            lastCommandId=currentCommandId,
+        )
+        return _complete(
+            ctx,
+            True,
+            "warn",
+            disabledMessage,
+            action="hold_control_disabled",
+            outputs=_outputs(
+                ctx,
+                requestReceived=bool(selectedWorkflowNumber),
+                requestSuccess=bool(matchingActiveWorkflow and not hasGatedMismatches),
+                missionNeedsFinalized=hasGatedMismatches
+            ),
+            workflowNumber=activeWorkflowNumber,
+        )
+
     queuedSummary = issueMissionCommands(
         ctx["robot_name"],
         activeSplit["queued_mismatches"],
@@ -672,6 +717,31 @@ def _handleCreate(ctx):
     activeWorkflowNumber = ctx["active_workflow_number"]
     selectedWorkflowNumber = ctx["selected_workflow_number"]
     nowEpochMs = ctx["now_epoch_ms"]
+
+    if currentState.get("disable_ignition_control"):
+        disabledMessage = "Ignition control disabled; create suppressed"
+        _updateCycleState(
+            nextState,
+            stateName="mission_requested",
+            selectedWorkflowNumber=selectedWorkflowNumber,
+            requestLatched=False,
+            missionCreated=False,
+            missionNeedsFinalized=False,
+            lastResult=disabledMessage,
+            lastCommandId=currentState["last_command_id"],
+        )
+        return _complete(
+            ctx,
+            True,
+            "warn",
+            "Robot [{}] create suppressed while Ignition control is disabled".format(robotName),
+            action="hold_control_disabled",
+            outputs=_outputs(
+                ctx,
+                requestReceived=True
+            ),
+            workflowNumber=selectedWorkflowNumber,
+        )
 
     if not ctx["controller_available_for_work"]:
         _updateCycleState(

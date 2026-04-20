@@ -106,6 +106,12 @@ Per-robot controller state lives under:
 
 - `MainControl/Robots/<Robot>/...`
 
+One important operator override now lives there too:
+
+- `DisableIgnitionControl`
+  - when `true`, the workflow runner still evaluates and mirrors state, but it will
+    not create, cancel, or finalize OTTO missions for that robot
+
 PLC interface tags live under:
 
 - `PLC/<Robot>/FromPLC/...`
