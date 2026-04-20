@@ -87,6 +87,45 @@ def _buildSyncResult(ok, level, message, records=None, writes=None, data=None):
     )
 
 
+def _extractLiveMapReference(payload):
+    """
+    Extract the active map reference/id from the live_map endpoint payload.
+    """
+    if isinstance(payload, dict):
+        if payload.get("reference"):
+            return payload.get("reference")
+
+        results = payload.get("results", [])
+        if isinstance(results, list):
+            for item in results:
+                if isinstance(item, dict) and item.get("reference"):
+                    return item.get("reference")
+        return None
+
+    if isinstance(payload, list):
+        for item in payload:
+            if isinstance(item, dict) and item.get("reference"):
+                return item.get("reference")
+
+    return None
+
+
+def readLiveMapReference():
+    """
+    Read the active OTTO map reference/id from the dedicated live_map endpoint.
+    """
+    url = getApiBaseUrl() + "/live_map/?fields=reference&offset=0&limit=100"
+
+    response = httpGet(url=url, headerValues=jsonHeaders())
+    payload = parseJsonResponse(response)
+    reference = _extractLiveMapReference(payload)
+
+    if not reference:
+        raise ValueError("No live map reference returned from /live_map/")
+
+    return reference, response
+
+
 def _warnMissingRobotStateLogSignaturePath(logger, tagPath):
     """Warn once when the robot state log signature member is missing from api_Robot."""
     tagPath = str(tagPath or "")
@@ -872,7 +911,7 @@ def updatePlaces():
 def updateMaps():
     """
     Gets Map data from Otto and creates tags in [Otto_FleetManager]Fleet/Maps/ for each map instance.
-    Also determines the most recently modified map and stores its ID in ActiveMapID.
+    Also reads the dedicated OTTO live_map endpoint and stores its reference in ActiveMapID.
     Cleanup removes old map UDT instances but ignores the ActiveMapID memory tag.
     """
     url = getApiBaseUrl() + "/maps/?offset=0&tagged=false"
@@ -900,14 +939,21 @@ def updateMaps():
             activeMapId = None
 
             try:
-                mostRecent = selectMostRecentMap(data)
-                if mostRecent is not None:
-                    activeMapId = mostRecent.get("id")
-                    writeTagValue(activeMapTag, activeMapId)
-                    writes.append((activeMapTag, activeMapId))
-                    ottoLogger.info("Otto API - ActiveMapID updated to: " + str(activeMapId))
-            except Exception as sortErr:
-                ottoLogger.warn("Otto API - Failed to determine most recent map: " + str(sortErr))
+                activeMapId, _liveMapResponse = readLiveMapReference()
+                writeTagValue(activeMapTag, activeMapId)
+                writes.append((activeMapTag, activeMapId))
+                ottoLogger.info("Otto API - ActiveMapID updated from /live_map/ to: " + str(activeMapId))
+            except Exception as liveMapErr:
+                ottoLogger.warn("Otto API - Failed to read /live_map/ reference: " + str(liveMapErr))
+                try:
+                    mostRecent = selectMostRecentMap(data)
+                    if mostRecent is not None:
+                        activeMapId = mostRecent.get("id")
+                        writeTagValue(activeMapTag, activeMapId)
+                        writes.append((activeMapTag, activeMapId))
+                        ottoLogger.warn("Otto API - Falling back to most recent map for ActiveMapID: " + str(activeMapId))
+                except Exception as sortErr:
+                    ottoLogger.warn("Otto API - Failed to determine fallback active map: " + str(sortErr))
 
             for mapItem in data:
                 instanceName, tagDict = buildMapTagValues(basePath, mapItem)

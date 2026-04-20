@@ -4,6 +4,7 @@ from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagHelpers import browseTagResults
 from Otto_API.Common.TagHelpers import getFleetContainersPath
+from Otto_API.Common.TagHelpers import getFleetContainersVerboseCleanupLoggingPath
 from Otto_API.Common.TagHelpers import getOttoOperationsUrl
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValues
@@ -101,6 +102,16 @@ def _runDirectOperation(logMessage, operationFunc, *args):
     return _writeResponseAndLogResult(result, ottoLogger)
 
 
+def _isVerboseCleanupLoggingEnabled():
+    return bool(
+        readOptionalTagValue(
+            getFleetContainersVerboseCleanupLoggingPath(),
+            False,
+            allowEmptyString=False
+        )
+    )
+
+
 def _hasLocationValue(value):
     """
     Return True when a location field is meaningfully populated.
@@ -163,14 +174,12 @@ def _iterContainerInstancePaths(containersBase):
 
 def _buildContainerCreateId(containerTagPath, uuidFactory=None):
     """
-    Build a generated container id that includes the source tag basename.
+    Build a generated container id as a UUID string.
     """
     if uuidFactory is None:
         uuidFactory = uuid.uuid4
 
-    baseName = str(containerTagPath or "").rstrip("/").rsplit("/", 1)[-1] or "Container"
-    safeBaseName = sanitizeTagName(baseName)
-    return "{}_{}".format(safeBaseName, str(uuidFactory()))
+    return str(uuidFactory())
 
 
 def _readCreateContainerBaseFields(containerTagPath, uuidFactory=None):
@@ -641,10 +650,28 @@ def cleanupContainersWithoutLocation():
     """
     Delete every synced container that has neither a Robot nor Place id.
     """
-    return _runDirectOperation(
-        "Deleting containers without robot or place",
-        deleteContainersWithoutLocationFromInputs,
-    )
+    fleetManagerURL = getOttoOperationsUrl()
+    ottoLogger = _log()
+    verboseLogging = _isVerboseCleanupLoggingEnabled()
+
+    if verboseLogging:
+        ottoLogger.info("Deleting containers without robot or place")
+
+    result = deleteContainersWithoutLocationFromInputs(fleetManagerURL, httpPost)
+
+    if result["response_text"] is not None:
+        writeLastSystemResponse(result["response_text"], asyncWrite=True)
+
+    if result["ok"] and result.get("deleted_container_ids"):
+        ottoLogger.info(result["message"])
+    elif not result["ok"] and result["level"] == "warn":
+        if verboseLogging or result.get("matched_container_ids"):
+            ottoLogger.warn(result["message"])
+    elif result["level"] == "error":
+        ottoLogger.error(result["message"])
+
+    writeLastTriggerResponse(result["message"], asyncWrite=True)
+    return result
 
 
 def CreateAtPlace(containerUdtPath, placeId):
