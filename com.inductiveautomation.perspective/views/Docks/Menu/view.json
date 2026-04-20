@@ -122,7 +122,7 @@
                 "icon": {
                   "path": ""
                 },
-                "text": "Mission Control"
+                "text": "Vehicle History"
               },
               "navIcon": {
                 "color": "",
@@ -133,7 +133,29 @@
               "style": {
                 "classes": ""
               },
-              "target": "/missioncontrol",
+              "target": "/vehiclehistory",
+              "visible": true
+            },
+            {
+              "backActionText": "",
+              "enabled": true,
+              "items": [],
+              "label": {
+                "icon": {
+                  "path": ""
+                },
+                "text": "Mission History"
+              },
+              "navIcon": {
+                "color": "",
+                "path": "material/chevron_right"
+              },
+              "resetOnClick": false,
+              "showHeader": true,
+              "style": {
+                "classes": ""
+              },
+              "target": "/missionhistory",
               "visible": true
             }
           ],

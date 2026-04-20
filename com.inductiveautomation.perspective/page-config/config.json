@@ -10,9 +10,13 @@
     "/charts": {
       "viewPath": "Page/Charts"
     },
-    "/missioncontrol": {
+    "/missionhistory": {
+      "title": "",
+      "viewPath": "Page/MissionHistory"
+    },
+    "/vehiclehistory": {
       "title": "Mission Control",
-      "viewPath": "Page/MissionControl"
+      "viewPath": "Page/VehicleHistory"
     }
   },
   "sharedDocks": {
