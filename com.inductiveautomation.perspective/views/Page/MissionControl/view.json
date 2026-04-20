@@ -14,10 +14,10 @@
           "name": "Table"
         },
         "position": {
-          "height": 700,
-          "width": 1059,
-          "x": 11,
-          "y": 24
+          "height": "98%",
+          "width": "98%",
+          "x": "1%",
+          "y": "1%"
         },
         "propConfig": {
           "props.data": {
@@ -121,7 +121,7 @@
               },
               "render": "auto",
               "resizable": true,
-              "sort": "none",
+              "sort": "descending",
               "sortable": true,
               "strictWidth": false,
               "style": {
@@ -863,14 +863,7 @@
             }
           },
           "selection": {
-            "data": [
-              {
-                "State": "finalize_pending"
-              }
-            ],
-            "enableColumnSelection": true,
-            "selectedColumn": "State",
-            "selectedRow": 438
+            "enableColumnSelection": true
           },
           "sortOrder": [
             "Ts"
