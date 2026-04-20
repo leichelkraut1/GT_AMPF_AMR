@@ -258,6 +258,25 @@ Examples:
 The `Completed` / `Failed` / `Active` mission folders are only storage buckets.
 They are not what gets logged in the mission state history.
 
+## Robot State Logging
+
+Robot operational-state history lives at:
+
+- `MainControl/Runtime/RobotStateHistory`
+
+This log tracks changes to the robot mirror values used by control and visibility:
+
+- `SystemState`
+- `SubSystemState`
+- `ActivityState`
+
+Each row records the old and new values for those three fields for one robot at the
+time of the sync pass.
+
+Duplicate rows are suppressed using `api_Robot/LastRobotStateLogSignature`, so
+repeated sync passes with the same effective transition do not keep appending the
+same row even if the runtime dataset is cleared.
+
 ## Mission Sorting Split
 
 Mission sorting is now intentionally split into:

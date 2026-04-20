@@ -137,6 +137,7 @@ def runtimePaths():
         "loop_overlap_count": RUNTIME_BASE + "/LoopOverlapCount",
         "command_history": RUNTIME_BASE + "/CommandHistory",
         "mission_state_history": RUNTIME_BASE + "/MissionStateHistory",
+        "robot_state_history": RUNTIME_BASE + "/RobotStateHistory",
     }
 
 
@@ -161,8 +162,20 @@ MISSION_STATE_HISTORY_HEADERS = [
     "WorkflowNumber",
 ]
 
+ROBOT_STATE_HISTORY_HEADERS = [
+    "Ts",
+    "Robot",
+    "OldSystemState",
+    "NewSystemState",
+    "OldSubSystemState",
+    "NewSubSystemState",
+    "OldActivityState",
+    "NewActivityState",
+]
+
 COMMAND_HISTORY_MAX_ROWS = 100
 MISSION_STATE_HISTORY_MAX_ROWS = 100
+ROBOT_STATE_HISTORY_MAX_ROWS = 100
 
 INTERNAL_STATE_FIELD_NAMES = [
     "force_robot_ready",
@@ -221,6 +234,11 @@ def ensureRuntimeTags():
         paths["mission_state_history"],
         "DataSet",
         system.dataset.toDataSet(MISSION_STATE_HISTORY_HEADERS, [])
+    )
+    ensureMemoryTag(
+        paths["robot_state_history"],
+        "DataSet",
+        system.dataset.toDataSet(ROBOT_STATE_HISTORY_HEADERS, [])
     )
 
 
@@ -331,6 +349,55 @@ def buildLatestMissionStateHistoryStatusMap():
             continue
         latestByMissionId[missionId] = str(datasetValue.getValueAt(rowIndex, "NewStatus") or "")
     return latestByMissionId
+
+
+def buildRobotStateLogSignature(
+    robotName,
+    oldSystemState,
+    newSystemState,
+    oldSubSystemState,
+    newSubSystemState,
+    oldActivityState,
+    newActivityState
+):
+    """Build the signature used to suppress duplicate robot-state history rows."""
+    return "|".join([
+        str(robotName or ""),
+        str(oldSystemState or ""),
+        str(newSystemState or ""),
+        str(oldSubSystemState or ""),
+        str(newSubSystemState or ""),
+        str(oldActivityState or ""),
+        str(newActivityState or ""),
+    ])
+
+
+def appendRobotStateHistoryRow(
+    nowTimestamp,
+    robotName,
+    oldSystemState,
+    newSystemState,
+    oldSubSystemState,
+    newSubSystemState,
+    oldActivityState,
+    newActivityState
+):
+    """Append one robot operational-state transition row to runtime history."""
+    appendRuntimeDatasetRow(
+        "robot_state_history",
+        ROBOT_STATE_HISTORY_HEADERS,
+        [
+            str(nowTimestamp or ""),
+            str(robotName or ""),
+            str(oldSystemState or ""),
+            str(newSystemState or ""),
+            str(oldSubSystemState or ""),
+            str(newSubSystemState or ""),
+            str(oldActivityState or ""),
+            str(newActivityState or ""),
+        ],
+        maxRows=ROBOT_STATE_HISTORY_MAX_ROWS,
+    )
 
 
 def _toBool(value):

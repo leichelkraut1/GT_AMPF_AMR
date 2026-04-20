@@ -49,12 +49,17 @@ from Otto_API.Fleet.FleetSync import parseServerStatus
 from Otto_API.Fleet.FleetSync import readRobotInventoryMetadata
 from Otto_API.Fleet.FleetSync import selectDominantSystemState
 from Otto_API.Fleet.RobotReadiness import buildReadinessResultsAndWrites
+from MainController.CommandHelpers import appendRobotStateHistoryRow
+from MainController.CommandHelpers import buildRobotStateLogSignature
+from MainController.CommandHelpers import timestampString
 
 SYSTEM_BASE_PATH = getFleetSystemPath()
 ROBOTS_BASE_PATH = getFleetRobotsPath()
 PLACES_BASE_PATH = getFleetPlacesPath()
 MAPS_BASE_PATH = getFleetMapsPath()
 WORKFLOWS_BASE_PATH = getFleetWorkflowsPath()
+ROBOT_STATE_LOG_SIGNATURE_MEMBER = "LastRobotStateLogSignature"
+_MISSING_ROBOT_STATE_LOG_SIGNATURE_PATHS = set()
 
 
 def _log():
@@ -74,6 +79,19 @@ def _buildSyncResult(ok, level, message, records=None, writes=None, data=None):
         },
         records=records,
         writes=writes,
+    )
+
+
+def _warnMissingRobotStateLogSignaturePath(logger, tagPath):
+    """Warn once when the robot state log signature member is missing from api_Robot."""
+    tagPath = str(tagPath or "")
+    if not tagPath or tagPath in _MISSING_ROBOT_STATE_LOG_SIGNATURE_PATHS:
+        return
+    _MISSING_ROBOT_STATE_LOG_SIGNATURE_PATHS.add(tagPath)
+    logger.warn(
+        "Robot state history dedupe is disabled until [{}] is added to api_Robot".format(
+            tagPath
+        )
     )
 
 
@@ -534,6 +552,7 @@ def updateRobotOperationalState():
                 robotPath + "/ChargeLevel",
                 robotPath + "/ActiveMissionCount",
                 robotPath + "/FailedMissionCount",
+                robotPath + "/" + ROBOT_STATE_LOG_SIGNATURE_MEMBER,
             ])
 
         currentValues = {}
@@ -584,6 +603,8 @@ def updateRobotOperationalState():
 
         writesByPath = {}
         nowDate = system.date.now()
+        nowTimestamp = timestampString()
+        pendingRobotStateHistoryRows = []
 
         for invalidPath, invalidValue in invalidated:
             writesByPath[invalidPath] = invalidValue
@@ -601,7 +622,11 @@ def updateRobotOperationalState():
             chargePath = robotPath + "/ChargeLevel"
             activeMissionCountPath = robotPath + "/ActiveMissionCount"
             failedMissionCountPath = robotPath + "/FailedMissionCount"
+            robotStateLogSignaturePath = robotPath + "/" + ROBOT_STATE_LOG_SIGNATURE_MEMBER
 
+            previousSystemState = currentValues.get(systemStatePath)
+            previousSubSystemState = currentValues.get(subSystemPath)
+            previousActivityState = currentValues.get(activityPath)
             effectiveSystemState = currentValues.get(systemStatePath)
             effectiveSubSystemState = currentValues.get(subSystemPath)
             effectivePriority = currentValues.get(priorityPath)
@@ -610,6 +635,7 @@ def updateRobotOperationalState():
             effectiveCharge = currentValues.get(chargePath)
             effectiveActiveMissionCount = currentValues.get(activeMissionCountPath)
             effectiveFailedMissionCount = currentValues.get(failedMissionCountPath)
+            previousRobotStateLogSignature = currentValues.get(robotStateLogSignaturePath)
 
             if dominant is not None:
                 effectiveSystemState = dominant.get("system_state")
@@ -628,6 +654,48 @@ def updateRobotOperationalState():
             if robotId in chargeByRobot:
                 effectiveCharge = chargeByRobot.get(robotId)
                 writesByPath[chargePath] = effectiveCharge
+
+            if (
+                previousSystemState != effectiveSystemState or
+                previousSubSystemState != effectiveSubSystemState or
+                previousActivityState != effectiveActivity
+            ):
+                if not tagExists(robotStateLogSignaturePath):
+                    _warnMissingRobotStateLogSignaturePath(
+                        ottoLogger,
+                        robotStateLogSignaturePath
+                    )
+                    robotSnapshots.append({
+                        "robot_name": robotName,
+                        "robot_path": robotPath,
+                        "system_state": effectiveSystemState,
+                        "activity_state": effectiveActivity,
+                        "charge_level": effectiveCharge,
+                        "active_mission_count": effectiveActiveMissionCount,
+                        "failed_mission_count": effectiveFailedMissionCount,
+                    })
+                    continue
+                signature = buildRobotStateLogSignature(
+                    robotName,
+                    previousSystemState,
+                    effectiveSystemState,
+                    previousSubSystemState,
+                    effectiveSubSystemState,
+                    previousActivityState,
+                    effectiveActivity
+                )
+                if previousRobotStateLogSignature != signature:
+                    pendingRobotStateHistoryRows.append({
+                        "robot_name": robotName,
+                        "signature": signature,
+                        "old_system_state": previousSystemState,
+                        "new_system_state": effectiveSystemState,
+                        "old_sub_system_state": previousSubSystemState,
+                        "new_sub_system_state": effectiveSubSystemState,
+                        "old_activity_state": previousActivityState,
+                        "new_activity_state": effectiveActivity,
+                    })
+                    writesByPath[robotStateLogSignaturePath] = signature
 
             robotSnapshots.append({
                 "robot_name": robotName,
@@ -657,6 +725,18 @@ def updateRobotOperationalState():
                 list(writesByPath.values()),
                 labels=["Otto_API.Get operational state sync"] * len(writesByPath),
                 logger=ottoLogger
+            )
+
+        for row in list(pendingRobotStateHistoryRows or []):
+            appendRobotStateHistoryRow(
+                nowTimestamp,
+                row["robot_name"],
+                row["old_system_state"],
+                row["new_system_state"],
+                row["old_sub_system_state"],
+                row["new_sub_system_state"],
+                row["old_activity_state"],
+                row["new_activity_state"],
             )
 
         allRecords = list(systemStateResults) + list(activityResults) + list(batteryResults)
