@@ -105,6 +105,7 @@ def ensureContainerTriggerTags():
         "UpdateContainer1ToPlace1",
         "DeleteContainer1",
         "DeleteAtPlace1",
+        "DeleteAllContainers",
     ]:
         triggerPath = buildContainerTriggerPath(containersBase, triggerName)
         ensureMemoryTag(triggerPath, "Boolean", False)

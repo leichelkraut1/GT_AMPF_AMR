@@ -1,3 +1,5 @@
+import uuid
+
 from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagHelpers import browseTagResults
@@ -7,6 +9,7 @@ from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValues
 from Otto_API.Common.TagHelpers import writeLastSystemResponse
 from Otto_API.Common.TagHelpers import writeLastTriggerResponse
+from Otto_API.Fleet.ContentSync import sanitizeTagName
 from Otto_API.Containers.Actions import buildCreateContainerPayload
 from Otto_API.Containers.Actions import buildDeleteContainerPayload
 from Otto_API.Containers.Actions import buildUpdateContainerPlacePayload
@@ -98,7 +101,19 @@ def _runDirectOperation(logMessage, operationFunc, *args):
     return _writeResponseAndLogResult(result, ottoLogger)
 
 
-def _readCreateContainerBaseFields(containerTagPath):
+def _buildContainerCreateId(containerTagPath, uuidFactory=None):
+    """
+    Build a generated container id that includes the source tag basename.
+    """
+    if uuidFactory is None:
+        uuidFactory = uuid.uuid4
+
+    baseName = str(containerTagPath or "").rstrip("/").rsplit("/", 1)[-1] or "Container"
+    safeBaseName = sanitizeTagName(baseName)
+    return "{}_{}".format(safeBaseName, str(uuidFactory()))
+
+
+def _readCreateContainerBaseFields(containerTagPath, uuidFactory=None):
     """
     Read the common createContainer fields from one container UDT instance path.
     """
@@ -112,7 +127,9 @@ def _readCreateContainerBaseFields(containerTagPath):
         allowEmptyString=False,
     )
 
-    containerFields = {}
+    containerFields = {
+        "id": _buildContainerCreateId(containerTagPath, uuidFactory),
+    }
     for (fieldName, _path, _label), value in zip(requiredFieldSpecs, requiredValues):
         containerFields[fieldName] = value
 
@@ -372,6 +389,150 @@ def deleteContainersAtPlaceFromInputs(placeId, fleetManagerURL, postFunc):
     )
 
 
+def deleteAllContainersFromInputs(fleetManagerURL, postFunc):
+    """
+    Delete every synced container currently present under Fleet/Containers.
+    """
+    containersBase = getFleetContainersPath()
+    matchedContainerIds = []
+
+    for browseResult in browseTagResults(containersBase):
+        if isinstance(browseResult, dict):
+            instancePath = str(browseResult.get("fullPath", "") or "")
+            tagType = browseResult.get("tagType")
+        else:
+            instancePath = str(getattr(browseResult, "fullPath", "") or "")
+            tagType = getattr(browseResult, "tagType", None)
+
+        if not instancePath:
+            continue
+        if tagType != "UdtInstance":
+            continue
+
+        containerId = readOptionalTagValue(instancePath + "/ID", None)
+        if not containerId:
+            continue
+        matchedContainerIds.append(containerId)
+
+    if not matchedContainerIds:
+        return _buildResult(
+            False,
+            "warn",
+            "No containers found to delete",
+            extraData={
+                "matched_container_ids": [],
+                "deleted_container_ids": [],
+                "delete_results": [],
+            },
+        )
+
+    deleteResults = []
+    deletedContainerIds = []
+    allSucceeded = True
+    for containerId in matchedContainerIds:
+        result = deleteContainerByIdFromInputs(containerId, fleetManagerURL, postFunc)
+        deleteResults.append(result)
+        if result["ok"]:
+            deletedContainerIds.append(containerId)
+        else:
+            allSucceeded = False
+
+    if allSucceeded:
+        level = "info"
+        message = "Deleted {} container(s)".format(len(deletedContainerIds))
+    else:
+        level = "warn"
+        message = "Deleted {} of {} container(s)".format(
+            len(deletedContainerIds),
+            len(matchedContainerIds),
+        )
+
+    return _buildResult(
+        allSucceeded,
+        level,
+        message,
+        extraData={
+            "matched_container_ids": matchedContainerIds,
+            "deleted_container_ids": deletedContainerIds,
+            "delete_results": deleteResults,
+        },
+    )
+
+
+def deleteContainersWithoutLocationFromInputs(fleetManagerURL, postFunc):
+    """
+    Delete every synced container that has neither a Robot nor Place id.
+    """
+    containersBase = getFleetContainersPath()
+    matchedContainerIds = []
+
+    for browseResult in browseTagResults(containersBase):
+        if isinstance(browseResult, dict):
+            instancePath = str(browseResult.get("fullPath", "") or "")
+            tagType = browseResult.get("tagType")
+        else:
+            instancePath = str(getattr(browseResult, "fullPath", "") or "")
+            tagType = getattr(browseResult, "tagType", None)
+
+        if not instancePath:
+            continue
+        if tagType != "UdtInstance":
+            continue
+
+        containerId = readOptionalTagValue(instancePath + "/ID", None)
+        placeId = readOptionalTagValue(instancePath + "/Place", None)
+        robotId = readOptionalTagValue(instancePath + "/Robot", None)
+        if not containerId:
+            continue
+        if placeId or robotId:
+            continue
+        matchedContainerIds.append(containerId)
+
+    if not matchedContainerIds:
+        return _buildResult(
+            False,
+            "warn",
+            "No containers without robot or place were found",
+            extraData={
+                "matched_container_ids": [],
+                "deleted_container_ids": [],
+                "delete_results": [],
+            },
+        )
+
+    deleteResults = []
+    deletedContainerIds = []
+    allSucceeded = True
+    for containerId in matchedContainerIds:
+        result = deleteContainerByIdFromInputs(containerId, fleetManagerURL, postFunc)
+        deleteResults.append(result)
+        if result["ok"]:
+            deletedContainerIds.append(containerId)
+        else:
+            allSucceeded = False
+
+    if allSucceeded:
+        level = "info"
+        message = "Deleted {} container(s) without robot or place".format(len(deletedContainerIds))
+    else:
+        level = "warn"
+        message = "Deleted {} of {} container(s) without robot or place".format(
+            len(deletedContainerIds),
+            len(matchedContainerIds),
+        )
+
+    return _buildResult(
+        allSucceeded,
+        level,
+        message,
+        extraData={
+            "matched_container_ids": matchedContainerIds,
+            "deleted_container_ids": deletedContainerIds,
+            "delete_results": deleteResults,
+        },
+    )
+
+
 def createContainerAtPlace(containerTagPath, placeId):
     """
     Create one container through the OTTO operations endpoint at an explicit place.
@@ -442,6 +603,26 @@ def deleteContainersAtPlace(placeId):
     )
 
 
+def deleteAllContainers():
+    """
+    Delete every synced container through the OTTO operations endpoint.
+    """
+    return _runDirectOperation(
+        "Deleting all containers",
+        deleteAllContainersFromInputs,
+    )
+
+
+def cleanupContainersWithoutLocation():
+    """
+    Delete every synced container that has neither a Robot nor Place id.
+    """
+    return _runDirectOperation(
+        "Deleting containers without robot or place",
+        deleteContainersWithoutLocationFromInputs,
+    )
+
+
 def CreateAtPlace(containerUdtPath, placeId):
     return createContainerAtPlace(containerUdtPath, placeId)
 
@@ -464,3 +645,11 @@ def DeleteById(containerId):
 
 def DeleteAtPlace(placeId):
     return deleteContainersAtPlace(placeId)
+
+
+def DeleteAll():
+    return deleteAllContainers()
+
+
+def CleanupWithoutLocation():
+    return cleanupContainersWithoutLocation()
