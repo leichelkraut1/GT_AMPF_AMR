@@ -31,6 +31,7 @@ WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
 
 
 def timestampString(nowEpochMs=None):
+    """Return a stable local timestamp string for tag writes and history rows."""
     if nowEpochMs is None:
         nowEpochMs = int(time.time() * 1000)
     return time.strftime(
@@ -40,13 +41,16 @@ def timestampString(nowEpochMs=None):
 
 
 def newCommandId(uuidFactory=None):
+    """Build a controller-owned command id for tracing create/finalize/cancel actions."""
     if uuidFactory is None:
         uuidFactory = uuid.uuid4
     return str(uuidFactory())
 
 
 def defaultRobotState():
+    """Canonical internal state for one robot runner."""
     return {
+        "force_robot_ready": False,
         "request_latched": False,
         "selected_workflow_number": 0,
         "state": "idle",
@@ -59,9 +63,11 @@ def defaultRobotState():
 
 
 def internalStatePaths(robotName):
+    """Centralize MainControl/Internal paths so the runner only has one tag contract to maintain."""
     basePath = INTERNAL_BASE + "/" + robotName
     return {
         "base": basePath,
+        "force_robot_ready": basePath + "/ForceRobotReady",
         "request_latched": basePath + "/RequestLatched",
         "selected_workflow_number": basePath + "/SelectedWorkflowNumber",
         "state": basePath + "/State",
@@ -74,6 +80,7 @@ def internalStatePaths(robotName):
 
 
 def plcPaths(robotName):
+    """Return the PLC-facing input/output contract for a robot."""
     basePath = PLC_BASE + "/" + robotName
     fromPlc = basePath + "/FromPLC"
     toPlc = basePath + "/ToPLC"
@@ -88,12 +95,19 @@ def plcPaths(robotName):
         "active_workflow_number": toPlc + "/ActiveWorkflowNumber",
         "mission_ready_for_attachment": toPlc + "/MissionReadyforAttachment",
         "mission_needs_finalized": toPlc + "/MissionNeedsFinalized",
+        "request_received": toPlc + "/RequestReceived",
+        "request_success": toPlc + "/RequestSuccess",
+        "request_robot_not_ready": toPlc + "/RequestRobotNotReady",
+        "fleet_fault": toPlc + "/FleetFault",
+        "plc_comm_fault": toPlc + "/PlcCommFault",
+        "control_healthy": toPlc + "/ControlHealthy",
         "request_conflict": toPlc + "/RequestConflict",
         "request_invalid": toPlc + "/RequestInvalid",
     }
 
 
 def runtimePaths():
+    """Shared runtime telemetry and history tags for the top-level loop."""
     return {
         "base": RUNTIME_BASE,
         "loop_is_running": RUNTIME_BASE + "/LoopIsRunning",
@@ -102,10 +116,35 @@ def runtimePaths():
         "loop_last_duration_ms": RUNTIME_BASE + "/LoopLastDurationMs",
         "loop_last_result": RUNTIME_BASE + "/LoopLastResult",
         "loop_overlap_count": RUNTIME_BASE + "/LoopOverlapCount",
+        "command_history": RUNTIME_BASE + "/CommandHistory",
+        "mission_state_history": RUNTIME_BASE + "/MissionStateHistory",
     }
 
 
+COMMAND_HISTORY_HEADERS = [
+    "Ts",
+    "Robot",
+    "RequestedWorkflowNumber",
+    "ActiveWorkflowNumber",
+    "Action",
+    "Level",
+    "State",
+    "Message",
+]
+
+MISSION_STATE_HISTORY_HEADERS = [
+    "Ts",
+    "Robot",
+    "MissionId",
+    "MissionName",
+    "OldStatus",
+    "NewStatus",
+    "WorkflowNumber",
+]
+
+
 def ensureRobotRunnerTags(robotName):
+    """Provision the per-robot controller state and PLC interface tags on demand."""
     internalPaths = internalStatePaths(robotName)
     plcTagPaths = plcPaths(robotName)
 
@@ -117,6 +156,7 @@ def ensureRobotRunnerTags(robotName):
     ensureFolder(plcTagPaths["from_plc"])
     ensureFolder(plcTagPaths["to_plc"])
 
+    ensureMemoryTag(internalPaths["force_robot_ready"], "Boolean", False)
     ensureMemoryTag(internalPaths["request_latched"], "Boolean", False)
     ensureMemoryTag(internalPaths["selected_workflow_number"], "Int4", 0)
     ensureMemoryTag(internalPaths["state"], "String", "idle")
@@ -133,11 +173,18 @@ def ensureRobotRunnerTags(robotName):
     ensureMemoryTag(plcTagPaths["active_workflow_number"], "Int4", 0)
     ensureMemoryTag(plcTagPaths["mission_ready_for_attachment"], "Boolean", False)
     ensureMemoryTag(plcTagPaths["mission_needs_finalized"], "Boolean", False)
+    ensureMemoryTag(plcTagPaths["request_received"], "Boolean", False)
+    ensureMemoryTag(plcTagPaths["request_success"], "Boolean", False)
+    ensureMemoryTag(plcTagPaths["request_robot_not_ready"], "Boolean", False)
+    ensureMemoryTag(plcTagPaths["fleet_fault"], "Boolean", False)
+    ensureMemoryTag(plcTagPaths["plc_comm_fault"], "Boolean", False)
+    ensureMemoryTag(plcTagPaths["control_healthy"], "Boolean", True)
     ensureMemoryTag(plcTagPaths["request_conflict"], "Boolean", False)
     ensureMemoryTag(plcTagPaths["request_invalid"], "Boolean", False)
 
 
 def ensureMainControlRobotTags(robotName):
+    """Create the robot-scoped derived tags consumed by MainControl and mirrored to PLC."""
     robotPath = MAINCONTROL_ROBOTS_BASE + "/" + robotName
     ensureFolder(MAINCONTROL_ROBOTS_BASE)
     ensureFolder(robotPath)
@@ -147,6 +194,7 @@ def ensureMainControlRobotTags(robotName):
 
 
 def ensureRuntimeTags():
+    """Create runtime telemetry and history dataset tags for the main loop."""
     paths = runtimePaths()
     ensureFolder(RUNTIME_BASE)
     ensureMemoryTag(paths["loop_is_running"], "Boolean", False)
@@ -155,9 +203,20 @@ def ensureRuntimeTags():
     ensureMemoryTag(paths["loop_last_duration_ms"], "Int4", 0)
     ensureMemoryTag(paths["loop_last_result"], "String", "")
     ensureMemoryTag(paths["loop_overlap_count"], "Int4", 0)
+    ensureMemoryTag(
+        paths["command_history"],
+        "Dataset",
+        system.dataset.toDataSet(COMMAND_HISTORY_HEADERS, [])
+    )
+    ensureMemoryTag(
+        paths["mission_state_history"],
+        "Dataset",
+        system.dataset.toDataSet(MISSION_STATE_HISTORY_HEADERS, [])
+    )
 
 
 def readRuntimeState():
+    """Read only the runtime fields needed for overlap protection."""
     paths = runtimePaths()
     values = readTagValues([
         paths["loop_is_running"],
@@ -170,6 +229,7 @@ def readRuntimeState():
 
 
 def writeRuntimeFields(fieldValues):
+    """Write a partial set of runtime telemetry fields by logical name."""
     paths = runtimePaths()
     writePaths = []
     writeValues = []
@@ -183,6 +243,29 @@ def writeRuntimeFields(fieldValues):
         writeTagValues(writePaths, writeValues)
 
 
+def appendRuntimeDatasetRow(fieldName, headers, rowValues, maxRows=500):
+    """Append one row to a runtime history dataset and cap it to the most recent rows."""
+    ensureRuntimeTags()
+    paths = runtimePaths()
+    datasetPath = paths.get(fieldName)
+    if not datasetPath:
+        return
+
+    currentValue = readOptionalTagValue(
+        datasetPath,
+        system.dataset.toDataSet(headers, [])
+    )
+    if not currentValue:
+        currentValue = system.dataset.toDataSet(headers, [])
+
+    updated = system.dataset.addRow(currentValue, rowValues)
+    if hasattr(updated, "getRowCount") and updated.getRowCount() > maxRows:
+        rows = updated.to_rows()[-maxRows:]
+        updated = system.dataset.toDataSet(headers, rows)
+
+    writeTagValues([datasetPath], [updated])
+
+
 def _toBool(value):
     if isinstance(value, bool):
         return value
@@ -192,8 +275,10 @@ def _toBool(value):
 
 
 def normalizeRobotState(rawState):
+    """Normalize persisted tag values back into the controller's expected state shape."""
     rawState = dict(rawState or {})
     state = defaultRobotState()
+    state["force_robot_ready"] = _toBool(rawState.get("force_robot_ready"))
     state["request_latched"] = _toBool(rawState.get("request_latched"))
     state["selected_workflow_number"] = normalizeWorkflowNumber(
         rawState.get("selected_workflow_number")
@@ -208,8 +293,10 @@ def normalizeRobotState(rawState):
 
 
 def readRobotState(robotName):
+    """Read one robot's internal state from tags."""
     paths = internalStatePaths(robotName)
     values = readTagValues([
+        paths["force_robot_ready"],
         paths["request_latched"],
         paths["selected_workflow_number"],
         paths["state"],
@@ -222,6 +309,7 @@ def readRobotState(robotName):
 
     rawState = {}
     keys = [
+        "force_robot_ready",
         "request_latched",
         "selected_workflow_number",
         "state",
@@ -237,10 +325,14 @@ def readRobotState(robotName):
 
 
 def writeRobotState(robotName, state):
-    state = normalizeRobotState(state)
+    """Persist robot state while preserving fields not being updated in this cycle."""
+    mergedState = dict(readRobotState(robotName) or {})
+    mergedState.update(dict(state or {}))
+    state = normalizeRobotState(mergedState)
     paths = internalStatePaths(robotName)
     writeTagValues(
         [
+            paths["force_robot_ready"],
             paths["request_latched"],
             paths["selected_workflow_number"],
             paths["state"],
@@ -251,6 +343,7 @@ def writeRobotState(robotName, state):
             paths["last_command_id"],
         ],
         [
+            state["force_robot_ready"],
             state["request_latched"],
             state["selected_workflow_number"],
             state["state"],
@@ -264,17 +357,36 @@ def writeRobotState(robotName, state):
 
 
 def readPlcInputs(robotName):
+    """
+    Read PLC demand and handshake inputs.
+
+    RequestedWorkflowNumber is the real request signal. RequestActive is kept as a
+    compatibility input while the PLC side settles into the workflow-number model.
+    """
     paths = plcPaths(robotName)
+    readResults = readTagValues([
+        paths["request_active"],
+        paths["requested_workflow_number"],
+        paths["finalize_ok"],
+    ])
+    qualities = [qualifiedValue.quality.isGood() for qualifiedValue in readResults]
+    requestedWorkflowNumber = normalizeWorkflowNumber(
+        readResults[1].value if qualities[1] else 0
+    ) or 0
+    compatibilityRequestActive = _toBool(
+        readResults[0].value if qualities[0] else False
+    )
     return {
-        "request_active": _toBool(readOptionalTagValue(paths["request_active"], False)),
-        "requested_workflow_number": normalizeWorkflowNumber(
-            readOptionalTagValue(paths["requested_workflow_number"], 0)
-        ) or 0,
-        "finalize_ok": _toBool(readOptionalTagValue(paths["finalize_ok"], False)),
+        "request_active": bool(requestedWorkflowNumber) or compatibilityRequestActive,
+        "requested_workflow_number": requestedWorkflowNumber,
+        "finalize_ok": _toBool(readResults[2].value if qualities[2] else False),
+        "healthy": all(qualities),
+        "fault_reason": "" if all(qualities) else "plc_input_quality_bad",
     }
 
 
 def writePlcOutputs(robotName, outputs):
+    """Write the PLC-facing status bits that summarize the runner's decision for this cycle."""
     paths = plcPaths(robotName)
     outputs = dict(outputs or {})
     writeTagValues(
@@ -283,6 +395,12 @@ def writePlcOutputs(robotName, outputs):
             paths["active_workflow_number"],
             paths["mission_ready_for_attachment"],
             paths["mission_needs_finalized"],
+            paths["request_received"],
+            paths["request_success"],
+            paths["request_robot_not_ready"],
+            paths["fleet_fault"],
+            paths["plc_comm_fault"],
+            paths["control_healthy"],
             paths["request_conflict"],
             paths["request_invalid"],
         ],
@@ -291,13 +409,37 @@ def writePlcOutputs(robotName, outputs):
             normalizeWorkflowNumber(outputs.get("active_workflow_number")) or 0,
             _toBool(outputs.get("mission_ready_for_attachment")),
             _toBool(outputs.get("mission_needs_finalized")),
+            _toBool(outputs.get("request_received")),
+            _toBool(outputs.get("request_success")),
+            _toBool(outputs.get("request_robot_not_ready")),
+            _toBool(outputs.get("fleet_fault")),
+            _toBool(outputs.get("plc_comm_fault")),
+            _toBool(outputs.get("control_healthy", True)),
             _toBool(outputs.get("request_conflict")),
             _toBool(outputs.get("request_invalid")),
         ]
     )
 
 
+def writePlcHealthOutputs(robotName, fleetFault=False, plcCommFault=False, controlHealthy=True):
+    """Update only the health subset when the loop skips normal PLC evaluation."""
+    paths = plcPaths(robotName)
+    writeTagValues(
+        [
+            paths["fleet_fault"],
+            paths["plc_comm_fault"],
+            paths["control_healthy"],
+        ],
+        [
+            _toBool(fleetFault),
+            _toBool(plcCommFault),
+            _toBool(controlHealthy),
+        ]
+    )
+
+
 def readRobotMirrorInputs(robotName):
+    """Read the fleet/main-control signals that feed PLC output mirroring and dispatch gating."""
     robotPath = FLEET_ROBOTS_BASE + "/" + robotName
     mainControlRobotPath = MAINCONTROL_ROBOTS_BASE + "/" + robotName
     return {
@@ -312,6 +454,7 @@ def readRobotMirrorInputs(robotName):
 
 
 def parseActiveWorkflowNumberFromMissionName(missionName):
+    """Extract the requested workflow number from the active mission naming convention."""
     text = str(missionName or "").strip()
     if not text:
         return None
@@ -324,6 +467,7 @@ def parseActiveWorkflowNumberFromMissionName(missionName):
 
 
 def readActiveMissionSummary(robotName):
+    """Summarize the single active mission view that MainController cares about for one robot."""
     rootPath = MISSIONS_ACTIVE_BASE + "/" + robotName
     missionInstances = browseMissionInstances(rootPath)
     if not missionInstances:
@@ -356,6 +500,12 @@ def readActiveMissionSummary(robotName):
 
 
 def buildWorkflowReservedMap(robotNames):
+    """
+    Build a workflow ownership map from both active missions and controller state.
+
+    This lets the runner avoid double-assigning exclusive workflows even while a
+    mission is still being created, finalized, or canceled.
+    """
     reserved = {}
     for robotName in list(robotNames or ROBOT_NAMES):
         activeSummary = readActiveMissionSummary(robotName)
@@ -376,6 +526,7 @@ def buildWorkflowReservedMap(robotNames):
 
 
 def buildCycleResult(ok, level, message, robotName=None, state=None, action=None, data=None):
+    """Wrap one robot-cycle decision in a consistent result payload."""
     payload = {
         "robot_name": robotName,
         "state": state,

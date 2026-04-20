@@ -10,27 +10,38 @@ def runRobotWorkflowCycle(
     reservedWorkflows=None,
     nowEpochMs=None,
     createMission=None,
-    finalizeMission=None
+    finalizeMission=None,
+    cancelMission=None
 ):
+    """Compatibility passthrough to the real workflow-cycle implementation."""
     return CommandCalls.runRobotWorkflowCycle(
         robotName,
         reservedWorkflows=reservedWorkflows,
         nowEpochMs=nowEpochMs,
         createMission=createMission,
         finalizeMission=finalizeMission,
+        cancelMission=cancelMission,
     )
 
 
-def runAllRobotWorkflowCycles(nowEpochMs=None, createMission=None, finalizeMission=None):
+def runAllRobotWorkflowCycles(nowEpochMs=None, createMission=None, finalizeMission=None, cancelMission=None):
+    """Run one cycle for all configured robots."""
     return CommandCalls.runAllRobotWorkflowCycles(
         robotNames=ROBOT_NAMES,
         nowEpochMs=nowEpochMs,
         createMission=createMission,
         finalizeMission=finalizeMission,
+        cancelMission=cancelMission,
     )
 
 
-def runMainControllerCycle(nowEpochMs=None, createMission=None, finalizeMission=None):
+def runMainControllerCycle(nowEpochMs=None, createMission=None, finalizeMission=None, cancelMission=None):
+    """
+    Top-level timer entrypoint with overlap protection and runtime timing telemetry.
+
+    The actual business logic lives in CommandCalls; this wrapper owns loop timing
+    and makes sure we do not stack overlapping cycles.
+    """
     if nowEpochMs is None:
         nowEpochMs = int(time.time() * 1000)
 
@@ -54,6 +65,8 @@ def runMainControllerCycle(nowEpochMs=None, createMission=None, finalizeMission=
         }
 
     startEpochMs = int(nowEpochMs)
+    # Mark the loop as running before any controller work starts so the next timer
+    # tick can detect overlap immediately.
     CommandHelpers.writeRuntimeFields({
         "loop_is_running": True,
         "loop_last_start_ts": CommandHelpers.timestampString(startEpochMs),
@@ -66,6 +79,7 @@ def runMainControllerCycle(nowEpochMs=None, createMission=None, finalizeMission=
             nowEpochMs=startEpochMs,
             createMission=createMission,
             finalizeMission=finalizeMission,
+            cancelMission=cancelMission,
         )
         return result
     finally:

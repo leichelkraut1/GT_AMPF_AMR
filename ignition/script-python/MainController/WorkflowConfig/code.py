@@ -127,6 +127,7 @@ ROBOT_NAMES = [
 
 
 def normalizeWorkflowNumber(value):
+    """Normalize PLC/workflow inputs so 0, blank, and invalid values all collapse to None."""
     try:
         number = int(value)
     except Exception:
@@ -138,6 +139,7 @@ def normalizeWorkflowNumber(value):
 
 
 def getWorkflowDef(workflowNumber):
+    """Return the static workflow definition for a workflow number."""
     workflowNumber = normalizeWorkflowNumber(workflowNumber)
     if workflowNumber is None:
         return None
@@ -145,6 +147,7 @@ def getWorkflowDef(workflowNumber):
 
 
 def isWorkflowAllowedForRobot(workflowNumber, robotName):
+    """Validate that a workflow is configured for the requested robot."""
     workflowDef = getWorkflowDef(workflowNumber)
     if workflowDef is None:
         return False
@@ -152,6 +155,7 @@ def isWorkflowAllowedForRobot(workflowNumber, robotName):
 
 
 def workflowTemplateTagPath(workflowNumber):
+    """Resolve the Fleet workflow template tag used for mission creation."""
     workflowDef = getWorkflowDef(workflowNumber)
     if workflowDef is None:
         return None
@@ -161,10 +165,12 @@ def workflowTemplateTagPath(workflowNumber):
 
 
 def robotIdTagPath(robotName):
+    """Resolve the Fleet robot-id tag consumed by OTTO mission create calls."""
     return getFleetRobotsPath() + "/{}/ID".format(robotName)
 
 
 def buildMissionName(workflowNumber, robotName):
+    """Build the mission name format that lets MainController recover the workflow number later."""
     workflowDef = getWorkflowDef(workflowNumber)
     if workflowDef is None:
         return None

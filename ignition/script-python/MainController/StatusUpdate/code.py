@@ -3,5 +3,5 @@ import time
 import uuid
 
 def updateStatusInfo():
-	#Get status info for the server, missions, and vehicles
-	Otto_API.Fleet.Get.getServerStatus()
+    """Legacy helper for manual status refreshes; main loop orchestration lives elsewhere."""
+    Otto_API.Fleet.Get.getServerStatus()

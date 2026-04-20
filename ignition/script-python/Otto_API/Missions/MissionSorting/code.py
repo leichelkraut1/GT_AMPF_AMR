@@ -1,3 +1,4 @@
+import re
 from java.util import Date
 from Otto_API.Common.TagHelpers import browseTagResults
 from Otto_API.Common.ResultHelpers import buildOperationResult
@@ -21,6 +22,8 @@ from Otto_API.Fleet.ContentSync import sanitizeTagName
 from Otto_API.Fleet.FleetSync import parseIsoTimestampToEpochMillis
 from Otto_API.Fleet.FleetSync import readRobotInventoryMetadata
 from Otto_API.Fleet.Get import getMissions
+from MainController.CommandHelpers import MISSION_STATE_HISTORY_HEADERS
+from MainController.CommandHelpers import appendRuntimeDatasetRow
 from Otto_API.Missions.MissionActions import resolveMissionRobotId
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
 
@@ -66,6 +69,7 @@ DEBUG_TAG_PATH = BASE + "/DebugEnabled"
 ROBOTS_PATH = getFleetRobotsPath()
 UNASSIGNED_FOLDER = "Unassigned"
 UNKNOWN_ROBOT_FOLDER = "Unkown_Robot"
+WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +221,35 @@ def mission_to_tag_values(mission):
         "Signature": mission.get("signature"),
         "Structure": mission.get("structure")
     }
+
+
+def parse_workflow_number_from_mission_name(missionName):
+    text = str(missionName or "").strip()
+    if not text:
+        return None
+    match = WORKFLOW_NAME_RE.match(text)
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except Exception:
+        return None
+
+
+def record_mission_state_change(nowTimestamp, robotFolder, mission, oldStatus, newStatus):
+    appendRuntimeDatasetRow(
+        "mission_state_history",
+        MISSION_STATE_HISTORY_HEADERS,
+        [
+            nowTimestamp,
+            robotFolder,
+            str(mission.get("id") or ""),
+            str(mission.get("name") or ""),
+            str(oldStatus or ""),
+            str(newStatus or ""),
+            parse_workflow_number_from_mission_name(mission.get("name")) or 0,
+        ],
+    )
 
 
 def should_remove_completed_by_age(createdDate, cutoff):
@@ -577,12 +610,28 @@ def run():
                     )
 
             instancePath = targetFolder + "/" + instanceName
+            previousStatus = None
             if not tagExists(instancePath):
                 ensureUdtInstancePath(instancePath, "api_Mission")
                 if debug:
                     logger.info("Created mission instance: {}".format(instancePath))
+            else:
+                previousStatus = readOptionalTagValue(
+                    instancePath + "/Mission_Status",
+                    None,
+                    allowEmptyString=False
+                )
 
             write_mission_data(instancePath, mission)
+            newStatus = mission.get("mission_status")
+            if previousStatus is not None and str(previousStatus) != str(newStatus):
+                record_mission_state_change(
+                    nowTimestamp,
+                    robotFolder,
+                    mission,
+                    previousStatus,
+                    newStatus
+                )
 
         ensure_maincontrol_robot_attachment_tags(robotMappings)
 
