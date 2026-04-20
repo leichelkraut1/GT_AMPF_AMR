@@ -203,41 +203,24 @@ def _workflowData(workflowNumber):
     return {"workflow_number": workflowNumber}
 
 
-def _buildCycleContext(
-    robotName,
-    *,
-    logger,
-    plcInputs,
-    mirrorInputs,
-    currentState,
-    activeWorkflowNumber,
-    selectedWorkflowNumber,
-    reservedWorkflows,
-    controllerAvailableForWork,
-    nextState,
-    returnCycle,
-    nowEpochMs,
-    createMission,
-    finalizeMission,
-    cancelMission
-):
+def _buildCycleContext(robotName, **kwargs):
     """Bundle the mutable per-cycle state so phase handlers stay focused."""
     return {
         "robot_name": robotName,
-        "logger": logger,
-        "plc_inputs": plcInputs,
-        "mirror_inputs": mirrorInputs,
-        "current_state": currentState,
-        "active_workflow_number": activeWorkflowNumber,
-        "selected_workflow_number": selectedWorkflowNumber,
-        "reserved_workflows": reservedWorkflows,
-        "controller_available_for_work": controllerAvailableForWork,
-        "next_state": nextState,
-        "return_cycle": returnCycle,
-        "now_epoch_ms": nowEpochMs,
-        "create_mission": createMission,
-        "finalize_mission": finalizeMission,
-        "cancel_mission": cancelMission,
+        "logger": kwargs.get("logger"),
+        "plc_inputs": kwargs.get("plcInputs"),
+        "mirror_inputs": kwargs.get("mirrorInputs"),
+        "current_state": kwargs.get("currentState"),
+        "active_workflow_number": kwargs.get("activeWorkflowNumber"),
+        "selected_workflow_number": kwargs.get("selectedWorkflowNumber"),
+        "reserved_workflows": kwargs.get("reservedWorkflows"),
+        "controller_available_for_work": kwargs.get("controllerAvailableForWork"),
+        "next_state": kwargs.get("nextState"),
+        "return_cycle": kwargs.get("returnCycle"),
+        "now_epoch_ms": kwargs.get("nowEpochMs"),
+        "create_mission": kwargs.get("createMission"),
+        "finalize_mission": kwargs.get("finalizeMission"),
+        "cancel_mission": kwargs.get("cancelMission"),
     }
 
 
