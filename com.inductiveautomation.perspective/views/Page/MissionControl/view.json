@@ -85,7 +85,7 @@
                   "paddingLeft": "10px",
                   "paddingRight": "10px"
                 },
-                "title": "Timestamp"
+                "title": "Time stamp"
               },
               "justify": "auto",
               "nullFormat": {
@@ -123,7 +123,7 @@
               "resizable": true,
               "sort": "descending",
               "sortable": true,
-              "strictWidth": false,
+              "strictWidth": true,
               "style": {
                 "borderRight": "1px solid #d7dce5",
                 "paddingLeft": "10px",
@@ -138,7 +138,7 @@
               "viewParams": {},
               "viewPath": "",
               "visible": true,
-              "width": ""
+              "width": 90
             },
             {
               "align": "center",
@@ -225,7 +225,7 @@
               "resizable": true,
               "sort": "none",
               "sortable": true,
-              "strictWidth": false,
+              "strictWidth": true,
               "style": {
                 "borderRight": "1px solid #d7dce5",
                 "paddingLeft": "10px",
@@ -240,7 +240,7 @@
               "viewParams": {},
               "viewPath": "",
               "visible": true,
-              "width": ""
+              "width": 130
             },
             {
               "align": "center",
@@ -290,7 +290,7 @@
                 },
                 "title": "Req. WF"
               },
-              "justify": "auto",
+              "justify": "center",
               "nullFormat": {
                 "includeNullStrings": false,
                 "nullFormatValue": "",
@@ -326,7 +326,7 @@
               "resizable": true,
               "sort": "none",
               "sortable": false,
-              "strictWidth": false,
+              "strictWidth": true,
               "style": {
                 "borderRight": "1px solid #d7dce5",
                 "paddingLeft": "10px",
@@ -341,7 +341,7 @@
               "viewParams": {},
               "viewPath": "",
               "visible": true,
-              "width": ""
+              "width": 80
             },
             {
               "align": "center",
@@ -391,7 +391,7 @@
                 },
                 "title": "Active WF"
               },
-              "justify": "auto",
+              "justify": "center",
               "nullFormat": {
                 "includeNullStrings": false,
                 "nullFormatValue": "",
@@ -427,7 +427,7 @@
               "resizable": true,
               "sort": "none",
               "sortable": true,
-              "strictWidth": false,
+              "strictWidth": true,
               "style": {
                 "borderRight": "1px solid #d7dce5",
                 "paddingLeft": "10px",
@@ -442,7 +442,7 @@
               "viewParams": {},
               "viewPath": "",
               "visible": true,
-              "width": ""
+              "width": 80
             },
             {
               "align": "center",
@@ -528,7 +528,7 @@
               "resizable": true,
               "sort": "none",
               "sortable": true,
-              "strictWidth": false,
+              "strictWidth": true,
               "style": {
                 "borderRight": "1px solid #d7dce5",
                 "paddingLeft": "10px",
@@ -543,7 +543,7 @@
               "viewParams": {},
               "viewPath": "",
               "visible": true,
-              "width": ""
+              "width": 190
             },
             {
               "align": "center",
@@ -629,7 +629,7 @@
               "resizable": true,
               "sort": "none",
               "sortable": true,
-              "strictWidth": false,
+              "strictWidth": true,
               "style": {
                 "borderRight": "1px solid #d7dce5",
                 "paddingLeft": "10px",
@@ -644,7 +644,7 @@
               "viewParams": {},
               "viewPath": "",
               "visible": true,
-              "width": ""
+              "width": 70
             },
             {
               "align": "center",
@@ -730,7 +730,7 @@
               "resizable": true,
               "sort": "none",
               "sortable": true,
-              "strictWidth": false,
+              "strictWidth": true,
               "style": {
                 "borderRight": "1px solid #d7dce5",
                 "paddingLeft": "10px",
@@ -745,7 +745,7 @@
               "viewParams": {},
               "viewPath": "",
               "visible": true,
-              "width": ""
+              "width": 140
             },
             {
               "align": "center",
