@@ -4,10 +4,10 @@ import uuid
 
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagHelpers import ensureFolder
+from Otto_API.Common.TagHelpers import ensureUdtInstancePath
 from Otto_API.Common.TagHelpers import ensureMemoryTag
 from Otto_API.Common.TagHelpers import getFleetMissionsPath
 from Otto_API.Common.TagHelpers import getFleetRobotsPath
-from Otto_API.Common.TagHelpers import getMainControlInternalPath
 from Otto_API.Common.TagHelpers import getMainControlRobotsPath
 from Otto_API.Common.TagHelpers import getMainControlRuntimePath
 from Otto_API.Common.TagHelpers import getPlcRootPath
@@ -25,7 +25,6 @@ FLEET_ROBOTS_BASE = getFleetRobotsPath()
 MAINCONTROL_ROBOTS_BASE = getMainControlRobotsPath()
 MISSIONS_ACTIVE_BASE = getFleetMissionsPath() + "/Active"
 PLC_BASE = getPlcRootPath()
-INTERNAL_BASE = getMainControlInternalPath()
 RUNTIME_BASE = getMainControlRuntimePath()
 
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
@@ -66,8 +65,8 @@ def defaultRobotState():
     }
 
 def internalStatePaths(robotName):
-    """Centralize MainControl/Internal paths so the runner only has one tag contract to maintain."""
-    basePath = INTERNAL_BASE + "/" + robotName
+    """Centralize MainControl/Robots paths so controller state and mission-derived flags live together."""
+    basePath = MAINCONTROL_ROBOTS_BASE + "/" + robotName
     return {
         "base": basePath,
         "force_robot_ready": basePath + "/ForceRobotReady",
@@ -165,56 +164,21 @@ INTERNAL_STATE_FIELD_NAMES = [
 
 
 def ensureRobotRunnerTags(robotName):
-    """Provision the per-robot controller state and PLC interface tags on demand."""
+    """Provision the per-robot controller state and PLC interface UDT instances on demand."""
     internalPaths = internalStatePaths(robotName)
     plcTagPaths = plcPaths(robotName)
 
     ensureMainControlRobotTags(robotName)
-    ensureFolder(INTERNAL_BASE)
-    ensureFolder(internalPaths["base"])
     ensureFolder(PLC_BASE)
-    ensureFolder(plcTagPaths["base"])
-    ensureFolder(plcTagPaths["from_plc"])
-    ensureFolder(plcTagPaths["to_plc"])
-
-    ensureMemoryTag(internalPaths["force_robot_ready"], "Boolean", False)
-    ensureMemoryTag(internalPaths["request_latched"], "Boolean", False)
-    ensureMemoryTag(internalPaths["selected_workflow_number"], "Int4", 0)
-    ensureMemoryTag(internalPaths["state"], "String", "idle")
-    ensureMemoryTag(internalPaths["mission_created"], "Boolean", False)
-    ensureMemoryTag(internalPaths["mission_needs_finalized"], "Boolean", False)
-    ensureMemoryTag(internalPaths["last_command_ts"], "String", "")
-    ensureMemoryTag(internalPaths["last_result"], "String", "")
-    ensureMemoryTag(internalPaths["last_command_id"], "String", "")
-    ensureMemoryTag(internalPaths["last_logged_signature"], "String", "")
-    ensureMemoryTag(internalPaths["last_computed_log_signature"], "String", "")
-    ensureMemoryTag(internalPaths["last_log_decision"], "String", "")
-
-    ensureMemoryTag(plcTagPaths["requested_workflow_number"], "Int4", 0)
-    ensureMemoryTag(plcTagPaths["finalize_ok"], "Boolean", False)
-    ensureMemoryTag(plcTagPaths["available_for_work"], "Boolean", False)
-    ensureMemoryTag(plcTagPaths["active_workflow_number"], "Int4", 0)
-    ensureMemoryTag(plcTagPaths["mission_starved"], "Boolean", False)
-    ensureMemoryTag(plcTagPaths["mission_ready_for_attachment"], "Boolean", False)
-    ensureMemoryTag(plcTagPaths["mission_needs_finalized"], "Boolean", False)
-    ensureMemoryTag(plcTagPaths["request_received"], "Boolean", False)
-    ensureMemoryTag(plcTagPaths["request_success"], "Boolean", False)
-    ensureMemoryTag(plcTagPaths["request_robot_not_ready"], "Boolean", False)
-    ensureMemoryTag(plcTagPaths["fleet_fault"], "Boolean", False)
-    ensureMemoryTag(plcTagPaths["plc_comm_fault"], "Boolean", False)
-    ensureMemoryTag(plcTagPaths["control_healthy"], "Boolean", True)
-    ensureMemoryTag(plcTagPaths["request_conflict"], "Boolean", False)
-    ensureMemoryTag(plcTagPaths["request_invalid"], "Boolean", False)
+    ensureUdtInstancePath(internalPaths["base"], "MainControl_Robot")
+    ensureUdtInstancePath(plcTagPaths["base"], "PLC_RobotInterface")
 
 
 def ensureMainControlRobotTags(robotName):
-    """Create the robot-scoped derived tags consumed by MainControl and mirrored to PLC."""
+    """Ensure the single robot-scoped MainControl UDT instance exists."""
     robotPath = MAINCONTROL_ROBOTS_BASE + "/" + robotName
     ensureFolder(MAINCONTROL_ROBOTS_BASE)
-    ensureFolder(robotPath)
-    ensureMemoryTag(robotPath + "/MissionStarved", "Boolean", False)
-    ensureMemoryTag(robotPath + "/MissionReadyforAttachment", "Boolean", False)
-    ensureMemoryTag(robotPath + "/MissionNameForAttachment", "String", "")
+    ensureUdtInstancePath(robotPath, "MainControl_Robot")
 
 
 def ensureRuntimeTags():

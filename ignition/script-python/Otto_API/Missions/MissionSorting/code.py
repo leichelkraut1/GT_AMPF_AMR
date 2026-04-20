@@ -5,7 +5,6 @@ from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagHelpers import deleteTagPath
 from Otto_API.Common.TagHelpers import ensureUdtInstancePath
 from Otto_API.Common.TagHelpers import ensureFolder
-from Otto_API.Common.TagHelpers import ensureMemoryTag
 from Otto_API.Common.TagHelpers import getFleetMissionsPath
 from Otto_API.Common.TagHelpers import getFleetRobotsPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
@@ -360,15 +359,12 @@ def build_robot_member_writes(robotMappings, valuesByFolder, memberName, transfo
 
 def ensure_maincontrol_robot_attachment_tags(robotMappings):
     """
-    Ensure derived attachment-state tags exist under MainControl/Robots.
+    Ensure MainControl/Robots UDT instances exist for known robots.
     """
     ensureFolder(MAINCONTROL_ROBOTS_PATH)
     for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
         robotPath = MAINCONTROL_ROBOTS_PATH + "/" + robotFolder
-        ensureFolder(robotPath)
-        ensureMemoryTag(robotPath + "/MissionStarved", "Boolean", False)
-        ensureMemoryTag(robotPath + "/MissionReadyforAttachment", "Boolean", False)
-        ensureMemoryTag(robotPath + "/MissionNameForAttachment", "String", "")
+        ensureUdtInstancePath(robotPath, "MainControl_Robot")
 
 
 def resolve_mission_robot_folder(mission, robotMappings=None):
