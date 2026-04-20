@@ -114,6 +114,8 @@ def buildPlaceInstanceName(placeRecord):
 def compactTagSuffix(rawId):
     """
     Build a shorter safe suffix for record identifiers used in tag names.
+    For UUID-style ids, keep only the first segment so place instance paths stay
+    readable on the gateway. This trades full-id uniqueness for brevity.
     """
     text = str(rawId or "").strip()
     if not text:

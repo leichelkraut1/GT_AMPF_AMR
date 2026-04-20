@@ -91,52 +91,30 @@ def readContainerTriggerPlaceId():
 def ensureContainerTestTemplate():
     """
     Ensure the fixed test template container instance exists for container triggers.
+    This template is only used as a source for create calls, so seed only the
+    base fields that createContainer actually reads.
     """
     ensureFolder(getFleetContainersPath())
     ensureFolder(getFleetContainersPath() + "/Templates")
     ensureUdtInstancePath(CONTAINER1_TEMPLATE_PATH, "api_Container")
     writeRequiredTagValues(
         [
-            CONTAINER1_TEMPLATE_PATH + "/ID",
             CONTAINER1_TEMPLATE_PATH + "/ContainerType",
-            CONTAINER1_TEMPLATE_PATH + "/Created",
             CONTAINER1_TEMPLATE_PATH + "/Description",
             CONTAINER1_TEMPLATE_PATH + "/Empty",
             CONTAINER1_TEMPLATE_PATH + "/Name",
-            CONTAINER1_TEMPLATE_PATH + "/Place",
-            CONTAINER1_TEMPLATE_PATH + "/ReservedAt",
-            CONTAINER1_TEMPLATE_PATH + "/ReservedBy",
-            CONTAINER1_TEMPLATE_PATH + "/Robot",
-            CONTAINER1_TEMPLATE_PATH + "/State",
-            CONTAINER1_TEMPLATE_PATH + "/SystemCreated",
         ],
         [
-            CONTAINER1_ID,
             "OTTO100_CART",
-            "2026-04-20T17:04:17.908933Z",
             "",
             False,
             "",
-            "e1f2fcfe-caad-45fa-ab3d-db9bed61dfba",
-            "",
-            "",
-            "",
-            "NORMAL",
-            True,
         ],
         labels=[
-            "Container 1 template id",
             "Container 1 template type",
-            "Container 1 template created",
             "Container 1 template description",
             "Container 1 template empty",
             "Container 1 template name",
-            "Container 1 template place",
-            "Container 1 template reserved at",
-            "Container 1 template reserved by",
-            "Container 1 template robot",
-            "Container 1 template state",
-            "Container 1 template system created",
         ],
     )
     return CONTAINER1_TEMPLATE_PATH

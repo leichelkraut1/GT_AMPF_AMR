@@ -946,6 +946,8 @@ def updateMaps():
             except Exception as liveMapErr:
                 ottoLogger.warn("Otto API - Failed to read /live_map/ reference: " + str(liveMapErr))
                 try:
+                    # Keep a bounded fallback here so map sync still completes if the
+                    # dedicated live_map endpoint is temporarily unavailable.
                     mostRecent = selectMostRecentMap(data)
                     if mostRecent is not None:
                         activeMapId = mostRecent.get("id")
