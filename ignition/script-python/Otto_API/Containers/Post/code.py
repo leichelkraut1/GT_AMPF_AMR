@@ -101,6 +101,45 @@ def _runDirectOperation(logMessage, operationFunc, *args):
     return _writeResponseAndLogResult(result, ottoLogger)
 
 
+def _hasLocationValue(value):
+    """
+    Return True when a location field is meaningfully populated.
+    """
+    if value is None:
+        return False
+
+    text = str(value).strip()
+    if not text:
+        return False
+
+    if text.lower() in ["none", "null"]:
+        return False
+
+    return True
+
+
+def _iterContainerInstancePaths(containersBase):
+    """
+    Yield browsed container UDT instance paths under Fleet/Containers.
+    """
+    for browseResult in browseTagResults(containersBase):
+        if isinstance(browseResult, dict):
+            instancePath = str(browseResult.get("fullPath", "") or "")
+            tagType = browseResult.get("tagType")
+        else:
+            instancePath = str(getattr(browseResult, "fullPath", "") or "")
+            tagType = getattr(browseResult, "tagType", None)
+
+        if not instancePath:
+            continue
+
+        tagTypeText = str(tagType or "").strip().lower()
+        if "udtinstance" not in tagTypeText:
+            continue
+
+        yield instancePath
+
+
 def _buildContainerCreateId(containerTagPath, uuidFactory=None):
     """
     Build a generated container id that includes the source tag basename.
@@ -320,19 +359,7 @@ def deleteContainersAtPlaceFromInputs(placeId, fleetManagerURL, postFunc):
     containersBase = getFleetContainersPath()
     matchedContainerIds = []
 
-    for browseResult in browseTagResults(containersBase):
-        if isinstance(browseResult, dict):
-            instancePath = str(browseResult.get("fullPath", "") or "")
-            tagType = browseResult.get("tagType")
-        else:
-            instancePath = str(getattr(browseResult, "fullPath", "") or "")
-            tagType = getattr(browseResult, "tagType", None)
-
-        if not instancePath:
-            continue
-        if tagType != "UdtInstance":
-            continue
-
+    for instancePath in _iterContainerInstancePaths(containersBase):
         if readOptionalTagValue(instancePath + "/Place", None) != placeId:
             continue
 
@@ -396,19 +423,7 @@ def deleteAllContainersFromInputs(fleetManagerURL, postFunc):
     containersBase = getFleetContainersPath()
     matchedContainerIds = []
 
-    for browseResult in browseTagResults(containersBase):
-        if isinstance(browseResult, dict):
-            instancePath = str(browseResult.get("fullPath", "") or "")
-            tagType = browseResult.get("tagType")
-        else:
-            instancePath = str(getattr(browseResult, "fullPath", "") or "")
-            tagType = getattr(browseResult, "tagType", None)
-
-        if not instancePath:
-            continue
-        if tagType != "UdtInstance":
-            continue
-
+    for instancePath in _iterContainerInstancePaths(containersBase):
         containerId = readOptionalTagValue(instancePath + "/ID", None)
         if not containerId:
             continue
@@ -466,25 +481,13 @@ def deleteContainersWithoutLocationFromInputs(fleetManagerURL, postFunc):
     containersBase = getFleetContainersPath()
     matchedContainerIds = []
 
-    for browseResult in browseTagResults(containersBase):
-        if isinstance(browseResult, dict):
-            instancePath = str(browseResult.get("fullPath", "") or "")
-            tagType = browseResult.get("tagType")
-        else:
-            instancePath = str(getattr(browseResult, "fullPath", "") or "")
-            tagType = getattr(browseResult, "tagType", None)
-
-        if not instancePath:
-            continue
-        if tagType != "UdtInstance":
-            continue
-
+    for instancePath in _iterContainerInstancePaths(containersBase):
         containerId = readOptionalTagValue(instancePath + "/ID", None)
         placeId = readOptionalTagValue(instancePath + "/Place", None)
         robotId = readOptionalTagValue(instancePath + "/Robot", None)
         if not containerId:
             continue
-        if placeId or robotId:
+        if _hasLocationValue(placeId) or _hasLocationValue(robotId):
             continue
         matchedContainerIds.append(containerId)
 

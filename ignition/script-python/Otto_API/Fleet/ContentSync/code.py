@@ -1,4 +1,5 @@
 import json
+import re
 
 
 def listUdtInstanceNames(browseResults):
@@ -103,11 +104,25 @@ def buildPlaceInstanceName(placeRecord):
         return None
 
     safeName = sanitizeTagName(placeName or "Place")
-    safeId = sanitizeTagName(placeId or "")
+    safeId = compactTagSuffix(placeId)
 
     if safeId:
         return "{}_{}".format(safeName, safeId)
     return safeName
+
+
+def compactTagSuffix(rawId):
+    """
+    Build a shorter safe suffix for record identifiers used in tag names.
+    """
+    text = str(rawId or "").strip()
+    if not text:
+        return ""
+
+    if re.match(r"^[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}$", text):
+        return text.split("-", 1)[0]
+
+    return sanitizeTagName(text)
 
 
 def buildMapInstanceName(mapItem):
@@ -213,10 +228,6 @@ def sanitizeTagName(text):
     """Convert mission/tag names into a safe Ignition tag name."""
     if text is None:
         return "None"
-    return (
-        str(text)
-        .replace("/", "_")
-        .replace("\\", "_")
-        .replace(" ", "_")
-        .replace(".", "_")
-    )
+    sanitized = re.sub(r"[^A-Za-z0-9_-]", "_", str(text))
+    sanitized = re.sub(r"_+", "_", sanitized).strip("_")
+    return sanitized or "None"
