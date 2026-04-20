@@ -251,6 +251,24 @@ def record_mission_state_change(nowTimestamp, robotFolder, mission, oldStatus, n
     )
 
 
+def read_previous_mission_status(candidatePaths):
+    """
+    Read the prior mission status from whichever mission instance currently exists.
+
+    This lets us log transitions even when the mission moves between Active,
+    Completed, and Failed folders in the same sorting pass.
+    """
+    for path in list(candidatePaths or []):
+        if not tagExists(path):
+            continue
+        return readOptionalTagValue(
+            path + "/Mission_Status",
+            None,
+            allowEmptyString=False
+        )
+    return None
+
+
 def should_remove_completed_by_age(createdDate, cutoff):
     """
     Return True when a completed mission is older than the retention cutoff.
@@ -550,6 +568,9 @@ def run():
             activePath = ACTIVE_PATH + "/" + robotFolder + "/" + instanceName
             completedPath = COMPLETED_PATH + "/" + robotFolder + "/" + instanceName
             failedPath = FAILED_PATH + "/" + robotFolder + "/" + instanceName
+            previousStatus = read_previous_mission_status(
+                [activePath, completedPath, failedPath]
+            )
 
             bucket = classify_mission_bucket(status)
 
@@ -626,17 +647,10 @@ def run():
                     )
 
             instancePath = targetFolder + "/" + instanceName
-            previousStatus = None
             if not tagExists(instancePath):
                 ensureUdtInstancePath(instancePath, "api_Mission")
                 if debug:
                     logger.info("Created mission instance: {}".format(instancePath))
-            else:
-                previousStatus = readOptionalTagValue(
-                    instancePath + "/Mission_Status",
-                    None,
-                    allowEmptyString=False
-                )
 
             write_mission_data(instancePath, mission)
             newStatus = mission.get("mission_status")
