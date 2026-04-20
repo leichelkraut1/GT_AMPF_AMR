@@ -155,6 +155,9 @@ MISSION_STATE_HISTORY_HEADERS = [
     "WorkflowNumber",
 ]
 
+COMMAND_HISTORY_MAX_ROWS = 100
+MISSION_STATE_HISTORY_MAX_ROWS = 100
+
 INTERNAL_STATE_FIELD_NAMES = [
     "force_robot_ready",
     "request_latched",
@@ -290,28 +293,27 @@ def readRuntimeDataset(fieldName, headers):
     return datasetValue
 
 
-def readLatestMissionStateHistoryStatus(missionId):
+def buildLatestMissionStateHistoryStatusMap():
     """
-    Return the most recent logged mission status for one mission id.
+    Build {MissionId: LatestNewStatus} from the runtime mission history dataset.
 
-    Mission state history is append-only, so scanning backward is enough and keeps
-    duplicate sort passes from re-logging the same status forever.
+    This is intentionally read once per sort pass so mission sorting can do O(1)
+    lookups instead of rescanning the dataset for every mission.
     """
-    missionId = str(missionId or "")
-    if not missionId:
-        return None
-
     datasetValue = readRuntimeDataset(
         "mission_state_history",
         MISSION_STATE_HISTORY_HEADERS
     )
     if not hasattr(datasetValue, "getRowCount"):
-        return None
+        return {}
 
+    latestByMissionId = {}
     for rowIndex in range(datasetValue.getRowCount() - 1, -1, -1):
-        if str(datasetValue.getValueAt(rowIndex, "MissionId") or "") == missionId:
-            return str(datasetValue.getValueAt(rowIndex, "NewStatus") or "")
-    return None
+        missionId = str(datasetValue.getValueAt(rowIndex, "MissionId") or "")
+        if not missionId or missionId in latestByMissionId:
+            continue
+        latestByMissionId[missionId] = str(datasetValue.getValueAt(rowIndex, "NewStatus") or "")
+    return latestByMissionId
 
 
 def _toBool(value):

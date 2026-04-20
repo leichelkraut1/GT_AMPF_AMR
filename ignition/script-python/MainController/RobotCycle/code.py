@@ -4,6 +4,7 @@ from MainController.CommandHelpers import appendRuntimeDatasetRow
 from MainController.CommandHelpers import buildCommandLogSignature
 from MainController.CommandHelpers import buildCycleResult
 from MainController.CommandHelpers import COMMAND_HISTORY_HEADERS
+from MainController.CommandHelpers import COMMAND_HISTORY_MAX_ROWS
 from MainController.CommandHelpers import ensureRobotRunnerTags
 from MainController.CommandHelpers import readActiveMissionSummary
 from MainController.CommandHelpers import readPlcInputs
@@ -131,6 +132,7 @@ def _recordCommandHistory(nowEpochMs, cycleResult):
             cycleResult.get("state") or "",
             cycleResult.get("message") or "",
         ],
+        maxRows=COMMAND_HISTORY_MAX_ROWS,
     )
     writeRobotState(
         robotName,
