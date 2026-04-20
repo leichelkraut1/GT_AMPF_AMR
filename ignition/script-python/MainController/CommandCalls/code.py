@@ -606,7 +606,7 @@ def runRobotWorkflowCycle(
                 data={"workflow_number": activeWorkflowNumber},
             )
 
-    if not plcInputs["request_active"]:
+    if not plcInputs["requested_workflow_number"]:
         if activeWorkflowNumber:
             outputs = _buildOutputs(
                 mirrorInputs,

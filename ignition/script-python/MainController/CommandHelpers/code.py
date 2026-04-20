@@ -94,7 +94,6 @@ def plcPaths(robotName):
         "base": basePath,
         "from_plc": fromPlc,
         "to_plc": toPlc,
-        "request_active": fromPlc + "/RequestActive",
         "requested_workflow_number": fromPlc + "/RequestedWorkflowNumber",
         "finalize_ok": fromPlc + "/FinalizeOk",
         "available_for_work": toPlc + "/AvailableForWork",
@@ -191,7 +190,6 @@ def ensureRobotRunnerTags(robotName):
     ensureMemoryTag(internalPaths["last_computed_log_signature"], "String", "")
     ensureMemoryTag(internalPaths["last_log_decision"], "String", "")
 
-    ensureMemoryTag(plcTagPaths["request_active"], "Boolean", False)
     ensureMemoryTag(plcTagPaths["requested_workflow_number"], "Int4", 0)
     ensureMemoryTag(plcTagPaths["finalize_ok"], "Boolean", False)
     ensureMemoryTag(plcTagPaths["available_for_work"], "Boolean", False)
@@ -406,26 +404,20 @@ def readPlcInputs(robotName):
     """
     Read PLC demand and handshake inputs.
 
-    RequestedWorkflowNumber is the real request signal. RequestActive is kept as a
-    compatibility input while the PLC side settles into the workflow-number model.
+    RequestedWorkflowNumber is the request signal.
     """
     paths = plcPaths(robotName)
     readResults = readTagValues([
-        paths["request_active"],
         paths["requested_workflow_number"],
         paths["finalize_ok"],
     ])
     qualities = [qualifiedValue.quality.isGood() for qualifiedValue in readResults]
     requestedWorkflowNumber = normalizeWorkflowNumber(
-        readResults[1].value if qualities[1] else 0
+        readResults[0].value if qualities[0] else 0
     ) or 0
-    compatibilityRequestActive = _toBool(
-        readResults[0].value if qualities[0] else False
-    )
     return {
-        "request_active": bool(requestedWorkflowNumber) or compatibilityRequestActive,
         "requested_workflow_number": requestedWorkflowNumber,
-        "finalize_ok": _toBool(readResults[2].value if qualities[2] else False),
+        "finalize_ok": _toBool(readResults[1].value if qualities[1] else False),
         "healthy": all(qualities),
         "fault_reason": "" if all(qualities) else "plc_input_quality_bad",
     }
