@@ -118,17 +118,38 @@ def _hasLocationValue(value):
     return True
 
 
+def _browseResultValue(browseResult, key, defaultValue=None):
+    """
+    Read one browse-result field across dict, Ignition browse rows, and shim rows.
+    """
+    if browseResult is None:
+        return defaultValue
+
+    if isinstance(browseResult, dict):
+        return browseResult.get(key, defaultValue)
+
+    getter = getattr(browseResult, "get", None)
+    if getter is not None:
+        try:
+            return getter(key)
+        except TypeError:
+            try:
+                return getter(key, defaultValue)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    return getattr(browseResult, key, defaultValue)
+
+
 def _iterContainerInstancePaths(containersBase):
     """
     Yield browsed container UDT instance paths under Fleet/Containers.
     """
     for browseResult in browseTagResults(containersBase):
-        if isinstance(browseResult, dict):
-            instancePath = str(browseResult.get("fullPath", "") or "")
-            tagType = browseResult.get("tagType")
-        else:
-            instancePath = str(getattr(browseResult, "fullPath", "") or "")
-            tagType = getattr(browseResult, "tagType", None)
+        instancePath = str(_browseResultValue(browseResult, "fullPath", "") or "")
+        tagType = _browseResultValue(browseResult, "tagType", None)
 
         if not instancePath:
             continue
