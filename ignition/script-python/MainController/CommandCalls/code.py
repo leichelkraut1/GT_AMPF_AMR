@@ -6,6 +6,7 @@ from Otto_API.Missions import MissionSorting
 from Otto_API.Missions import Post
 
 from MainController.CommandHelpers import buildCycleResult
+from MainController.CommandHelpers import buildCommandLogSignature
 from MainController.CommandHelpers import buildWorkflowReservedMap
 from MainController.CommandHelpers import COMMAND_HISTORY_HEADERS
 from MainController.CommandHelpers import ensureRobotRunnerTags
@@ -123,17 +124,31 @@ def _recordCommandHistory(nowEpochMs, cycleResult):
         return
 
     data = dict(cycleResult.get("data") or {})
+    robotName = cycleResult.get("robot_name") or data.get("robot_name") or ""
     activeWorkflowNumber = (
         normalizeWorkflowNumber(data.get("active_workflow_number"))
         or normalizeWorkflowNumber(data.get("workflow_number"))
         or 0
     )
+    signature = buildCommandLogSignature(
+        robotName,
+        data.get("requested_workflow_number"),
+        activeWorkflowNumber,
+        action,
+        cycleResult.get("level") or "",
+        cycleResult.get("state") or "",
+        cycleResult.get("message") or "",
+    )
+    currentState = readRobotState(robotName)
+    if currentState.get("last_logged_signature") == signature:
+        return
+
     appendRuntimeDatasetRow(
         "command_history",
         COMMAND_HISTORY_HEADERS,
         [
             timestampString(nowEpochMs),
-            cycleResult.get("robot_name") or data.get("robot_name") or "",
+            robotName,
             normalizeWorkflowNumber(data.get("requested_workflow_number")) or 0,
             activeWorkflowNumber,
             action,
@@ -142,6 +157,7 @@ def _recordCommandHistory(nowEpochMs, cycleResult):
             cycleResult.get("message") or "",
         ],
     )
+    writeRobotState(robotName, {"last_logged_signature": signature})
 
 
 def runRobotWorkflowCycle(

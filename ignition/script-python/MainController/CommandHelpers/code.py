@@ -59,6 +59,7 @@ def defaultRobotState():
         "last_command_ts": "",
         "last_result": "",
         "last_command_id": "",
+        "last_logged_signature": "",
     }
 
 
@@ -76,6 +77,7 @@ def internalStatePaths(robotName):
         "last_command_ts": basePath + "/LastCommandTs",
         "last_result": basePath + "/LastResult",
         "last_command_id": basePath + "/LastCommandId",
+        "last_logged_signature": basePath + "/LastLoggedSignature",
     }
 
 
@@ -165,6 +167,7 @@ def ensureRobotRunnerTags(robotName):
     ensureMemoryTag(internalPaths["last_command_ts"], "String", "")
     ensureMemoryTag(internalPaths["last_result"], "String", "")
     ensureMemoryTag(internalPaths["last_command_id"], "String", "")
+    ensureMemoryTag(internalPaths["last_logged_signature"], "String", "")
 
     ensureMemoryTag(plcTagPaths["request_active"], "Boolean", False)
     ensureMemoryTag(plcTagPaths["requested_workflow_number"], "Int4", 0)
@@ -243,8 +246,17 @@ def writeRuntimeFields(fieldValues):
         writeTagValues(writePaths, writeValues)
 
 
-def appendRuntimeDatasetRow(fieldName, headers, rowValues, maxRows=500):
-    """Append one row to a runtime history dataset and cap it to the most recent rows."""
+def appendRuntimeDatasetRow(
+    fieldName,
+    headers,
+    rowValues,
+    maxRows=500
+):
+    """
+    Append one row to a runtime history dataset and cap it to the most recent rows.
+
+    Command-history dedupe is handled in robot internal state; this helper only appends.
+    """
     ensureRuntimeTags()
     paths = runtimePaths()
     datasetPath = paths.get(fieldName)
@@ -289,7 +301,29 @@ def normalizeRobotState(rawState):
     state["last_command_ts"] = str(rawState.get("last_command_ts") or "")
     state["last_result"] = str(rawState.get("last_result") or "")
     state["last_command_id"] = str(rawState.get("last_command_id") or "")
+    state["last_logged_signature"] = str(rawState.get("last_logged_signature") or "")
     return state
+
+
+def buildCommandLogSignature(
+    robotName,
+    requestedWorkflowNumber,
+    activeWorkflowNumber,
+    action,
+    level,
+    stateName,
+    message
+):
+    """Build the per-robot signature used to suppress duplicate command-history rows."""
+    return "|".join([
+        str(robotName or ""),
+        str(normalizeWorkflowNumber(requestedWorkflowNumber) or 0),
+        str(normalizeWorkflowNumber(activeWorkflowNumber) or 0),
+        str(action or ""),
+        str(level or ""),
+        str(stateName or ""),
+        str(message or ""),
+    ])
 
 
 def readRobotState(robotName):
@@ -305,6 +339,7 @@ def readRobotState(robotName):
         paths["last_command_ts"],
         paths["last_result"],
         paths["last_command_id"],
+        paths["last_logged_signature"],
     ])
 
     rawState = {}
@@ -318,6 +353,7 @@ def readRobotState(robotName):
         "last_command_ts",
         "last_result",
         "last_command_id",
+        "last_logged_signature",
     ]
     for key, qualifiedValue in zip(keys, values):
         rawState[key] = qualifiedValue.value if qualifiedValue.quality.isGood() else None
@@ -341,6 +377,7 @@ def writeRobotState(robotName, state):
             paths["last_command_ts"],
             paths["last_result"],
             paths["last_command_id"],
+            paths["last_logged_signature"],
         ],
         [
             state["force_robot_ready"],
@@ -352,6 +389,7 @@ def writeRobotState(robotName, state):
             state["last_command_ts"],
             state["last_result"],
             state["last_command_id"],
+            state["last_logged_signature"],
         ]
     )
 
