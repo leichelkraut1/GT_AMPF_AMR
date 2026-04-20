@@ -28,6 +28,7 @@ from Otto_API.Common.TagHelpers import writeTagValueAsync
 from Otto_API.Common.TagHelpers import writeTagValues
 from Otto_API.Common.TagHelpers import writeTagValuesAsync
 from Otto_API.Fleet.ContentSync import buildMapInstanceName
+from Otto_API.Fleet.ContentSync import buildPlaceInstanceName
 from Otto_API.Fleet.ContentSync import buildMapTagValues
 from Otto_API.Fleet.ContentSync import buildPlaceRecipeWrites
 from Otto_API.Fleet.ContentSync import buildRobotTagValues

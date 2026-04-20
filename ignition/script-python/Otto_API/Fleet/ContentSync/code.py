@@ -43,7 +43,7 @@ def normalizePlaceRecord(placeRecord):
     if placeRecord.get("place_type") == "TEMPLATE":
         return None
 
-    instanceName = placeRecord.get("name")
+    instanceName = buildPlaceInstanceName(placeRecord)
     if not instanceName:
         return None
 
@@ -83,12 +83,31 @@ def buildPlaceRecipeWrites(instancePath, recipes):
     boolWrites = {}
 
     for recipeName, recipeValue in dict(recipes or {}).items():
-        valueWrites["{}/recipes/{}/Value".format(instancePath, recipeName)] = recipeValue
-        boolWrites["{}/recipes/{}/Able".format(instancePath, recipeName)] = (
+        safeRecipeName = sanitizeTagName(recipeName)
+        valueWrites["{}/recipes/{}/Value".format(instancePath, safeRecipeName)] = recipeValue
+        boolWrites["{}/recipes/{}/Able".format(instancePath, safeRecipeName)] = (
             1 if recipeValue is not None else 0
         )
 
     return valueWrites, boolWrites
+
+
+def buildPlaceInstanceName(placeRecord):
+    """
+    Build a safe unique Ignition instance name for a place record.
+    """
+    placeName = placeRecord.get("name")
+    placeId = placeRecord.get("id")
+
+    if not placeName and not placeId:
+        return None
+
+    safeName = sanitizeTagName(placeName or "Place")
+    safeId = sanitizeTagName(placeId or "")
+
+    if safeId:
+        return "{}_{}".format(safeName, safeId)
+    return safeName
 
 
 def buildMapInstanceName(mapItem):
