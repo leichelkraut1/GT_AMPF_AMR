@@ -1,3 +1,4 @@
+import json
 import re
 from java.util import Date
 from Otto_API.Common.TagHelpers import browseTagResults
@@ -24,7 +25,6 @@ from Otto_API.Fleet.Get import getMissions
 from MainController.CommandHelpers import MISSION_STATE_HISTORY_HEADERS
 from MainController.CommandHelpers import MISSION_STATE_HISTORY_MAX_ROWS
 from MainController.CommandHelpers import appendRuntimeDatasetRow
-from MainController.CommandHelpers import buildLatestMissionStateHistoryStatusMap
 from Otto_API.Missions.MissionActions import resolveMissionRobotId
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
 
@@ -71,6 +71,8 @@ ROBOTS_PATH = getFleetRobotsPath()
 UNASSIGNED_FOLDER = "Unassigned"
 UNKNOWN_ROBOT_FOLDER = "Unknown_Robot"
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
+MISSION_LAST_LOGGED_STATUS_MEMBER = "_LastLoggedStatus"
+MISSION_LAST_WRITE_SIGNATURE_MEMBER = "_LastWriteSignature"
 
 
 # ---------------------------------------------------------------------------
@@ -224,6 +226,23 @@ def mission_to_tag_values(mission):
     }
 
 
+def mission_runtime_paths(instancePath):
+    """
+    Return the mission-instance runtime helper tags used for anti-repeat behavior.
+    """
+    return {
+        "last_logged_status": instancePath + "/" + MISSION_LAST_LOGGED_STATUS_MEMBER,
+        "last_write_signature": instancePath + "/" + MISSION_LAST_WRITE_SIGNATURE_MEMBER,
+    }
+
+
+def build_mission_write_signature(tagValues):
+    """
+    Build a stable signature for the current mission tag payload.
+    """
+    return json.dumps(dict(tagValues or {}), sort_keys=True, default=str)
+
+
 def parse_workflow_number_from_mission_name(missionName):
     text = str(missionName or "").strip()
     if not text:
@@ -254,35 +273,34 @@ def record_mission_state_change(nowTimestamp, robotFolder, mission, oldStatus, n
     )
 
 
-def should_record_mission_state_change(mission, newStatus, latestStatusByMissionId=None):
+def read_previous_mission_value(candidatePaths, memberName, defaultValue=None, allowEmptyString=False):
     """
-    Return True only when the mission's latest logged status differs from newStatus.
+    Read a value from whichever candidate mission instance currently exists.
 
-    This keeps repeated mission-sort passes from re-appending the same status when
-    previous-status lookup is unstable or the same mission is simply read again.
-    """
-    if latestStatusByMissionId is None:
-        latestStatusByMissionId = {}
-    latestLoggedStatus = latestStatusByMissionId.get(str(mission.get("id") or ""))
-    return latestLoggedStatus != str(newStatus or "")
-
-
-def read_previous_mission_status(candidatePaths):
-    """
-    Read the prior mission status from whichever mission instance currently exists.
-
-    This lets us log transitions even when the mission moves between Active,
-    Completed, and Failed folders in the same sorting pass.
+    This lets us preserve status/runtime continuity even when the mission moves
+    between Active, Completed, and Failed folders in the same sorting pass.
     """
     for path in list(candidatePaths or []):
         if not tagExists(path):
             continue
         return readOptionalTagValue(
-            path + "/Mission_Status",
-            None,
-            allowEmptyString=False
+            path + "/" + memberName,
+            defaultValue,
+            allowEmptyString=allowEmptyString
         )
-    return None
+    return defaultValue
+
+
+def read_previous_mission_status(candidatePaths):
+    """
+    Read the prior mission status from whichever mission instance currently exists.
+    """
+    return read_previous_mission_value(
+        candidatePaths,
+        "Mission_Status",
+        None,
+        allowEmptyString=False
+    )
 
 
 def should_remove_completed_by_age(createdDate, cutoff):
@@ -307,14 +325,32 @@ def compute_completed_overflow(enrichedRows, maxCompleted, nowDate):
 
 def write_mission_data(instancePath, mission):
     """
-    Writes mission fields into api_Mission UDT
+    Write mission fields into api_Mission only when the payload actually changed.
     """
     values = mission_to_tag_values(mission)
+    signature = build_mission_write_signature(values)
+    runtimePaths = mission_runtime_paths(instancePath)
+    hasWriteSignatureTag = tagExists(runtimePaths["last_write_signature"])
+    if hasWriteSignatureTag:
+        currentSignature = readOptionalTagValue(
+            runtimePaths["last_write_signature"],
+            "",
+            allowEmptyString=True
+        )
+        if str(currentSignature or "") == signature:
+            return False
 
     paths = [instancePath + "/" + k for k in values]
     vals = [values[k] for k in values]
-
-    writeTagValues(paths, vals)
+    if hasWriteSignatureTag:
+        paths.append(runtimePaths["last_write_signature"])
+        vals.append(signature)
+    writeRequiredTagValues(
+        paths,
+        vals,
+        labels=["MissionSorting mission write"] * len(paths)
+    )
+    return True
 
 
 def remove_instance(path, logger=None, debug=False, reason=None):
@@ -449,27 +485,89 @@ def _remove_mission_path_if_exists(path, reason, logger, debug=False):
 
 
 def _record_mission_status_if_changed(
+    instancePath,
     mission,
     robotFolder,
     previousStatus,
     nowTimestamp,
-    latestStatusByMissionId
+    lastLoggedStatus
 ):
     """
-    Append mission-state history only when the latest logged state changes.
+    Append mission-state history only when the mission instance's last logged state changes.
     """
-    newStatus = mission.get("mission_status")
-    if (
-        previousStatus is None or str(previousStatus) != str(newStatus)
-    ) and should_record_mission_state_change(mission, newStatus, latestStatusByMissionId):
-        record_mission_state_change(
-            nowTimestamp,
-            robotFolder,
-            mission,
-            previousStatus,
-            newStatus
+    newStatus = str(mission.get("mission_status") or "")
+    hasLastLoggedStatusTag = tagExists(
+        mission_runtime_paths(instancePath)["last_logged_status"]
+    )
+    if hasLastLoggedStatusTag:
+        if str(lastLoggedStatus or "") == newStatus:
+            return False
+    elif previousStatus is not None and str(previousStatus) == newStatus:
+        return False
+
+    record_mission_state_change(
+        nowTimestamp,
+        robotFolder,
+        mission,
+        previousStatus,
+        newStatus
+    )
+    if hasLastLoggedStatusTag:
+        writeRequiredTagValues(
+            [mission_runtime_paths(instancePath)["last_logged_status"]],
+            [newStatus],
+            labels=["MissionSorting last logged status"]
         )
-        latestStatusByMissionId[str(mission.get("id") or "")] = str(newStatus or "")
+    return True
+
+
+def _record_removed_mission_if_needed(instancePath, folderPath, nowTimestamp):
+    """
+    Log a stale mission disappearing from OTTO as REMOVED before deleting the tag.
+    """
+    runtimePaths = mission_runtime_paths(instancePath)
+    hasLastLoggedStatusTag = tagExists(runtimePaths["last_logged_status"])
+    lastLoggedStatus = readOptionalTagValue(
+        runtimePaths["last_logged_status"],
+        "",
+        allowEmptyString=True
+    )
+    if hasLastLoggedStatusTag and str(lastLoggedStatus or "") == "REMOVED":
+        return False
+
+    missionId = str(readOptionalTagValue(instancePath + "/ID", "", allowEmptyString=True) or "")
+    missionName = str(readOptionalTagValue(instancePath + "/Name", "", allowEmptyString=True) or "")
+    previousStatus = str(readOptionalTagValue(instancePath + "/Mission_Status", "", allowEmptyString=True) or "")
+
+    if not (missionId or missionName or previousStatus):
+        return False
+
+    suffix = str(instancePath or "")
+    prefix = str(folderPath or "").rstrip("/") + "/"
+    robotFolder = ""
+    if suffix.startswith(prefix):
+        remainder = suffix[len(prefix):]
+        robotFolder = remainder.split("/", 1)[0] if remainder else ""
+    if not robotFolder:
+        robotFolder = UNASSIGNED_FOLDER
+
+    record_mission_state_change(
+        nowTimestamp,
+        robotFolder,
+        {
+            "id": missionId,
+            "name": missionName,
+        },
+        previousStatus,
+        "REMOVED"
+    )
+    if hasLastLoggedStatusTag:
+        writeRequiredTagValues(
+            [runtimePaths["last_logged_status"]],
+            ["REMOVED"],
+            labels=["MissionSorting removed status"]
+        )
+    return True
 
 
 def sync_mission_into_bucket(
@@ -477,7 +575,6 @@ def sync_mission_into_bucket(
     robotFolder,
     bucket,
     nowTimestamp,
-    latestStatusByMissionId,
     logger,
     debug=False
 ):
@@ -491,6 +588,16 @@ def sync_mission_into_bucket(
         paths["completed"],
         paths["failed"],
     ])
+    lastLoggedStatus = read_previous_mission_value(
+        [
+            paths["active"],
+            paths["completed"],
+            paths["failed"],
+        ],
+        MISSION_LAST_LOGGED_STATUS_MEMBER,
+        "",
+        allowEmptyString=True
+    )
     removed = []
 
     moveReasons = {
@@ -534,11 +641,12 @@ def sync_mission_into_bucket(
 
     write_mission_data(targetPath, mission)
     _record_mission_status_if_changed(
+        targetPath,
         mission,
         robotFolder,
         previousStatus,
         nowTimestamp,
-        latestStatusByMissionId
+        lastLoggedStatus
     )
 
     return {
@@ -638,7 +746,7 @@ def cleanup_terminal_folder(folderPath, retentionDays, maxCount, label, logger, 
     return removed
 
 
-def cleanup_stale_bucket(folderPath, wantedPaths, label, logger, debug=False):
+def cleanup_stale_bucket(folderPath, wantedPaths, label, logger, debug=False, nowTimestamp=None):
     """
     Remove mission instances in folderPath that are not present in wantedPaths.
     """
@@ -648,6 +756,8 @@ def cleanup_stale_bucket(folderPath, wantedPaths, label, logger, debug=False):
     for fullPath, name in browseMissionInstances(folderPath):
         if fullPath in wantedPaths:
             continue
+        if nowTimestamp is not None:
+            _record_removed_mission_if_needed(fullPath, folderPath, nowTimestamp)
         remove_instance(
             fullPath,
             logger,
@@ -708,8 +818,6 @@ def run():
         attachmentReadyByFolder = {}
         attachmentMissionNameByFolder = {}
         removed = []
-        latestStatusByMissionId = buildLatestMissionStateHistoryStatusMap()
-
         for mission in missions:
             status = mission.get("mission_status", "")
             robotFolder = resolve_mission_robot_folder(mission, robotMappings)
@@ -721,7 +829,6 @@ def run():
                 robotFolder,
                 bucket,
                 nowTimestamp,
-                latestStatusByMissionId,
                 logger,
                 debug
             )
@@ -781,9 +888,10 @@ def run():
             )
         )
         if missionCountWrites:
-            writeTagValues(
+            writeRequiredTagValues(
                 [path for path, _ in missionCountWrites],
-                [value for _, value in missionCountWrites]
+                [value for _, value in missionCountWrites],
+                labels=["MissionSorting MainControl mirror"] * len(missionCountWrites)
             )
 
         # --- Cleanup ACTIVE ---
@@ -793,7 +901,8 @@ def run():
                 activeWanted,
                 "active",
                 logger,
-                debug
+                debug,
+                nowTimestamp
             )
         )
 
@@ -804,7 +913,8 @@ def run():
                 failedWanted,
                 "failed",
                 logger,
-                debug
+                debug,
+                nowTimestamp
             )
         )
         removed.extend(
@@ -865,7 +975,6 @@ def runTerminalMaintenance():
         nowDate = system.date.now()
         nowTimestamp = system.date.format(nowDate, "yyyy-MM-dd HH:mm:ss.SSS")
         robotMappings = _readRobotFolderMappings()
-        latestStatusByMissionId = buildLatestMissionStateHistoryStatusMap()
         completedWanted = set()
         removed = []
 
@@ -883,7 +992,6 @@ def runTerminalMaintenance():
                 robotFolder,
                 "completed",
                 nowTimestamp,
-                latestStatusByMissionId,
                 logger,
                 debug
             )
@@ -896,7 +1004,8 @@ def runTerminalMaintenance():
                 completedWanted,
                 "completed",
                 logger,
-                debug
+                debug,
+                nowTimestamp
             )
         )
         removed.extend(

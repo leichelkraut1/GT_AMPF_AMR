@@ -417,6 +417,40 @@ def writeRequiredTagValues(tagPaths, values, labels=None):
     return results
 
 
+def writeObservedTagValue(tagPath, value, label=None, logger=None):
+    """
+    Write one tag value and warn when the result is not good.
+    """
+    results = writeTagValue(tagPath, value)
+    result = results[0] if results else None
+    if not _isWriteResultGood(result):
+        if logger is None:
+            logger = system.util.getLogger("Otto_API.Common.TagHelpers")
+        logger.warn(_buildWriteFailureMessage(tagPath, result, label))
+    return results
+
+
+def writeObservedTagValues(tagPaths, values, labels=None, logger=None):
+    """
+    Write tag values and warn when any result is not good.
+    """
+    tagPaths = list(tagPaths or [])
+    values = list(values or [])
+    labels = list(labels or [])
+    results = writeTagValues(tagPaths, values)
+
+    if logger is None:
+        logger = system.util.getLogger("Otto_API.Common.TagHelpers")
+
+    for index, tagPath in enumerate(tagPaths):
+        result = results[index] if index < len(results) else None
+        label = labels[index] if index < len(labels) else None
+        if not _isWriteResultGood(result):
+            logger.warn(_buildWriteFailureMessage(tagPath, result, label))
+
+    return results
+
+
 def writeTagValueAsync(tagPath, value):
     """
     Write a single tag value asynchronously.

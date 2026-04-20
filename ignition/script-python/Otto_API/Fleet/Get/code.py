@@ -20,6 +20,7 @@ from Otto_API.Common.TagHelpers import readRequiredTagValue
 from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Common.TagHelpers import tagExists
 from Otto_API.Common.TagHelpers import writeLastSystemResponse
+from Otto_API.Common.TagHelpers import writeObservedTagValues
 from Otto_API.Common.TagHelpers import writeTagValue
 from Otto_API.Common.TagHelpers import writeTagValueAsync
 from Otto_API.Common.TagHelpers import writeTagValues
@@ -73,6 +74,19 @@ def _buildSyncResult(ok, level, message, records=None, writes=None, data=None):
         },
         records=records,
         writes=writes,
+    )
+
+
+def _writeObservedPairs(writes, label, logger):
+    """Write UDT-backed tag pairs and warn on any bad result."""
+    writePairs = list(writes or [])
+    if not writePairs:
+        return
+    writeObservedTagValues(
+        [path for path, _ in writePairs],
+        [value for _, value in writePairs],
+        labels=[label] * len(writePairs),
+        logger=logger
     )
 
 
@@ -246,7 +260,12 @@ def updateRobots():
                 else:
                     ottoLogger.info("Otto API - Updating existing robot tag instance: " + instanceName)
 
-                writeTagValues(list(tagValues.keys()), list(tagValues.values()))
+                writeObservedTagValues(
+                    list(tagValues.keys()),
+                    list(tagValues.values()),
+                    labels=["Otto_API.Get robot sync"] * len(tagValues),
+                    logger=ottoLogger
+                )
                 writes.extend(tagValues.items())
 
             try:
@@ -348,10 +367,7 @@ def updateSystemStates():
 
         finalWrites = writes + invalidated
         if finalWrites:
-            writeTagValues(
-                [path for path, _ in finalWrites],
-                [value for _, value in finalWrites]
-            )
+            _writeObservedPairs(finalWrites, "Otto_API.Get system state sync", ottoLogger)
 
         return _buildSyncResult(
             True,
@@ -406,10 +422,7 @@ def updateChargeLevels():
 
         finalWrites = writes + invalidated
         if finalWrites:
-            writeTagValues(
-                [path for path, _ in finalWrites],
-                [value for _, value in finalWrites]
-            )
+            _writeObservedPairs(finalWrites, "Otto_API.Get charge sync", ottoLogger)
 
         return _buildSyncResult(
             True,
@@ -461,10 +474,7 @@ def updateActivityStates():
 
         finalWrites = writes + invalidated
         if finalWrites:
-            writeTagValues(
-                [path for path, _ in finalWrites],
-                [value for _, value in finalWrites]
-            )
+            _writeObservedPairs(finalWrites, "Otto_API.Get activity sync", ottoLogger)
 
         return _buildSyncResult(
             True,
@@ -642,9 +652,11 @@ def updateRobotOperationalState():
             writesByPath[path] = value
 
         if writesByPath:
-            writeTagValues(
+            writeObservedTagValues(
                 list(writesByPath.keys()),
-                list(writesByPath.values())
+                list(writesByPath.values()),
+                labels=["Otto_API.Get operational state sync"] * len(writesByPath),
+                logger=ottoLogger
             )
 
         allRecords = list(systemStateResults) + list(activityResults) + list(batteryResults)
@@ -713,9 +725,11 @@ def updatePlaces():
                 for suffix, value in normalizedPlace["tag_values"].items():
                     tagDict[instancePath + suffix] = value
 
-                writeTagValues(
+                writeObservedTagValues(
                     list(tagDict.keys()),
-                    list(tagDict.values())
+                    list(tagDict.values()),
+                    labels=["Otto_API.Get place sync"] * len(tagDict),
+                    logger=ottoLogger
                 )
                 writes.extend(tagDict.items())
 
@@ -724,16 +738,20 @@ def updatePlaces():
                     normalizedPlace["recipes"]
                 )
                 if recipeBoolWrites:
-                    writeTagValuesAsync(
+                    writeObservedTagValues(
                         list(recipeBoolWrites.keys()),
-                        list(recipeBoolWrites.values())
+                        list(recipeBoolWrites.values()),
+                        labels=["Otto_API.Get place recipe bool sync"] * len(recipeBoolWrites),
+                        logger=ottoLogger
                     )
                     writes.extend(recipeBoolWrites.items())
 
                 if recipeValueWrites:
-                    writeTagValues(
+                    writeObservedTagValues(
                         list(recipeValueWrites.keys()),
-                        list(recipeValueWrites.values())
+                        list(recipeValueWrites.values()),
+                        labels=["Otto_API.Get place recipe value sync"] * len(recipeValueWrites),
+                        logger=ottoLogger
                     )
                     writes.extend(recipeValueWrites.items())
 
@@ -819,7 +837,12 @@ def updateMaps():
                 else:
                     ottoLogger.info("Otto API - Updating existing map tag instance: " + instanceName)
 
-                writeTagValues(list(tagDict.keys()), list(tagDict.values()))
+                writeObservedTagValues(
+                    list(tagDict.keys()),
+                    list(tagDict.values()),
+                    labels=["Otto_API.Get map sync"] * len(tagDict),
+                    logger=ottoLogger
+                )
                 writes.extend(tagDict.items())
 
             try:
@@ -896,9 +919,11 @@ def updateWorkflows():
                 else:
                     ottoLogger.info("Otto API - Updating Workflow: " + instanceName)
 
-                writeTagValues(
+                writeObservedTagValues(
                     list(missionDict.keys()),
-                    list(missionDict.values())
+                    list(missionDict.values()),
+                    labels=["Otto_API.Get workflow sync"] * len(missionDict),
+                    logger=ottoLogger
                 )
                 writes.extend(missionDict.items())
 

@@ -13,6 +13,7 @@ from Otto_API.Common.TagHelpers import getMainControlRuntimePath
 from Otto_API.Common.TagHelpers import getPlcRootPath
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readTagValues
+from Otto_API.Common.TagHelpers import writeRequiredTagValues
 from Otto_API.Common.TagHelpers import writeTagValues
 from Otto_API.AttachmentPhaseHelpers import buildMissionControlFlags
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
@@ -242,7 +243,11 @@ def writeRuntimeFields(fieldValues):
         writePaths.append(path)
         writeValues.append(value)
     if writePaths:
-        writeTagValues(writePaths, writeValues)
+        writeRequiredTagValues(
+            writePaths,
+            writeValues,
+            labels=["MainController robot state"] * len(writePaths)
+        )
 
 
 def appendRuntimeDatasetRow(
@@ -426,7 +431,11 @@ def writeRobotState(robotName, state):
         writeValues.append(normalizedState[fieldName])
 
     if writePaths:
-        writeTagValues(writePaths, writeValues)
+        writeRequiredTagValues(
+            writePaths,
+            writeValues,
+            labels=["MainController robot state"] * len(writePaths)
+        )
 
 
 def readPlcInputs(robotName):
@@ -456,7 +465,7 @@ def writePlcOutputs(robotName, outputs):
     """Write the PLC-facing status bits that summarize the runner's decision for this cycle."""
     paths = plcPaths(robotName)
     outputs = dict(outputs or {})
-    writeTagValues(
+    writeRequiredTagValues(
         [
             paths["available_for_work"],
             paths["active_mission_count"],
@@ -488,14 +497,15 @@ def writePlcOutputs(robotName, outputs):
             _toBool(outputs.get("control_healthy", True)),
             _toBool(outputs.get("request_conflict")),
             _toBool(outputs.get("request_invalid")),
-        ]
+        ],
+        labels=["MainController PLC output"] * 14
     )
 
 
 def writePlcHealthOutputs(robotName, fleetFault=False, plcCommFault=False, controlHealthy=True):
     """Update only the health subset when the loop skips normal PLC evaluation."""
     paths = plcPaths(robotName)
-    writeTagValues(
+    writeRequiredTagValues(
         [
             paths["fleet_fault"],
             paths["plc_comm_fault"],
@@ -505,7 +515,8 @@ def writePlcHealthOutputs(robotName, fleetFault=False, plcCommFault=False, contr
             _toBool(fleetFault),
             _toBool(plcCommFault),
             _toBool(controlHealthy),
-        ]
+        ],
+        labels=["MainController PLC health output"] * 3
     )
 
 

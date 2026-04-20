@@ -5,6 +5,7 @@ import re
 from Otto_API.Common.TagHelpers import browseTagResults
 from Otto_API.Common.TagHelpers import getMainControlRobotsPath
 from Otto_API.Common.TagHelpers import readTagValues
+from Otto_API.Common.TagHelpers import writeObservedTagValues
 from Otto_API.Common.TagHelpers import writeTagValues
 
 
@@ -376,9 +377,11 @@ def invalidateRobotSyncState(robotPath):
     """
     writes = buildInvalidRobotSyncWrites(robotPath)
     if writes:
-        writeTagValues(
+        writeObservedTagValues(
             [path for path, _ in writes],
-            [value for _, value in writes]
+            [value for _, value in writes],
+            labels=["Otto_API.FleetSync invalid robot clear"] * len(writes),
+            logger=_log()
         )
     return writes
 

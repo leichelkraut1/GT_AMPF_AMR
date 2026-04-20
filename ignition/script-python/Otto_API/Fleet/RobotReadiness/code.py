@@ -7,6 +7,7 @@ from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
 from Otto_API.Common.TagHelpers import readTagValues
+from Otto_API.Common.TagHelpers import writeObservedTagValues
 from Otto_API.Common.TagHelpers import writeTagValues
 from Otto_API.Common.TagHelpers import writeTagValue
 
@@ -509,7 +510,12 @@ def updateAvailableForWork():
         writeValues = readinessBatch["write_values"]
 
         if writePaths:
-            writeTagValues(writePaths, writeValues)
+            writeObservedTagValues(
+                writePaths,
+                writeValues,
+                labels=["Otto_API.RobotReadiness write"] * len(writePaths),
+                logger=ottoLogger
+            )
 
         message = "AvailableForWork updated for {} robot(s)".format(
             len(robotResults)
