@@ -4,6 +4,7 @@ from Otto_API.Common.TagHelpers import getApiBaseUrl
 from Otto_API.Common.TagHelpers import getFleetMapsPath
 from Otto_API.Common.TagHelpers import getFleetPlacesPath
 from Otto_API.Common.TagHelpers import getFleetRobotsPath
+from Otto_API.Common.TagHelpers import getFleetContainersPath
 from Otto_API.Common.TagHelpers import getFleetSystemPath
 from Otto_API.Common.TagHelpers import getFleetWorkflowsPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
@@ -14,6 +15,7 @@ from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagHelpers import deleteTagPath
+from Otto_API.Common.TagHelpers import ensureFolder
 from Otto_API.Common.TagHelpers import ensureUdtInstancePath
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
@@ -32,6 +34,7 @@ from Otto_API.Fleet.ContentSync import buildRobotTagValues
 from Otto_API.Fleet.ContentSync import buildUdtInstanceDef
 from Otto_API.Fleet.ContentSync import buildWorkflowTagValues
 from Otto_API.Fleet.ContentSync import listUdtInstanceNames
+from Otto_API.Fleet.ContentSync import normalizeContainerRecord
 from Otto_API.Fleet.ContentSync import normalizePlaceRecord
 from Otto_API.Fleet.ContentSync import sanitizeTagName
 from Otto_API.Fleet.ContentSync import selectMostRecentMap
@@ -58,6 +61,7 @@ ROBOTS_BASE_PATH = getFleetRobotsPath()
 PLACES_BASE_PATH = getFleetPlacesPath()
 MAPS_BASE_PATH = getFleetMapsPath()
 WORKFLOWS_BASE_PATH = getFleetWorkflowsPath()
+CONTAINERS_BASE_PATH = getFleetContainersPath()
 ROBOT_STATE_LOG_SIGNATURE_MEMBER = "LastRobotStateLogSignature"
 _MISSING_ROBOT_STATE_LOG_SIGNATURE_PATHS = set()
 
@@ -1033,3 +1037,81 @@ def updateWorkflows():
     except Exception as e:
         ottoLogger.error("Otto API - Workflows tag update failed: {}".format(str(e)))
         return _buildSyncResult(False, "error", "Workflow tag update failed: {}".format(str(e)))
+
+
+def updateContainers():
+    """
+    Gets container data from Otto and creates tags in [Otto_FleetManager]Fleet/Containers.
+    Container instances are named by container ID and stale instances are removed.
+    """
+    url = getApiBaseUrl() + "/containers/?fields=%2A"
+    ottoLogger = _log()
+
+    ottoLogger.info("Otto API - Updating /Containers/")
+
+    try:
+        response = httpGet(url=url, headerValues=jsonHeaders())
+        writeLastSystemResponse(response)
+
+        if response:
+            try:
+                data = parseListPayload(response)
+            except Exception as jsonErr:
+                ottoLogger.error("Otto API - Containers JSON decode error: {}".format(jsonErr))
+                return _buildSyncResult(False, "error", "Containers JSON decode error - {}".format(jsonErr))
+
+            ensureFolder(CONTAINERS_BASE_PATH)
+            basePath = CONTAINERS_BASE_PATH
+            apiContainers = []
+            writes = []
+
+            for containerRecord in data:
+                normalizedContainer = normalizeContainerRecord(containerRecord)
+                if normalizedContainer is None:
+                    continue
+
+                instanceName = normalizedContainer["instance_name"]
+                apiContainers.append(instanceName)
+                instancePath = basePath + "/" + instanceName
+
+                if not tagExists(instancePath):
+                    ensureUdtInstancePath(instancePath, "api_Container")
+                    ottoLogger.info("Otto API - Created new container tag instance: " + instanceName)
+                else:
+                    ottoLogger.info("Otto API - Updating existing container tag instance: " + instanceName)
+
+                tagDict = {}
+                for suffix, value in normalizedContainer["tag_values"].items():
+                    tagDict[instancePath + suffix] = value
+
+                writeObservedTagValues(
+                    list(tagDict.keys()),
+                    list(tagDict.values()),
+                    labels=["Otto_API.Get container sync"] * len(tagDict),
+                    logger=ottoLogger
+                )
+                writes.extend(tagDict.items())
+
+            try:
+                existingContainers = listUdtInstanceNames(browseTagResults(basePath))
+
+                for containerName in existingContainers:
+                    if containerName not in apiContainers:
+                        deleteTagPath(basePath + "/" + containerName)
+                        ottoLogger.info("Otto API - Removed stale container tag instance: " + containerName)
+            except Exception as e:
+                ottoLogger.warn("Otto API - Container cleanup skipped due to error: " + str(e))
+
+            return _buildSyncResult(
+                True,
+                "info",
+                "Containers updated for {} instance(s)".format(len(apiContainers)),
+                records=data,
+                writes=writes
+            )
+
+        ottoLogger.error("Otto API - HTTP GET failed for /Containers/")
+        return _buildSyncResult(False, "error", "HTTP GET failed for /Containers/")
+    except Exception as e:
+        ottoLogger.error("Otto API - Containers tag update failed: {}".format(str(e)))
+        return _buildSyncResult(False, "error", "Containers tag update failed: {}".format(str(e)))

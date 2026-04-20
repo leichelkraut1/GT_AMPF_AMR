@@ -67,9 +67,14 @@ def runMainControllerCycle(
     """
     serverStatusResult = Get.readCachedServerStatus()
     robotStateResult = Get.updateRobotOperationalState()
+    containerStateResult = Get.updateContainers()
     missionSortResult = MissionSorting.run()
 
-    canEvaluatePlc = robotStateResult.get("ok") and missionSortResult.get("ok")
+    canEvaluatePlc = (
+        robotStateResult.get("ok")
+        and containerStateResult.get("ok")
+        and missionSortResult.get("ok")
+    )
     if canEvaluatePlc:
         workflowResult = runAllRobotWorkflowCycles(
             nowEpochMs=nowEpochMs,
@@ -106,11 +111,13 @@ def runMainControllerCycle(
         data={
             "server_status": serverStatusResult,
             "robot_state": robotStateResult,
+            "container_state": containerStateResult,
             "mission_sorting": missionSortResult,
             "workflow_cycles": workflowResult,
         },
         server_status=serverStatusResult,
         robot_state=robotStateResult,
+        container_state=containerStateResult,
         mission_sorting=missionSortResult,
         workflow_cycles=workflowResult,
     )

@@ -1,0 +1,23 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "onTagChange.py"
+  ],
+  "attributes": {
+    "changeTypes": [
+      "ValueChange"
+    ],
+    "lastModificationSignature": "container-update-1",
+    "paths": [
+      "[Otto_FleetManager]Fleet/Triggers/Containers/UpdateContainer1ToPlace1"
+    ],
+    "lastModification": {
+      "actor": "FAS",
+      "timestamp": "2026-04-20T00:00:00Z"
+    },
+    "enabled": true
+  }
+}
