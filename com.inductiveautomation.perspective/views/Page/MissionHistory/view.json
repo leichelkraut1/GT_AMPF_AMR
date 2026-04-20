@@ -764,14 +764,7 @@
             }
           },
           "selection": {
-            "data": [
-              {
-                "WorkflowNumber": "602"
-              }
-            ],
-            "enableColumnSelection": true,
-            "selectedColumn": "WorkflowNumber",
-            "selectedRow": 497
+            "enableColumnSelection": true
           },
           "sortOrder": [
             "Ts"
