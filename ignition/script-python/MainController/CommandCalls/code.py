@@ -50,6 +50,7 @@ def _buildOutputs(
     fleetFault = bool(fleetFault)
     return {
         "available_for_work": bool(mirrorInputs.get("available_for_work")),
+        "active_mission_count": int(mirrorInputs.get("active_mission_count") or 0),
         "active_workflow_number": normalizeWorkflowNumber(activeWorkflowNumber) or 0,
         "mission_starved": bool(mirrorInputs.get("mission_starved")),
         "mission_ready_for_attachment": bool(mirrorInputs.get("mission_ready_for_attachment")),

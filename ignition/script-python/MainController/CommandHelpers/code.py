@@ -96,6 +96,7 @@ def plcPaths(robotName):
         "requested_workflow_number": fromPlc + "/RequestedWorkflowNumber",
         "finalize_ok": fromPlc + "/FinalizeOk",
         "available_for_work": toPlc + "/AvailableForWork",
+        "active_mission_count": toPlc + "/ActiveMissionCount",
         "active_workflow_number": toPlc + "/ActiveWorkflowNumber",
         "mission_starved": toPlc + "/MissionStarved",
         "mission_ready_for_attachment": toPlc + "/MissionReadyforAttachment",
@@ -394,6 +395,7 @@ def writePlcOutputs(robotName, outputs):
     writeTagValues(
         [
             paths["available_for_work"],
+            paths["active_mission_count"],
             paths["active_workflow_number"],
             paths["mission_starved"],
             paths["mission_ready_for_attachment"],
@@ -409,6 +411,7 @@ def writePlcOutputs(robotName, outputs):
         ],
         [
             _toBool(outputs.get("available_for_work")),
+            int(outputs.get("active_mission_count") or 0),
             normalizeWorkflowNumber(outputs.get("active_workflow_number")) or 0,
             _toBool(outputs.get("mission_starved")),
             _toBool(outputs.get("mission_ready_for_attachment")),
@@ -452,6 +455,7 @@ def readRobotMirrorInputs(robotName):
     missionControlFlags = buildMissionControlFlags(missionStarved)
     return {
         "available_for_work": _toBool(readOptionalTagValue(robotPath + "/AvailableForWork", False)),
+        "active_mission_count": int(readOptionalTagValue(robotPath + "/ActiveMissionCount", 0) or 0),
         "mission_starved": missionControlFlags["mission_starved"],
         "mission_ready_for_attachment": missionControlFlags["ready_for_attachment"],
     }
