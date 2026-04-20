@@ -1047,8 +1047,6 @@ def updateContainers():
     url = getApiBaseUrl() + "/containers/?fields=%2A"
     ottoLogger = _log()
 
-    ottoLogger.info("Otto API - Updating /Containers/")
-
     try:
         response = httpGet(url=url, headerValues=jsonHeaders())
         writeLastSystemResponse(response)
@@ -1077,8 +1075,6 @@ def updateContainers():
                 if not tagExists(instancePath):
                     ensureUdtInstancePath(instancePath, "api_Container")
                     ottoLogger.info("Otto API - Created new container tag instance: " + instanceName)
-                else:
-                    ottoLogger.info("Otto API - Updating existing container tag instance: " + instanceName)
 
                 tagDict = {}
                 for suffix, value in normalizedContainer["tag_values"].items():

@@ -8,7 +8,7 @@ from Otto_API.Common.TagHelpers import writeRequiredTagValues
 
 CONTAINER1_ID = "SOMEID"
 PLACE1_ID = "e1f2fcfe-caad-45fa-ab3d-db9bed61dfba"
-CONTAINER1_TEMPLATE_PATH = "[Otto_FleetManager]Fleet/Containers/TestTemplates/Container1"
+CONTAINER1_TEMPLATE_PATH = "[Otto_FleetManager]Fleet/Containers/Templates/Container1"
 
 
 def buildMissionTriggerPath(triggerBase, triggerName):
@@ -40,7 +40,7 @@ def ensureContainerTestTemplate():
     Ensure the fixed test template container instance exists for container triggers.
     """
     ensureFolder(getFleetContainersPath())
-    ensureFolder(getFleetContainersPath() + "/TestTemplates")
+    ensureFolder(getFleetContainersPath() + "/Templates")
     ensureUdtInstancePath(CONTAINER1_TEMPLATE_PATH, "api_Container")
     writeRequiredTagValues(
         [
