@@ -205,12 +205,12 @@ def ensureRuntimeTags():
     ensureMemoryTag(paths["loop_overlap_count"], "Int4", 0)
     ensureMemoryTag(
         paths["command_history"],
-        "Dataset",
+        "DataSet",
         system.dataset.toDataSet(COMMAND_HISTORY_HEADERS, [])
     )
     ensureMemoryTag(
         paths["mission_state_history"],
-        "Dataset",
+        "DataSet",
         system.dataset.toDataSet(MISSION_STATE_HISTORY_HEADERS, [])
     )
 
