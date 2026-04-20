@@ -148,6 +148,21 @@ MISSION_STATE_HISTORY_HEADERS = [
     "WorkflowNumber",
 ]
 
+INTERNAL_STATE_FIELD_NAMES = [
+    "force_robot_ready",
+    "request_latched",
+    "selected_workflow_number",
+    "state",
+    "mission_created",
+    "mission_needs_finalized",
+    "last_command_ts",
+    "last_result",
+    "last_command_id",
+    "last_logged_signature",
+    "last_computed_log_signature",
+    "last_log_decision",
+]
+
 
 def ensureRobotRunnerTags(robotName):
     """Provision the per-robot controller state and PLC interface tags on demand."""
@@ -357,73 +372,32 @@ def readRobotState(robotName):
     ])
 
     rawState = {}
-    keys = [
-        "force_robot_ready",
-        "request_latched",
-        "selected_workflow_number",
-        "state",
-        "mission_created",
-        "mission_needs_finalized",
-        "last_command_ts",
-        "last_result",
-        "last_command_id",
-        "last_logged_signature",
-        "last_computed_log_signature",
-        "last_log_decision",
-    ]
+    keys = INTERNAL_STATE_FIELD_NAMES
     for key, qualifiedValue in zip(keys, values):
         rawState[key] = qualifiedValue.value if qualifiedValue.quality.isGood() else None
     return normalizeRobotState(rawState)
 
 
 def writeRobotState(robotName, state):
-    """Persist robot state while preserving fields not being updated in this cycle."""
+    """Persist only the provided robot-state fields after normalizing against the current state."""
     incomingState = dict(state or {})
-    mergedState = dict(readRobotState(robotName) or {})
-    for preservedField in [
-        "last_logged_signature",
-        "last_computed_log_signature",
-        "last_log_decision",
-    ]:
-        if (
-            incomingState.get(preservedField) in [None, ""]
-            and mergedState.get(preservedField) not in [None, ""]
-        ):
-            incomingState.pop(preservedField, None)
+    if not incomingState:
+        return
 
+    mergedState = dict(readRobotState(robotName) or {})
     mergedState.update(incomingState)
-    state = normalizeRobotState(mergedState)
+    normalizedState = normalizeRobotState(mergedState)
     paths = internalStatePaths(robotName)
-    writeTagValues(
-        [
-            paths["force_robot_ready"],
-            paths["request_latched"],
-            paths["selected_workflow_number"],
-            paths["state"],
-            paths["mission_created"],
-            paths["mission_needs_finalized"],
-            paths["last_command_ts"],
-            paths["last_result"],
-            paths["last_command_id"],
-            paths["last_logged_signature"],
-            paths["last_computed_log_signature"],
-            paths["last_log_decision"],
-        ],
-        [
-            state["force_robot_ready"],
-            state["request_latched"],
-            state["selected_workflow_number"],
-            state["state"],
-            state["mission_created"],
-            state["mission_needs_finalized"],
-            state["last_command_ts"],
-            state["last_result"],
-            state["last_command_id"],
-            state["last_logged_signature"],
-            state["last_computed_log_signature"],
-            state["last_log_decision"],
-        ]
-    )
+    writePaths = []
+    writeValues = []
+    for fieldName in INTERNAL_STATE_FIELD_NAMES:
+        if fieldName not in incomingState:
+            continue
+        writePaths.append(paths[fieldName])
+        writeValues.append(normalizedState[fieldName])
+
+    if writePaths:
+        writeTagValues(writePaths, writeValues)
 
 
 def readPlcInputs(robotName):

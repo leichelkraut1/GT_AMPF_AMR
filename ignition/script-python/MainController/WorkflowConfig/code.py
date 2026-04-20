@@ -1,3 +1,5 @@
+import re
+
 from Otto_API.Common.TagHelpers import getFleetRobotsPath
 from Otto_API.Common.TagHelpers import getFleetWorkflowsPath
 
@@ -125,6 +127,9 @@ ROBOT_NAMES = [
     "AMPF_AMR_RV5",
 ]
 
+MISSION_NAME_MAX_LENGTH = 64
+MISSION_NAME_TOKEN_RE = re.compile(r"[^A-Za-z0-9]+")
+
 
 def normalizeWorkflowNumber(value):
     """Normalize PLC/workflow inputs so 0, blank, and invalid values all collapse to None."""
@@ -169,13 +174,42 @@ def robotIdTagPath(robotName):
     return getFleetRobotsPath() + "/{}/ID".format(robotName)
 
 
+def _sanitizeMissionNameToken(value):
+    token = MISSION_NAME_TOKEN_RE.sub("_", str(value or "").strip())
+    token = token.strip("_")
+    return token or "Unknown"
+
+
+def _shortRobotToken(robotName):
+    text = str(robotName or "").strip()
+    if "_" in text:
+        return text.split("_")[-1]
+    return text or "Robot"
+
+
 def buildMissionName(workflowNumber, robotName):
-    """Build the mission name format that lets MainController recover the workflow number later."""
+    """
+    Build a compact mission name that stays under OTTO validation limits.
+
+    The name must keep the leading workflow number for later parsing, while still
+    carrying enough place context to be useful in logs and the UI.
+    """
     workflowDef = getWorkflowDef(workflowNumber)
     if workflowDef is None:
         return None
-    return "WF{}_{} with {}".format(
-        workflowDef["workflow_number"],
-        workflowDef["place_name"],
-        robotName
+
+    workflowToken = "WF{}".format(workflowDef["workflow_number"])
+    robotToken = _sanitizeMissionNameToken(_shortRobotToken(robotName))
+    placeToken = _sanitizeMissionNameToken(workflowDef["place_name"])
+
+    reservedLength = len(workflowToken) + len(robotToken) + 2
+    maxPlaceLength = max(8, MISSION_NAME_MAX_LENGTH - reservedLength)
+    if len(placeToken) > maxPlaceLength:
+        placeToken = placeToken[:maxPlaceLength].rstrip("_")
+
+    missionName = "{}_{}_{}".format(
+        workflowToken,
+        placeToken,
+        robotToken
     )
+    return missionName[:MISSION_NAME_MAX_LENGTH].rstrip("_")

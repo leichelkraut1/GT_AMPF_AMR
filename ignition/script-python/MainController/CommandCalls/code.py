@@ -95,24 +95,31 @@ def _callCancelMission(robotName, cancelMission=None):
 def _buildState(
     stateName,
     nowEpochMs,
-    selectedWorkflowNumber=0,
-    requestLatched=False,
-    missionCreated=False,
-    missionNeedsFinalized=False,
-    lastResult="",
-    lastCommandId=""
+    selectedWorkflowNumber=None,
+    requestLatched=None,
+    missionCreated=None,
+    missionNeedsFinalized=None,
+    lastResult=None,
+    lastCommandId=None
 ):
-    """Create the persisted internal state record for one robot cycle result."""
-    return normalizeRobotState({
-        "request_latched": requestLatched,
-        "selected_workflow_number": normalizeWorkflowNumber(selectedWorkflowNumber) or 0,
+    """Build a robot-state patch for one controller decision."""
+    patch = {
         "state": stateName,
-        "mission_created": missionCreated,
-        "mission_needs_finalized": missionNeedsFinalized,
         "last_command_ts": timestampString(nowEpochMs),
-        "last_result": lastResult,
-        "last_command_id": lastCommandId,
-    })
+    }
+    if requestLatched is not None:
+        patch["request_latched"] = requestLatched
+    if selectedWorkflowNumber is not None:
+        patch["selected_workflow_number"] = normalizeWorkflowNumber(selectedWorkflowNumber) or 0
+    if missionCreated is not None:
+        patch["mission_created"] = missionCreated
+    if missionNeedsFinalized is not None:
+        patch["mission_needs_finalized"] = missionNeedsFinalized
+    if lastResult is not None:
+        patch["last_result"] = lastResult
+    if lastCommandId is not None:
+        patch["last_command_id"] = lastCommandId
+    return patch
 
 
 def _recordCommandHistory(nowEpochMs, cycleResult):
@@ -265,6 +272,7 @@ def runRobotWorkflowCycle(
                     "idle",
                     nowEpochMs,
                     selectedWorkflowNumber=selectedWorkflowNumber,
+                    requestLatched=False,
                     missionCreated=False,
                     missionNeedsFinalized=False,
                     lastResult="prior workflow canceled; ready to request {}".format(selectedWorkflowNumber),
@@ -275,6 +283,10 @@ def runRobotWorkflowCycle(
                 nextState = _buildState(
                     "idle",
                     nowEpochMs,
+                    selectedWorkflowNumber=0,
+                    requestLatched=False,
+                    missionCreated=False,
+                    missionNeedsFinalized=False,
                     lastResult="finalize cleared; no active mission remained",
                     lastCommandId=currentState["last_command_id"],
                 )
@@ -313,6 +325,7 @@ def runRobotWorkflowCycle(
                                 "switch_cancel_requested",
                                 nowEpochMs,
                                 selectedWorkflowNumber=selectedWorkflowNumber,
+                                requestLatched=False,
                                 missionCreated=True,
                                 missionNeedsFinalized=True,
                                 lastResult=currentState["last_result"] or "waiting for canceled mission to clear",
@@ -339,6 +352,7 @@ def runRobotWorkflowCycle(
                             "switch_cancel_requested",
                             nowEpochMs,
                             selectedWorkflowNumber=selectedWorkflowNumber,
+                            requestLatched=False,
                             missionCreated=True,
                             missionNeedsFinalized=True,
                             lastResult=result.get("message", ""),
@@ -360,6 +374,7 @@ def runRobotWorkflowCycle(
                         "failed",
                         nowEpochMs,
                         selectedWorkflowNumber=selectedWorkflowNumber,
+                        requestLatched=False,
                         missionCreated=currentState["mission_created"],
                         missionNeedsFinalized=True,
                         lastResult=result.get("message", ""),
@@ -383,6 +398,7 @@ def runRobotWorkflowCycle(
                         "success",
                         nowEpochMs,
                         selectedWorkflowNumber=currentState["selected_workflow_number"],
+                        requestLatched=False,
                         missionCreated=False,
                         missionNeedsFinalized=False,
                         lastResult=result.get("message", ""),
@@ -490,6 +506,12 @@ def runRobotWorkflowCycle(
             )
 
         nextState = _buildState("idle", nowEpochMs)
+        nextState["selected_workflow_number"] = 0
+        nextState["request_latched"] = False
+        nextState["mission_created"] = False
+        nextState["mission_needs_finalized"] = False
+        nextState["last_result"] = ""
+        nextState["last_command_id"] = ""
         writeRobotState(robotName, nextState)
         writePlcOutputs(
             robotName,
@@ -548,6 +570,9 @@ def runRobotWorkflowCycle(
             "request_invalid",
             nowEpochMs,
             selectedWorkflowNumber=selectedWorkflowNumber,
+            requestLatched=False,
+            missionCreated=False,
+            missionNeedsFinalized=False,
             lastResult="workflow {} invalid for {}".format(selectedWorkflowNumber, robotName),
             lastCommandId=currentState["last_command_id"],
         )
@@ -576,6 +601,9 @@ def runRobotWorkflowCycle(
             "request_conflict",
             nowEpochMs,
             selectedWorkflowNumber=selectedWorkflowNumber,
+            requestLatched=False,
+            missionCreated=False,
+            missionNeedsFinalized=False,
             lastResult="workflow {} already reserved by {}".format(selectedWorkflowNumber, owner),
             lastCommandId=currentState["last_command_id"],
         )
@@ -668,6 +696,9 @@ def runRobotWorkflowCycle(
             "waiting_available",
             nowEpochMs,
             selectedWorkflowNumber=selectedWorkflowNumber,
+            requestLatched=False,
+            missionCreated=False,
+            missionNeedsFinalized=False,
             lastResult="robot not available for work",
             lastCommandId=currentState["last_command_id"],
         )
