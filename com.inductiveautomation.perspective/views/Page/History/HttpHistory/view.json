@@ -11,10 +11,10 @@
     "children": [
       {
         "meta": {
-          "name": "Table"
+          "name": "HttpHistoryTable"
         },
         "position": {
-          "height": "98%",
+          "height": "47%",
           "width": "98%",
           "x": "1%",
           "y": "1%"
@@ -112,10 +112,13 @@
               "sortable": true,
               "style": {
                 "borderRight": "1px solid #d7dce5",
+                "overflow": "hidden",
                 "paddingLeft": "10px",
-                "paddingRight": "10px"
+                "paddingRight": "10px",
+                "textOverflow": "ellipsis",
+                "whiteSpace": "nowrap"
               },
-              "width": 260
+              "width": 200
             },
             {
               "field": "Request",
@@ -137,10 +140,13 @@
               "sortable": false,
               "style": {
                 "borderRight": "1px solid #d7dce5",
+                "overflow": "hidden",
                 "paddingLeft": "10px",
-                "paddingRight": "10px"
+                "paddingRight": "10px",
+                "textOverflow": "ellipsis",
+                "whiteSpace": "nowrap"
               },
-              "width": 240
+              "width": 190
             },
             {
               "field": "Response",
@@ -162,10 +168,13 @@
               "sortable": false,
               "style": {
                 "borderRight": "1px solid #d7dce5",
+                "overflow": "hidden",
                 "paddingLeft": "10px",
-                "paddingRight": "10px"
+                "paddingRight": "10px",
+                "textOverflow": "ellipsis",
+                "whiteSpace": "nowrap"
               },
-              "width": 240
+              "width": 190
             },
             {
               "field": "Ok",
@@ -237,15 +246,18 @@
               },
               "sortable": false,
               "style": {
+                "overflow": "hidden",
                 "paddingLeft": "10px",
-                "paddingRight": "10px"
+                "paddingRight": "10px",
+                "textOverflow": "ellipsis",
+                "whiteSpace": "nowrap"
               },
-              "width": 220
+              "width": 160
             }
           ],
           "dragOrderable": false,
           "pager": {
-            "activeOption": 100
+            "activeOption": 25
           },
           "rows": {
             "striped": {
@@ -272,6 +284,201 @@
           }
         },
         "type": "ia.display.table"
+      },
+      {
+        "meta": {
+          "hasDelegate": true,
+          "name": "UrlTitle"
+        },
+        "position": {
+          "height": "4%",
+          "width": "98%",
+          "x": "1%",
+          "y": "50%"
+        },
+        "props": {
+          "style": {
+            "color": "#111827",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "paddingLeft": "4px"
+          },
+          "text": "URL"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "hasDelegate": true,
+          "name": "UrlValue"
+        },
+        "position": {
+          "height": "14%",
+          "width": "98%",
+          "x": "1%",
+          "y": "54%"
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "../HttpHistoryTable.props.selection.data"
+              },
+              "transforms": [
+                {
+                  "code": "def value_for_key(selection, key):\n\tif selection is None:\n\t\treturn \"\"\n\ttry:\n\t\tif hasattr(selection, '__len__') and len(selection) == 0:\n\t\t\treturn \"\"\n\texcept Exception:\n\t\tpass\n\trow = selection\n\ttry:\n\t\tif isinstance(selection, list):\n\t\t\trow = selection[0]\n\texcept Exception:\n\t\trow = selection\n\ttry:\n\t\tif hasattr(row, 'get'):\n\t\t\tif row.get(key) is not None:\n\t\t\t\treturn unicode(row.get(key))\n\t\t\tinner = row.get('value')\n\t\t\tif hasattr(inner, 'get') and inner.get(key) is not None:\n\t\t\t\treturn unicode(inner.get(key))\n\texcept Exception:\n\t\tpass\n\ttry:\n\t\tfor cell in selection:\n\t\t\tif not hasattr(cell, 'get'):\n\t\t\t\tcontinue\n\t\t\tname = cell.get('column') or cell.get('field') or cell.get('name')\n\t\t\tif name == key:\n\t\t\t\tcell_value = cell.get('value')\n\t\t\t\tif hasattr(cell_value, 'get') and cell_value.get('value') is not None:\n\t\t\t\t\treturn unicode(cell_value.get('value'))\n\t\t\t\tif cell_value is not None:\n\t\t\t\t\treturn unicode(cell_value)\n\texcept Exception:\n\t\tpass\n\treturn \"\"\n\nreturn value_for_key(value, 'Url')",
+                  "type": "script"
+                }
+              ],
+              "type": "property"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#ffffff",
+            "border": "1px solid #cfd6df",
+            "borderRadius": "6px",
+            "color": "#111827",
+            "fontFamily": "Consolas, monospace",
+            "fontSize": "12px",
+            "overflow": "auto",
+            "padding": "8px",
+            "whiteSpace": "pre-wrap"
+          },
+          "text": ""
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "hasDelegate": true,
+          "name": "RequestTitle"
+        },
+        "position": {
+          "height": "4%",
+          "width": "48%",
+          "x": "1%",
+          "y": "70%"
+        },
+        "props": {
+          "style": {
+            "color": "#111827",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "paddingLeft": "4px"
+          },
+          "text": "Request Body"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "hasDelegate": true,
+          "name": "ResponseTitle"
+        },
+        "position": {
+          "height": "4%",
+          "width": "48%",
+          "x": "51%",
+          "y": "70%"
+        },
+        "props": {
+          "style": {
+            "color": "#111827",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "paddingLeft": "4px"
+          },
+          "text": "Response"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "hasDelegate": true,
+          "name": "RequestValue"
+        },
+        "position": {
+          "height": "27%",
+          "width": "48%",
+          "x": "1%",
+          "y": "74%"
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "../HttpHistoryTable.props.selection.data"
+              },
+              "transforms": [
+                {
+                  "code": "def value_for_key(selection, key):\n\tif selection is None:\n\t\treturn \"\"\n\ttry:\n\t\tif hasattr(selection, '__len__') and len(selection) == 0:\n\t\t\treturn \"\"\n\texcept Exception:\n\t\tpass\n\trow = selection\n\ttry:\n\t\tif isinstance(selection, list):\n\t\t\trow = selection[0]\n\texcept Exception:\n\t\trow = selection\n\ttry:\n\t\tif hasattr(row, 'get'):\n\t\t\tif row.get(key) is not None:\n\t\t\t\treturn unicode(row.get(key))\n\t\t\tinner = row.get('value')\n\t\t\tif hasattr(inner, 'get') and inner.get(key) is not None:\n\t\t\t\treturn unicode(inner.get(key))\n\texcept Exception:\n\t\tpass\n\ttry:\n\t\tfor cell in selection:\n\t\t\tif not hasattr(cell, 'get'):\n\t\t\t\tcontinue\n\t\t\tname = cell.get('column') or cell.get('field') or cell.get('name')\n\t\t\tif name == key:\n\t\t\t\tcell_value = cell.get('value')\n\t\t\t\tif hasattr(cell_value, 'get') and cell_value.get('value') is not None:\n\t\t\t\t\treturn unicode(cell_value.get('value'))\n\t\t\t\tif cell_value is not None:\n\t\t\t\t\treturn unicode(cell_value)\n\texcept Exception:\n\t\tpass\n\treturn \"\"\n\nreturn value_for_key(value, 'Request')",
+                  "type": "script"
+                }
+              ],
+              "type": "property"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#ffffff",
+            "border": "1px solid #cfd6df",
+            "borderRadius": "6px",
+            "color": "#111827",
+            "fontFamily": "Consolas, monospace",
+            "fontSize": "12px",
+            "overflow": "auto",
+            "padding": "8px",
+            "whiteSpace": "pre-wrap"
+          },
+          "text": ""
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "hasDelegate": true,
+          "name": "ResponseValue"
+        },
+        "position": {
+          "height": "27%",
+          "width": "48%",
+          "x": "51%",
+          "y": "74%"
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "../HttpHistoryTable.props.selection.data"
+              },
+              "transforms": [
+                {
+                  "code": "def value_for_key(selection, key):\n\tif selection is None:\n\t\treturn \"\"\n\ttry:\n\t\tif hasattr(selection, '__len__') and len(selection) == 0:\n\t\t\treturn \"\"\n\texcept Exception:\n\t\tpass\n\trow = selection\n\ttry:\n\t\tif isinstance(selection, list):\n\t\t\trow = selection[0]\n\texcept Exception:\n\t\trow = selection\n\ttry:\n\t\tif hasattr(row, 'get'):\n\t\t\tif row.get(key) is not None:\n\t\t\t\treturn unicode(row.get(key))\n\t\t\tinner = row.get('value')\n\t\t\tif hasattr(inner, 'get') and inner.get(key) is not None:\n\t\t\t\treturn unicode(inner.get(key))\n\texcept Exception:\n\t\tpass\n\ttry:\n\t\tfor cell in selection:\n\t\t\tif not hasattr(cell, 'get'):\n\t\t\t\tcontinue\n\t\t\tname = cell.get('column') or cell.get('field') or cell.get('name')\n\t\t\tif name == key:\n\t\t\t\tcell_value = cell.get('value')\n\t\t\t\tif hasattr(cell_value, 'get') and cell_value.get('value') is not None:\n\t\t\t\t\treturn unicode(cell_value.get('value'))\n\t\t\t\tif cell_value is not None:\n\t\t\t\t\treturn unicode(cell_value)\n\texcept Exception:\n\t\tpass\n\treturn \"\"\n\nreturn value_for_key(value, 'Response')",
+                  "type": "script"
+                }
+              ],
+              "type": "property"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#ffffff",
+            "border": "1px solid #cfd6df",
+            "borderRadius": "6px",
+            "color": "#111827",
+            "fontFamily": "Consolas, monospace",
+            "fontSize": "12px",
+            "overflow": "auto",
+            "padding": "8px",
+            "whiteSpace": "pre-wrap"
+          },
+          "text": ""
+        },
+        "type": "ia.display.label"
       }
     ],
     "meta": {

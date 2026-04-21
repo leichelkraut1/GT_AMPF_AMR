@@ -15,19 +15,19 @@
     },
     "/httphistory": {
       "title": "",
-      "viewPath": "Page/HttpHistory"
+      "viewPath": "Page/History/HttpHistory"
     },
     "/missionhistory": {
       "title": "",
-      "viewPath": "Page/MissionHistory"
+      "viewPath": "Page/History/MissionHistory"
     },
     "/robothistory": {
       "title": "",
-      "viewPath": "Page/RobotHistory"
+      "viewPath": "Page/History/RobotHistory"
     },
     "/vehiclehistory": {
       "title": "Mission Control",
-      "viewPath": "Page/VehicleHistory"
+      "viewPath": "Page/History/VehicleHistory"
     }
   },
   "sharedDocks": {
