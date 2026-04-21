@@ -22,7 +22,7 @@ MAINCONTROL_INTERNAL_ROOT_TAG_PATH = MAINCONTROL_ROOT_TAG_PATH + "/Internal"
 MAINCONTROL_ROBOTS_ROOT_TAG_PATH = MAINCONTROL_ROOT_TAG_PATH + "/Robots"
 MAINCONTROL_RUNTIME_ROOT_TAG_PATH = MAINCONTROL_ROOT_TAG_PATH + "/Runtime"
 
-API_BASE_URL_TAG_PATH = FLEET_ROOT_TAG_PATH + "/Url_ApiBase"
+API_BASE_URL_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/Url_ApiBase"
 SYSTEM_LAST_RESPONSE_TAG_PATH = FLEET_SYSTEM_ROOT_TAG_PATH + "/lastResponse"
 MISSION_TRIGGER_LAST_RESPONSE_TAG_PATH = FLEET_MISSIONS_ROOT_TAG_PATH + "/Triggers/lastResponse"
 MISSION_MIN_CHARGE_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/MinChargeLevelForMissioning"
@@ -126,6 +126,10 @@ def getApiBaseUrl():
     Read the OTTO API base URL from the shared project tag.
     """
     return readRequiredTagValue(API_BASE_URL_TAG_PATH, "API base URL")
+
+
+def getApiBaseUrlPath():
+    return API_BASE_URL_TAG_PATH
 
 
 def getOttoOperationsUrl():
@@ -367,6 +371,7 @@ def ensureFleetConfigTags():
     """
     ensureFolder(getFleetRootPath())
     ensureFolder(getFleetConfigPath())
+    ensureMemoryTag(getApiBaseUrlPath(), "String", "")
     ensureMemoryTag(getRobotChargingDelayMsPath(), "Int8", 0)
     ensureMemoryTag(getMissionMinChargePath(), "Float4", 0.0)
     ensureMemoryTag(getMissionMaxCompletedCountPath(), "Int4", 20)
