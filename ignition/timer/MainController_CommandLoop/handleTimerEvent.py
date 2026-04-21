@@ -1,5 +1,5 @@
 def handleTimerEvent():
-	    """Handle Ignition timer event for the MainController workflow runner."""
+    """Handle Ignition timer event for the MainController workflow runner."""
     try:
         MainController.Loop.MainLoop.runMainControllerCycle()
     except Exception as e:
