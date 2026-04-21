@@ -314,7 +314,7 @@ Mission sorting is now intentionally split into:
   - removes stale `Completed`
   - applies completed retention pruning
 
-The slow maintenance pass is driven by the `OttoAPI_UpdateMissions` timer.
+The slow maintenance pass is driven by the `OttoAPI_UpdateCompletedMissions` timer.
 This keeps the fast loop focused on state that affects control decisions.
 
 ## Current Commissioning Checkpoint
