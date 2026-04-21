@@ -10,6 +10,9 @@
     "/charts": {
       "viewPath": "Page/Charts"
     },
+    "/historypage": {
+      "viewPath": "Page/HistoryPage"
+    },
     "/httphistory": {
       "title": "",
       "viewPath": "Page/HttpHistory"

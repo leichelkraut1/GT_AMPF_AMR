@@ -1,0 +1,66 @@
+{
+  "custom": {},
+  "params": {},
+  "props": {},
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "MissionHistory"
+        },
+        "props": {
+          "path": "Page/History/MissionHistory"
+        },
+        "type": "ia.display.view"
+      },
+      {
+        "meta": {
+          "name": "RobotHistory"
+        },
+        "position": {
+          "tabIndex": 1
+        },
+        "props": {
+          "path": "Page/History/RobotHistory"
+        },
+        "type": "ia.display.view"
+      },
+      {
+        "meta": {
+          "name": "VehicleHistory"
+        },
+        "position": {
+          "tabIndex": 2
+        },
+        "props": {
+          "path": "Page/History/VehicleHistory"
+        },
+        "type": "ia.display.view"
+      },
+      {
+        "meta": {
+          "name": "HttpHistory"
+        },
+        "position": {
+          "tabIndex": 3
+        },
+        "props": {
+          "path": "Page/History/HttpHistory"
+        },
+        "type": "ia.display.view"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "tabs": [
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    "type": "ia.container.tab"
+  }
+}
