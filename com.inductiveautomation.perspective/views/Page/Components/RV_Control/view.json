@@ -13,7 +13,7 @@
           "name": "AMR_Control"
         },
         "position": {
-          "basis": "336px"
+          "basis": "320px"
         },
         "props": {
           "params": {
@@ -28,7 +28,7 @@
           "name": "AMR_Control_0"
         },
         "position": {
-          "basis": "336px"
+          "basis": "320px"
         },
         "props": {
           "params": {
@@ -43,7 +43,7 @@
           "name": "AMR_Control_1"
         },
         "position": {
-          "basis": "336px"
+          "basis": "320px"
         },
         "props": {
           "params": {
@@ -58,7 +58,7 @@
           "name": "AMR_Control_2"
         },
         "position": {
-          "basis": "336px"
+          "basis": "320px"
         },
         "props": {
           "params": {
@@ -73,7 +73,7 @@
           "name": "AMR_Control_3"
         },
         "position": {
-          "basis": "336px"
+          "basis": "320px"
         },
         "props": {
           "params": {
