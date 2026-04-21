@@ -19,7 +19,11 @@
           "params": {
             "RVNum": 1
           },
-          "path": "Page/Components/AMR_Control"
+          "path": "Page/Components/AMR_Control",
+          "style": {
+            "marginBottom": "16px",
+            "marginRight": "16px"
+          }
         },
         "type": "ia.display.view"
       },
@@ -34,7 +38,11 @@
           "params": {
             "RVNum": 2
           },
-          "path": "Page/Components/AMR_Control"
+          "path": "Page/Components/AMR_Control",
+          "style": {
+            "marginBottom": "16px",
+            "marginRight": "16px"
+          }
         },
         "type": "ia.display.view"
       },
@@ -49,7 +57,11 @@
           "params": {
             "RVNum": 3
           },
-          "path": "Page/Components/AMR_Control"
+          "path": "Page/Components/AMR_Control",
+          "style": {
+            "marginBottom": "16px",
+            "marginRight": "16px"
+          }
         },
         "type": "ia.display.view"
       },
@@ -64,7 +76,11 @@
           "params": {
             "RVNum": 4
           },
-          "path": "Page/Components/AMR_Control"
+          "path": "Page/Components/AMR_Control",
+          "style": {
+            "marginBottom": "16px",
+            "marginRight": "16px"
+          }
         },
         "type": "ia.display.view"
       },
@@ -79,7 +95,11 @@
           "params": {
             "RVNum": 5
           },
-          "path": "Page/Components/AMR_Control"
+          "path": "Page/Components/AMR_Control",
+          "style": {
+            "marginBottom": "16px",
+            "marginRight": "16px"
+          }
         },
         "type": "ia.display.view"
       }
@@ -88,6 +108,10 @@
       "name": "root"
     },
     "props": {
+      "style": {
+        "paddingBottom": "8px",
+        "paddingRight": "8px"
+      },
       "wrap": "wrap"
     },
     "type": "ia.container.flex"

@@ -22,7 +22,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 560,
+      "height": 640,
       "width": 320
     }
   },
@@ -149,6 +149,35 @@
           }
         },
         "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "DisableIgnitionControlCheckbox"
+        },
+        "position": {
+          "basis": "40px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.selected": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]MainControl/Robots/AMPF_AMR_RV{1}/DisableIgnitionControl"
+              },
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "text": "Disable Ignition Control"
+        },
+        "type": "ia.input.checkbox"
       },
       {
         "meta": {
@@ -390,10 +419,29 @@
       },
       {
         "meta": {
+          "name": "CurrentMissionNameLabel"
+        },
+        "position": {
+          "basis": "20px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "color": "#475569",
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "paddingTop": "2px"
+          },
+          "text": "Mission Name"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
           "name": "CurrentMissionName"
         },
         "position": {
-          "basis": "40px",
+          "basis": "48px",
           "shrink": 0
         },
         "propConfig": {
@@ -409,7 +457,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"Mission Name: \" + if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                  "expression": "if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
                   "type": "expression"
                 }
               ],
@@ -420,8 +468,28 @@
         "props": {
           "style": {
             "fontSize": "13px",
-            "whiteSpace": "normal"
+            "paddingBottom": "2px",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
           }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CurrentMissionStatusLabel"
+        },
+        "position": {
+          "basis": "20px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "color": "#475569",
+            "fontSize": "12px",
+            "fontWeight": "700"
+          },
+          "text": "Mission Status"
         },
         "type": "ia.display.label"
       },
@@ -446,7 +514,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"Mission Status: \" + if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                  "expression": "if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
                   "type": "expression"
                 }
               ],
@@ -561,6 +629,30 @@
       },
       {
         "meta": {
+          "name": "ClearWFNumManualButton"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "events": {
+          "dom": {
+            "onClick": {
+              "config": {
+                "script": "\tsystem.tag.writeBlocking([\"[Otto_FleetManager]PLC/AMPF_AMR_RV%s/HMI/WF_NumManual\" % self.view.params.RVNum], [0])"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "props": {
+          "text": "Clear Mission Selection"
+        },
+        "type": "ia.input.button"
+      },
+      {
+        "meta": {
           "name": "WFSendManualNumCheckbox"
         },
         "position": {
@@ -617,35 +709,6 @@
         },
         "type": "ia.input.checkbox"
       },
-      {
-        "meta": {
-          "name": "DisableIgnitionControlCheckbox"
-        },
-        "position": {
-          "basis": "40px",
-          "shrink": 0
-        },
-        "propConfig": {
-          "props.selected": {
-            "binding": {
-              "config": {
-                "bidirectional": true,
-                "fallbackDelay": 2.5,
-                "mode": "indirect",
-                "references": {
-                  "1": "{view.params.RVNum}"
-                },
-                "tagPath": "[Otto_FleetManager]MainControl/Robots/AMPF_AMR_RV{1}/DisableIgnitionControl"
-              },
-              "type": "tag"
-            }
-          }
-        },
-        "props": {
-          "text": "Disable Ignition Control"
-        },
-        "type": "ia.input.checkbox"
-      }
     ],
     "meta": {
       "name": "root"

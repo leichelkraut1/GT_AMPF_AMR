@@ -35,10 +35,12 @@
           "name": "RuntimeCards"
         },
         "position": {
-          "basis": "230px",
           "shrink": 0
         },
         "props": {
+          "style": {
+            "paddingBottom": "8px"
+          },
           "wrap": "wrap"
         },
         "children": [
