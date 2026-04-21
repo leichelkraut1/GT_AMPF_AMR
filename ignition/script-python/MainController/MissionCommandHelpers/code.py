@@ -1,12 +1,11 @@
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import tagExists
 from Otto_API.Common.TagHelpers import writeRequiredTagValues
-
-from MainController.CommandHelpers import appendRuntimeDatasetRow
-from MainController.CommandHelpers import COMMAND_HISTORY_HEADERS
-from MainController.CommandHelpers import COMMAND_HISTORY_MAX_ROWS
-from MainController.CommandHelpers import timestampString
-from MainController.RobotActions import callMissionCommand
+from Otto_API.Common.RuntimeHistory import appendRuntimeDatasetRow
+from Otto_API.Common.RuntimeHistory import COMMAND_HISTORY_HEADERS
+from Otto_API.Common.RuntimeHistory import COMMAND_HISTORY_MAX_ROWS
+from Otto_API.Common.RuntimeHistory import timestampString
+from MainController.Robot.Actions import callMissionCommand
 from MainController.WorkflowConfig import normalizeWorkflowNumber
 
 
@@ -41,26 +40,30 @@ def _warnMissingMissionRuntimeMember(memberName):
     )
 
 
+def _missionRuntimeTagPath(instancePath, keyName, memberName, warn=True):
+    """Return one mission runtime helper tag path when the UDT member exists."""
+    if not instancePath:
+        return None
+    tagPath = _missionRuntimePaths(instancePath).get(keyName)
+    if not tagPath or not tagExists(tagPath):
+        if warn:
+            _warnMissingMissionRuntimeMember(memberName)
+        return None
+    return tagPath
+
+
 def _readMissionRuntimeValue(instancePath, keyName, memberName):
     """Read an optional mission runtime helper tag, warning once if the UDT member is absent."""
-    if not instancePath:
-        return ""
-    runtimePaths = _missionRuntimePaths(instancePath)
-    tagPath = runtimePaths.get(keyName)
-    if not tagPath or not tagExists(tagPath):
-        _warnMissingMissionRuntimeMember(memberName)
+    tagPath = _missionRuntimeTagPath(instancePath, keyName, memberName)
+    if not tagPath:
         return ""
     return str(readOptionalTagValue(tagPath, "", allowEmptyString=True) or "")
 
 
 def _writeMissionRuntimeValue(instancePath, keyName, memberName, value):
     """Write an optional mission runtime helper tag when the UDT member exists."""
-    if not instancePath:
-        return False
-    runtimePaths = _missionRuntimePaths(instancePath)
-    tagPath = runtimePaths.get(keyName)
-    if not tagPath or not tagExists(tagPath):
-        _warnMissingMissionRuntimeMember(memberName)
+    tagPath = _missionRuntimeTagPath(instancePath, keyName, memberName)
+    if not tagPath:
         return False
     writeRequiredTagValues(
         [tagPath],

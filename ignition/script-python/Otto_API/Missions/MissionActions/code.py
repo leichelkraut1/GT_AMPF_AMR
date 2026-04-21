@@ -2,7 +2,7 @@ import json
 import time
 import uuid
 
-from Otto_API.Fleet.ContentSync import sanitizeTagName
+from Otto_API.Common.SyncHelpers import sanitizeTagName
 
 
 ACTIVE_MISSION_STATUS_PRIORITY = {

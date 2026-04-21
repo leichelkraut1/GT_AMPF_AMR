@@ -1,5 +1,5 @@
-from Otto_API.Fleet.ContentSync import compactTagSuffix
-from Otto_API.Fleet.ContentSync import sanitizeTagName
+from Otto_API.Common.SyncHelpers import compactTagSuffix
+from Otto_API.Common.SyncHelpers import sanitizeTagName
 
 
 def buildPlaceInstanceName(placeRecord):

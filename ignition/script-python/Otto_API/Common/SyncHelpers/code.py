@@ -36,6 +36,35 @@ def listUdtInstanceNames(browseResults):
     return names
 
 
+def sanitizeTagName(text):
+    """Convert mission/tag names into a safe Ignition tag name."""
+    import re
+
+    if text is None:
+        return "None"
+    sanitized = re.sub(r"[^A-Za-z0-9_-]", "_", str(text))
+    sanitized = re.sub(r"_+", "_", sanitized).strip("_")
+    return sanitized or "None"
+
+
+def compactTagSuffix(rawId):
+    """
+    Build a shorter safe suffix for record identifiers used in tag names.
+    For UUID-style ids, keep only the first segment so place instance paths stay
+    readable on the gateway. This trades full-id uniqueness for brevity.
+    """
+    import re
+
+    text = str(rawId or "").strip()
+    if not text:
+        return ""
+
+    if re.match(r"^[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}$", text):
+        return text.split("-", 1)[0]
+
+    return sanitizeTagName(text)
+
+
 def writeObservedTagDict(tagDict, label, logger):
     """
     Write a tag/value dict through the observed bulk writer.

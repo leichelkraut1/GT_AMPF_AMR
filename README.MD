@@ -19,7 +19,7 @@ having to reconstruct it from a long chain of script modules.
 
 Top-level orchestration lives in:
 
-- `ignition/script-python/MainController/CommandCalls/code.py`
+- `ignition/script-python/MainController/Cycle/ControllerCycle/code.py`
 
 The main entrypoint is:
 
@@ -27,7 +27,7 @@ The main entrypoint is:
 
 The cycle order is intentional:
 
-1. `FleetGet.readCachedServerStatus()`
+1. `SystemGet.readCachedServerStatus()`
 2. `RobotGet.updateRobotOperationalState()`
 3. `ContainerGet.updateContainers()`
 4. `MissionSorting.run()`
@@ -49,24 +49,40 @@ cached `Fleet/System/ServerStatus` tag during the fast controller cycle.
 
 The `MainController` code is split by responsibility:
 
-- `CommandCalls`
+- `Cycle/ControllerCycle`
   - top-level cycle entrypoints
-- `CommandHelpers`
-  - shared paths, tag reads/writes, runtime datasets, state normalization
-- `RobotCycle`
-  - per-robot orchestration
+- `State/Paths`
+  - stable tag-path construction and runner constants
+- `State/RuntimeStore`
+  - runtime loop reads/writes
+- `State/RobotStore`
+  - controller state normalization and robot state reads/writes
+- `State/PlcStore`
+  - PLC input/output reads and writes
+- `State/MissionStore`
+  - active mission summaries, robot mirror reads, and workflow reservations
+- `State/Provisioning`
+  - runtime and robot tag provisioning
+- `History`
+  - command/runtime history helpers
+- `State/Results`
+  - cycle result shaping
+- `Robot/Cycle`
+  - per-robot decision logic and evaluation flow
+- `Robot/Snapshot`
+  - per-robot input gathering
+- `Robot/Apply`
+  - state / PLC / history application
 - `MissionCommandHelpers`
   - mission-level clear command issue/log/dedupe helpers
-- `RobotDecisions`
-  - small pure decision helpers
 - `RobotActions`
   - create / cancel / finalize calls into the mission layer
-- `PlcMirror`
+- `Robot/PlcMirror`
   - shapes PLC output values for one robot
 
 If you are troubleshooting one robot’s behavior, start in:
 
-- `ignition/script-python/MainController/RobotCycle/code.py`
+- `ignition/script-python/MainController/Robot/Cycle/code.py`
 
 If you are troubleshooting explicit mission cancel/finalize dedupe or command-history
 rows for clear actions, the next stop is:
@@ -77,7 +93,7 @@ rows for clear actions, the next stop is:
 
 The controller runs one workflow cycle per robot.
 
-The per-robot entrypoint is:
+The per-robot entrypoint lives in `Robot/Cycle`:
 
 - `runRobotWorkflowCycle(robotName, ...)`
 
@@ -236,7 +252,7 @@ So the short version is:
   - `RetryCount`
 - after the cleanup, `LastAttemptAction` should only be meaningful for create
 - the current shared retry delay is controlled by
-  `MainController.CommandHelpers.RETRY_DELAY_MS`
+  `MainController.State.Paths.RETRY_DELAY_MS`
 
 This keeps a failed create from being hammered every scan, while still allowing a
 later cancel or finalize branch to proceed immediately if the situation changes.
@@ -361,3 +377,5 @@ in the same folder.
 
 Without it, the local repo may look fine but the Ignition gateway may not recognize
 the new module and imports will fail at runtime.
+
+

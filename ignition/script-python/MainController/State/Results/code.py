@@ -1,0 +1,22 @@
+from Otto_API.Common.ResultHelpers import buildOperationResult
+
+
+def buildCycleResult(ok, level, message, robotName=None, state=None, action=None, data=None):
+    """Wrap one robot-cycle decision in a consistent result payload."""
+    payload = {
+        "robot_name": robotName,
+        "state": state,
+        "action": action,
+    }
+    if data:
+        payload.update(data)
+
+    return buildOperationResult(
+        ok,
+        level,
+        message,
+        data=payload,
+        robot_name=robotName,
+        state=state,
+        action=action,
+    )

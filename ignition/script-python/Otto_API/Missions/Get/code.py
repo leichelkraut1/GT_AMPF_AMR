@@ -2,7 +2,7 @@ from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ParseHelpers import parseMissionResults
 from Otto_API.Common.TagHelpers import getApiBaseUrl
-from Otto_API.Fleet.FleetSync import buildMissionsUrl
+from Otto_API.Missions.QueryHelpers import buildMissionsUrl
 
 
 def getMissions(logger, debug, mission_status=None, limit=None):

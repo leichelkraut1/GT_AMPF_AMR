@@ -1,4 +1,4 @@
-from Otto_API.Fleet.ContentSync import sanitizeTagName
+from Otto_API.Common.SyncHelpers import sanitizeTagName
 
 
 def buildMapInstanceName(mapItem):

@@ -15,16 +15,6 @@ def _log():
     return system.util.getLogger("Otto_API.System.Get")
 
 
-def _buildSyncResult(ok, level, message, data=None):
-    return buildOperationResult(
-        ok,
-        level,
-        message,
-        data={"value": data},
-        value=data,
-    )
-
-
 def getServerStatus():
     """
     Read Fleet Manager server state and mirror it into Fleet/System/ServerStatus.
@@ -37,14 +27,32 @@ def getServerStatus():
         if response:
             status = parseServerStatus(response)
             writeTagValueAsync(SYSTEM_BASE_PATH + "/ServerStatus", status)
-            return _buildSyncResult(True, "info", "Server status updated", data=status)
+            return buildOperationResult(
+                True,
+                "info",
+                "Server status updated",
+                data={"value": status},
+                value=status,
+            )
 
         logger.warn("Otto Fleet Manager did not respond to status update request")
         writeTagValueAsync(SYSTEM_BASE_PATH + "/ServerStatus", "ResponseError")
-        return _buildSyncResult(False, "warn", "Otto Fleet Manager did not respond")
+        return buildOperationResult(
+            False,
+            "warn",
+            "Otto Fleet Manager did not respond",
+            data={"value": None},
+            value=None,
+        )
     except Exception as exc:
         logger.error("Otto API - Status update failed - {}".format(str(exc)))
-        return _buildSyncResult(False, "error", "Status update failed - {}".format(str(exc)))
+        return buildOperationResult(
+            False,
+            "error",
+            "Status update failed - {}".format(str(exc)),
+            data={"value": None},
+            value=None,
+        )
 
 
 def readCachedServerStatus():
@@ -57,16 +65,18 @@ def readCachedServerStatus():
         allowEmptyString=False
     )
     if status in [None, "", "ResponseError"]:
-        return _buildSyncResult(
+        return buildOperationResult(
             False,
             "warn",
             "Cached server status is unavailable",
-            data=status
+            data={"value": status},
+            value=status,
         )
 
-    return _buildSyncResult(
+    return buildOperationResult(
         True,
         "info",
         "Cached server status read",
-        data=status
+        data={"value": status},
+        value=status,
     )

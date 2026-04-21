@@ -1,36 +1,25 @@
-import json
-import re
-from java.util import Date
-from Otto_API.Common.TagHelpers import browseTagResults
+from Otto_API.AttachmentPhaseHelpers import deriveMissionAttachmentState
 from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Common.TagHelpers import deleteTagPath
-from Otto_API.Common.TagHelpers import ensureUdtInstancePath
-from Otto_API.Common.TagHelpers import ensureFolder
 from Otto_API.Common.TagHelpers import getFleetMissionsPath
 from Otto_API.Common.TagHelpers import getFleetRobotsPath
+from Otto_API.Common.TagHelpers import getMainControlRobotsPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateTsPath
-from Otto_API.Common.TagHelpers import getMainControlRobotsPath
-from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Common.TagHelpers import readOptionalTagValue
-from Otto_API.Common.TagHelpers import readRequiredTagValue
-from Otto_API.Common.TagHelpers import tagExists
 from Otto_API.Common.TagHelpers import writeRequiredTagValues
-from Otto_API.Common.TagHelpers import writeTagValues
-from Otto_API.AttachmentPhaseHelpers import deriveMissionAttachmentState
-from Otto_API.Fleet.ContentSync import sanitizeTagName
-from Otto_API.Fleet.FleetSync import parseIsoTimestampToEpochMillis
-from Otto_API.Fleet.FleetSync import readRobotInventoryMetadata
+from Otto_API.Missions.Buckets import classify_mission_bucket
+from Otto_API.Missions.Buckets import make_instance_name
+from Otto_API.Missions.Buckets import readRobotFolderMappings
+from Otto_API.Missions.Buckets import resolve_mission_robot_folder
 from Otto_API.Missions.Get import getMissions
-from MainController.CommandHelpers import MISSION_STATE_HISTORY_HEADERS
-from MainController.CommandHelpers import MISSION_STATE_HISTORY_MAX_ROWS
-from MainController.CommandHelpers import appendRuntimeDatasetRow
-from Otto_API.Missions.MissionActions import resolveMissionRobotId
+from Otto_API.Missions.Maintenance import cleanup_stale_bucket
+from Otto_API.Missions.Maintenance import cleanup_terminal_folder
+from Otto_API.Missions.Sync import build_robot_member_writes
+from Otto_API.Missions.Sync import ensure_maincontrol_robot_attachment_tags
+from Otto_API.Missions.Sync import mission_to_tag_values
+from Otto_API.Missions.Sync import sync_mission_into_bucket
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
 
-# ---------------------------------------------------------------------------
-# CONSTANTS
-# ---------------------------------------------------------------------------
 
 BASE = getFleetMissionsPath()
 ACTIVE_PATH = BASE + "/Active"
@@ -39,6 +28,7 @@ FAILED_PATH = BASE + "/Failed"
 LAST_UPDATE_TS_PATH = getMissionLastUpdateTsPath()
 LAST_UPDATE_SUCCESS_PATH = getMissionLastUpdateSuccessPath()
 MAINCONTROL_ROBOTS_PATH = getMainControlRobotsPath()
+ROBOTS_PATH = getFleetRobotsPath()
 
 ACTIVE_STATUSES = [
     "QUEUED",
@@ -67,29 +57,18 @@ COMPLETED_RETENTION_DAYS = 5
 FAILED_RETENTION_DAYS = 5
 
 DEBUG_TAG_PATH = BASE + "/DebugEnabled"
-ROBOTS_PATH = getFleetRobotsPath()
-UNASSIGNED_FOLDER = "Unassigned"
-UNKNOWN_ROBOT_FOLDER = "Unknown_Robot"
-WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
-MISSION_LAST_LOGGED_STATUS_MEMBER = "_LastLoggedStatus"
-MISSION_LAST_WRITE_SIGNATURE_MEMBER = "_LastWriteSignature"
-_WARNED_MISSING_MISSION_RUNTIME_MEMBERS = set()
 
-
-# ---------------------------------------------------------------------------
-# LOGGING / UTIL
-# ---------------------------------------------------------------------------
 
 def _log():
     """
-    Returns the module logger
+    Returns the module logger.
     """
     return system.util.getLogger("Otto_API.Missions.MissionSorting")
 
 
 def _debug_enabled():
     """
-    Reads debug enable tag
+    Reads debug enable tag.
     """
     try:
         return bool(readOptionalTagValue(DEBUG_TAG_PATH, False))
@@ -99,49 +78,10 @@ def _debug_enabled():
 
 def _dlog(logger, debug, msg):
     """
-    Conditional debug logger
+    Conditional debug logger.
     """
     if debug:
         logger.info(msg)
-
-
-def _warn_missing_mission_runtime_member(memberName, logger):
-    """
-    Warn once per runtime helper member when api_Mission does not define it.
-    """
-    memberName = str(memberName or "")
-    if not memberName or memberName in _WARNED_MISSING_MISSION_RUNTIME_MEMBERS:
-        return
-    _WARNED_MISSING_MISSION_RUNTIME_MEMBERS.add(memberName)
-    logger.warn(
-        "api_Mission is missing [{}]; mission anti-repeat behavior will be degraded until the UDT includes it".format(
-            memberName
-        )
-    )
-
-
-def parse_date(val):
-    """
-    Safely parses Ignition Date or string timestamps
-    """
-    if val is None:
-        return None
-
-    if hasattr(val, "before"):
-        return val
-
-    text = str(val).strip()
-
-    if "T" in text and (text.endswith("Z") or "+" in text[10:] or "-" in text[10:]):
-        try:
-            return Date(parseIsoTimestampToEpochMillis(text))
-        except Exception:
-            pass
-
-    try:
-        return system.date.parse(text)
-    except Exception:
-        return None
 
 
 def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None, failedWanted=None, removed=None):
@@ -179,663 +119,9 @@ def _writeMissionUpdateStatus(success, timestampValue, logger=None):
         raise
 
 
-# ---------------------------------------------------------------------------
-# TAG HELPERS
-# ---------------------------------------------------------------------------
-
-def make_instance_name(mission):
-    """
-    Creates a readable and mostly-unique mission tag name
-    """
-    name = sanitizeTagName(mission.get("name"))
-    short = mission.get("id", "")[:8]
-    return "{}_{}".format(name, short)
-
-
-def classify_mission_bucket(missionStatus, terminalStatuses=None, failedStatuses=None):
-    """
-    Classify a mission into the Active, Failed, or Completed bucket.
-    """
-    if terminalStatuses is None:
-        terminalStatuses = TERMINAL_STATUSES
-    if failedStatuses is None:
-        failedStatuses = FAILED_STATUSES
-
-    status = str(missionStatus or "").upper()
-    if status in failedStatuses:
-        return "failed"
-    if status in terminalStatuses:
-        return "completed"
-    return "active"
-
-
-def mission_to_tag_values(mission):
-    """
-    Convert a mission record into api_Mission field values.
-    """
-    return {
-        "ID": mission.get("id"),
-        "Assigned_Robot": mission.get("assigned_robot"),
-        "Client_Reference_ID": mission.get("client_reference_id"),
-        "Created": mission.get("created"),
-        "Current_Task": mission.get("current_task"),
-        "Description": mission.get("description"),
-        "Due_State": mission.get("due_state"),
-        "Execution_End": mission.get("execution_end"),
-        "Execution_Start": mission.get("execution_start"),
-        "Execution_Time": mission.get("execution_time"),
-        "Finalized": mission.get("finalized"),
-        "Force_Robot": mission.get("force_robot"),
-        "Force_Team": mission.get("force_team"),
-        "Max_Duration": mission.get("max_duration"),
-        "Metadata": mission.get("metadata"),
-        "Mission_Status": mission.get("mission_status"),
-        "Name": mission.get("name"),
-        "Nominal_Duration": mission.get("nominal_duration"),
-        "Paused": mission.get("paused"),
-        "Priority": mission.get("priority"),
-        "Result_Text": mission.get("result_text"),
-        "Result_Text_Intl_Data": mission.get("result_text_intl_data"),
-        "Result_Text_Intl_Key": mission.get("result_text_intl_key"),
-        "Signature": mission.get("signature"),
-        "Structure": mission.get("structure")
-    }
-
-
-def mission_runtime_paths(instancePath):
-    """
-    Return the mission-instance runtime helper tags used for anti-repeat behavior.
-    """
-    return {
-        "last_logged_status": instancePath + "/" + MISSION_LAST_LOGGED_STATUS_MEMBER,
-        "last_write_signature": instancePath + "/" + MISSION_LAST_WRITE_SIGNATURE_MEMBER,
-    }
-
-
-def build_mission_write_signature(tagValues):
-    """
-    Build a stable signature for the current mission tag payload.
-    """
-    return json.dumps(dict(tagValues or {}), sort_keys=True, default=str)
-
-
-def parse_workflow_number_from_mission_name(missionName):
-    text = str(missionName or "").strip()
-    if not text:
-        return None
-    match = WORKFLOW_NAME_RE.match(text)
-    if not match:
-        return None
-    try:
-        return int(match.group(1))
-    except Exception:
-        return None
-
-
-def record_mission_state_change(nowTimestamp, robotFolder, mission, oldStatus, newStatus):
-    appendRuntimeDatasetRow(
-        "mission_state_history",
-        MISSION_STATE_HISTORY_HEADERS,
-        [
-            nowTimestamp,
-            robotFolder,
-            str(mission.get("id") or ""),
-            str(mission.get("name") or ""),
-            str(oldStatus or ""),
-            str(newStatus or ""),
-            parse_workflow_number_from_mission_name(mission.get("name")) or 0,
-        ],
-        maxRows=MISSION_STATE_HISTORY_MAX_ROWS,
-    )
-
-
-def read_previous_mission_value(candidatePaths, memberName, defaultValue=None, allowEmptyString=False):
-    """
-    Read a value from whichever candidate mission instance currently exists.
-
-    This lets us preserve status/runtime continuity even when the mission moves
-    between Active, Completed, and Failed folders in the same sorting pass.
-    """
-    for path in list(candidatePaths or []):
-        if not tagExists(path):
-            continue
-        return readOptionalTagValue(
-            path + "/" + memberName,
-            defaultValue,
-            allowEmptyString=allowEmptyString
-        )
-    return defaultValue
-
-
-def read_previous_mission_status(candidatePaths):
-    """
-    Read the prior mission status from whichever mission instance currently exists.
-    """
-    return read_previous_mission_value(
-        candidatePaths,
-        "Mission_Status",
-        None,
-        allowEmptyString=False
-    )
-
-
-def should_remove_completed_by_age(createdDate, cutoff):
-    """
-    Return True when a completed mission is older than the retention cutoff.
-    """
-    return bool(createdDate and cutoff and createdDate.before(cutoff))
-
-
-def compute_completed_overflow(enrichedRows, maxCompleted, nowDate):
-    """
-    Return the oldest completed rows that exceed the retention count.
-    """
-    def sort_key(item):
-        return item[2] if item[2] else nowDate
-
-    enriched_sorted = sorted(list(enrichedRows or []), key=sort_key)
-    if len(enriched_sorted) <= maxCompleted:
-        return []
-    return enriched_sorted[:-maxCompleted]
-
-
-def write_mission_data(instancePath, mission):
-    """
-    Write mission fields into api_Mission only when the payload actually changed.
-    """
-    values = mission_to_tag_values(mission)
-    signature = build_mission_write_signature(values)
-    runtimePaths = mission_runtime_paths(instancePath)
-    hasWriteSignatureTag = tagExists(runtimePaths["last_write_signature"])
-    if hasWriteSignatureTag:
-        currentSignature = readOptionalTagValue(
-            runtimePaths["last_write_signature"],
-            "",
-            allowEmptyString=True
-        )
-        if str(currentSignature or "") == signature:
-            return False
-    else:
-        _warn_missing_mission_runtime_member(
-            MISSION_LAST_WRITE_SIGNATURE_MEMBER,
-            _log()
-        )
-
-    paths = [instancePath + "/" + k for k in values]
-    vals = [values[k] for k in values]
-    if hasWriteSignatureTag:
-        paths.append(runtimePaths["last_write_signature"])
-        vals.append(signature)
-    writeRequiredTagValues(
-        paths,
-        vals,
-        labels=["MissionSorting mission write"] * len(paths)
-    )
-    return True
-
-
-def remove_instance(path, logger=None, debug=False, reason=None):
-    """
-    Deletes a UDT instance
-    """
-    try:
-        deleteTagPath(path)
-        if logger and debug:
-            if reason:
-                logger.info("Deleted {} ({})".format(path, reason))
-            else:
-                logger.info("Deleted {}".format(path))
-    except Exception as exc:
-        if logger:
-            if reason:
-                logger.warn(
-                    "Failed to delete {} ({}): {}".format(
-                        path,
-                        reason,
-                        str(exc)
-                    )
-                )
-            else:
-                logger.warn(
-                    "Failed to delete {}: {}".format(
-                        path,
-                        str(exc)
-                    )
-                )
-
-def _readRobotFolderMappings():
-    """
-    Build lookup maps for robot folder names and robot IDs.
-    """
-    try:
-        inventory = readRobotInventoryMetadata(ROBOTS_PATH)
-    except Exception as exc:
-        _log().warn(
-            "Failed to read robot inventory metadata from [{}]: {}".format(
-                ROBOTS_PATH,
-                str(exc)
-            )
-        )
-        return {
-            "name_by_lower": {},
-            "name_by_id": {},
-        }
-
-    return {
-        "name_by_lower": dict(inventory.get("robot_name_by_lower", {})),
-        "name_by_id": dict(inventory.get("robot_name_by_id", {})),
-    }
-
-
-def build_robot_member_writes(robotMappings, valuesByFolder, memberName, transform=None, basePath=None):
-    """
-    Build robot-member writes for known robot folders.
-    """
-    def _identity(value):
-        return value
-
-    if transform is None:
-        transform = _identity
-    if basePath is None:
-        basePath = ROBOTS_PATH
-
-    writes = []
-    for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
-        writes.append((
-            basePath + "/" + robotFolder + "/" + memberName,
-            transform(valuesByFolder.get(robotFolder, 0))
-        ))
-    return writes
-
-
-def ensure_maincontrol_robot_attachment_tags(robotMappings):
-    """
-    Ensure MainControl/Robots UDT instances exist for known robots.
-    """
-    ensureFolder(MAINCONTROL_ROBOTS_PATH)
-    for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
-        robotPath = MAINCONTROL_ROBOTS_PATH + "/" + robotFolder
-        ensureUdtInstancePath(robotPath, "MainControl_Robot")
-
-
-def resolve_mission_robot_folder(mission, robotMappings=None):
-    """
-    Resolve the mission's robot-specific folder name or return Unassigned.
-    """
-    if robotMappings is None:
-        robotMappings = _readRobotFolderMappings()
-
-    resolvedRobot = resolveMissionRobotId(mission)
-    if not resolvedRobot:
-        return UNASSIGNED_FOLDER
-
-    resolvedRobot = str(resolvedRobot).strip().lower()
-    if not resolvedRobot:
-        return UNASSIGNED_FOLDER
-
-    robotName = robotMappings["name_by_lower"].get(resolvedRobot)
-    if robotName:
-        return robotName
-
-    robotName = robotMappings["name_by_id"].get(resolvedRobot)
-    if robotName:
-        return robotName
-
-    return UNKNOWN_ROBOT_FOLDER
-
-
-def build_mission_bucket_paths(robotFolder, instanceName):
-    """
-    Return the fully-qualified mission instance path for each bucket.
-    """
-    return {
-        "active": ACTIVE_PATH + "/" + robotFolder + "/" + instanceName,
-        "completed": COMPLETED_PATH + "/" + robotFolder + "/" + instanceName,
-        "failed": FAILED_PATH + "/" + robotFolder + "/" + instanceName,
-    }
-
-
-def _remove_mission_path_if_exists(path, reason, logger, debug=False):
-    """
-    Remove a mission instance path when it exists and return a removal record.
-    """
-    if not tagExists(path):
-        return None
-    remove_instance(path, logger, debug, reason)
-    return (path, reason)
-
-
-def _record_mission_status_if_changed(
-    instancePath,
-    mission,
-    robotFolder,
-    previousStatus,
-    nowTimestamp,
-    lastLoggedStatus
-):
-    """
-    Append mission-state history only when the mission instance's last logged state changes.
-    """
-    newStatus = str(mission.get("mission_status") or "")
-    hasLastLoggedStatusTag = tagExists(
-        mission_runtime_paths(instancePath)["last_logged_status"]
-    )
-    if not hasLastLoggedStatusTag:
-        _warn_missing_mission_runtime_member(
-            MISSION_LAST_LOGGED_STATUS_MEMBER,
-            _log()
-        )
-    if hasLastLoggedStatusTag:
-        if str(lastLoggedStatus or "") == newStatus:
-            return False
-    elif previousStatus is not None and str(previousStatus) == newStatus:
-        return False
-
-    record_mission_state_change(
-        nowTimestamp,
-        robotFolder,
-        mission,
-        previousStatus,
-        newStatus
-    )
-    if hasLastLoggedStatusTag:
-        writeRequiredTagValues(
-            [mission_runtime_paths(instancePath)["last_logged_status"]],
-            [newStatus],
-            labels=["MissionSorting last logged status"]
-        )
-    return True
-
-
-def _carry_forward_last_logged_status(instancePath, lastLoggedStatus):
-    """
-    Seed the new bucket instance with the prior logged status when it moves folders.
-    """
-    if not str(lastLoggedStatus or ""):
-        return False
-
-    runtimePath = mission_runtime_paths(instancePath)["last_logged_status"]
-    if not tagExists(runtimePath):
-        return False
-
-    currentValue = readOptionalTagValue(
-        runtimePath,
-        "",
-        allowEmptyString=True
-    )
-    if str(currentValue or ""):
-        return False
-
-    writeRequiredTagValues(
-        [runtimePath],
-        [str(lastLoggedStatus or "")],
-        labels=["MissionSorting carry-forward status"]
-    )
-    return True
-
-
-def _record_removed_mission_if_needed(instancePath, folderPath, nowTimestamp):
-    """
-    Log a stale mission disappearing from OTTO as REMOVED before deleting the tag.
-    """
-    runtimePaths = mission_runtime_paths(instancePath)
-    hasLastLoggedStatusTag = tagExists(runtimePaths["last_logged_status"])
-    lastLoggedStatus = ""
-    if hasLastLoggedStatusTag:
-        lastLoggedStatus = readOptionalTagValue(
-            runtimePaths["last_logged_status"],
-            "",
-            allowEmptyString=True
-        )
-    if hasLastLoggedStatusTag and str(lastLoggedStatus or "") == "REMOVED":
-        return False
-
-    missionId = str(readOptionalTagValue(instancePath + "/ID", "", allowEmptyString=True) or "")
-    missionName = str(readOptionalTagValue(instancePath + "/Name", "", allowEmptyString=True) or "")
-    previousStatus = str(readOptionalTagValue(instancePath + "/Mission_Status", "", allowEmptyString=True) or "")
-
-    if not (missionId or missionName or previousStatus):
-        return False
-
-    suffix = str(instancePath or "")
-    prefix = str(folderPath or "").rstrip("/") + "/"
-    robotFolder = ""
-    if suffix.startswith(prefix):
-        remainder = suffix[len(prefix):]
-        robotFolder = remainder.split("/", 1)[0] if remainder else ""
-    if not robotFolder:
-        robotFolder = UNASSIGNED_FOLDER
-
-    record_mission_state_change(
-        nowTimestamp,
-        robotFolder,
-        {
-            "id": missionId,
-            "name": missionName,
-        },
-        previousStatus,
-        "REMOVED"
-    )
-    if hasLastLoggedStatusTag:
-        writeRequiredTagValues(
-            [runtimePaths["last_logged_status"]],
-            ["REMOVED"],
-            labels=["MissionSorting removed status"]
-        )
-    return True
-
-
-def sync_mission_into_bucket(
-    mission,
-    robotFolder,
-    bucket,
-    nowTimestamp,
-    logger,
-    debug=False
-):
-    """
-    Move a mission into the requested bucket, write its data, and record history.
-    """
-    instanceName = make_instance_name(mission)
-    paths = build_mission_bucket_paths(robotFolder, instanceName)
-    previousStatus = read_previous_mission_status([
-        paths["active"],
-        paths["completed"],
-        paths["failed"],
-    ])
-    lastLoggedStatus = read_previous_mission_value(
-        [
-            paths["active"],
-            paths["completed"],
-            paths["failed"],
-        ],
-        MISSION_LAST_LOGGED_STATUS_MEMBER,
-        "",
-        allowEmptyString=True
-    )
-    removed = []
-
-    moveReasons = {
-        "active": {
-            "completed": "moved_to_active",
-            "failed": "moved_to_active",
-        },
-        "completed": {
-            "active": "moved_to_completed",
-            "failed": "moved_to_completed",
-        },
-        "failed": {
-            "active": "moved_to_failed",
-            "completed": "moved_to_failed",
-        },
-    }
-    logReasons = {
-        "moved_to_active": "moved to Active",
-        "moved_to_completed": "moved to Completed",
-        "moved_to_failed": "moved to Failed",
-    }
-
-    for otherBucket in ["active", "completed", "failed"]:
-        if otherBucket == bucket:
-            continue
-        removalKey = moveReasons[bucket][otherBucket]
-        removal = _remove_mission_path_if_exists(
-            paths[otherBucket],
-            logReasons[removalKey],
-            logger,
-            debug
-        )
-        if removal is not None:
-            removed.append((removal[0], removalKey))
-
-    targetPath = paths[bucket]
-    if not tagExists(targetPath):
-        ensureUdtInstancePath(targetPath, "api_Mission")
-        if debug:
-            logger.info("Created mission instance: {}".format(targetPath))
-
-    _carry_forward_last_logged_status(targetPath, lastLoggedStatus)
-    write_mission_data(targetPath, mission)
-    _record_mission_status_if_changed(
-        targetPath,
-        mission,
-        robotFolder,
-        previousStatus,
-        nowTimestamp,
-        lastLoggedStatus
-    )
-
-    return {
-        "bucket": bucket,
-        "instance_name": instanceName,
-        "target_path": targetPath,
-        "paths": paths,
-        "removed": removed,
-    }
-
-
-# ---------------------------------------------------------------------------
-# COMPLETED CLEANUP
-# ---------------------------------------------------------------------------
-
-def cleanup_terminal_folder(folderPath, retentionDays, maxCount, label, logger, debug=False, protectedPaths=None):
-    """
-    Enforces terminal mission retention and max count for the given folder.
-    """
-    now = system.date.now()
-    cutoff = system.date.addDays(now, -retentionDays)
-    protectedPaths = set(protectedPaths or [])
-
-    instances = browseMissionInstances(folderPath)
-    removed = []
-    removedPaths = set()
-    enriched = []
-
-    readPaths = [fullPath + "/Created" for fullPath, _ in instances]
-    readResults = []
-    if readPaths:
-        readResults = readTagValues(readPaths)
-
-    for index, instance in enumerate(instances):
-        fullPath, name = instance
-        qualifiedValue = readResults[index]
-        if not qualifiedValue.quality.isGood():
-            logger.warn(
-                "Skipping {} mission {} during cleanup - Created tag is not readable".format(
-                    label,
-                    fullPath
-                )
-            )
-            continue
-
-        createdDate = parse_date(qualifiedValue.value)
-        if createdDate is None:
-            logger.warn(
-                "Skipping {} mission {} during cleanup - invalid Created value".format(
-                    label,
-                    fullPath
-                )
-            )
-            continue
-        enriched.append((fullPath, name, createdDate))
-
-    removed_age = 0
-    remaining = []
-    for fullPath, name, createdDate in enriched:
-        if fullPath in protectedPaths:
-            remaining.append((fullPath, name, createdDate))
-            continue
-        if should_remove_completed_by_age(createdDate, cutoff):
-            remove_instance(
-                fullPath,
-                logger,
-                debug,
-                "older than {} days".format(retentionDays)
-            )
-            removed_age += 1
-            removedPaths.add(fullPath)
-            removed.append((fullPath, "age"))
-        else:
-            remaining.append((fullPath, name, createdDate))
-
-    if debug:
-        logger.info("{} cleanup: removed {} by age".format(label.title(), removed_age))
-
-    excess = compute_completed_overflow(remaining, maxCount, now)
-    for fullPath, name, ts in excess:
-        if fullPath in removedPaths:
-            continue
-        remove_instance(
-            fullPath,
-            logger,
-            debug,
-            "pruned to max {}".format(maxCount)
-        )
-        removedPaths.add(fullPath)
-        removed.append((fullPath, "max"))
-
-    if debug and excess:
-        logger.info(
-            "{} cleanup: pruned {} to max {}".format(
-                label.title(),
-                len(excess),
-                maxCount
-            )
-        )
-
-    return removed
-
-
-def cleanup_stale_bucket(folderPath, wantedPaths, label, logger, debug=False, nowTimestamp=None):
-    """
-    Remove mission instances in folderPath that are not present in wantedPaths.
-    """
-    removed = []
-    wantedPaths = set(wantedPaths or [])
-
-    for fullPath, name in browseMissionInstances(folderPath):
-        if fullPath in wantedPaths:
-            continue
-        if nowTimestamp is not None:
-            _record_removed_mission_if_needed(fullPath, folderPath, nowTimestamp)
-        remove_instance(
-            fullPath,
-            logger,
-            debug,
-            "stale (not returned)"
-        )
-        removed.append((fullPath, "stale_{}".format(label)))
-
-    return removed
-
-
-# ---------------------------------------------------------------------------
-# MAIN
-# ---------------------------------------------------------------------------
-
 def run():
     """
-    Main mission sorting entry point
+    Main mission sorting entry point.
     """
     logger = _log()
     debug = _debug_enabled()
@@ -849,7 +135,6 @@ def run():
         nowDate = system.date.now()
         nowTimestamp = system.date.format(nowDate, "yyyy-MM-dd HH:mm:ss.SSS")
 
-        # --- Fetch ACTIVE missions in one bulk call ---
         missions.extend(
             getMissions(
                 logger,
@@ -858,7 +143,6 @@ def run():
             )
         )
 
-        # --- Fetch FAILED missions in one capped bulk call ---
         missions.extend(
             getMissions(
                 logger,
@@ -868,7 +152,7 @@ def run():
             )
         )
 
-        robotMappings = _readRobotFolderMappings()
+        robotMappings = readRobotFolderMappings(robotsPath=ROBOTS_PATH, logger=logger)
         activeWanted = set()
         completedWanted = set()
         failedWanted = set()
@@ -878,31 +162,36 @@ def run():
         attachmentReadyByFolder = {}
         attachmentMissionNameByFolder = {}
         removed = []
+
         for mission in missions:
             status = mission.get("mission_status", "")
-            robotFolder = resolve_mission_robot_folder(mission, robotMappings)
+            robotFolder = resolve_mission_robot_folder(
+                mission,
+                robotMappings=robotMappings,
+                robotsPath=ROBOTS_PATH,
+                logger=logger,
+            )
             attachmentState = deriveMissionAttachmentState(mission)
 
-            bucket = classify_mission_bucket(status)
+            bucket = classify_mission_bucket(status, TERMINAL_STATUSES, FAILED_STATUSES)
             syncResult = sync_mission_into_bucket(
                 mission,
                 robotFolder,
                 bucket,
                 nowTimestamp,
                 logger,
-                debug
+                ACTIVE_PATH,
+                COMPLETED_PATH,
+                FAILED_PATH,
+                debug=debug
             )
             removed.extend(syncResult["removed"])
 
             if bucket == "completed":
-                # Completed sync is tracked in the result payload here for visibility,
-                # but completed cleanup stays exclusively in runTerminalMaintenance().
                 completedWanted.add(syncResult["paths"]["completed"])
-
             elif bucket == "failed":
                 failedWanted.add(syncResult["paths"]["failed"])
                 failedCountsByFolder[robotFolder] = failedCountsByFolder.get(robotFolder, 0) + 1
-
             else:
                 activeWanted.add(syncResult["paths"]["active"])
                 activeCountsByFolder[robotFolder] = activeCountsByFolder.get(robotFolder, 0) + 1
@@ -956,27 +245,27 @@ def run():
                 labels=["MissionSorting MainControl mirror"] * len(missionCountWrites)
             )
 
-        # --- Cleanup ACTIVE ---
         removed.extend(
             cleanup_stale_bucket(
                 ACTIVE_PATH,
                 activeWanted,
                 "active",
                 logger,
-                debug,
-                nowTimestamp
+                browseMissionInstances,
+                debug=debug,
+                nowTimestamp=nowTimestamp
             )
         )
 
-        # --- Cleanup FAILED ---
         removed.extend(
             cleanup_stale_bucket(
                 FAILED_PATH,
                 failedWanted,
                 "failed",
                 logger,
-                debug,
-                nowTimestamp
+                browseMissionInstances,
+                debug=debug,
+                nowTimestamp=nowTimestamp
             )
         )
         removed.extend(
@@ -986,7 +275,8 @@ def run():
                 MAX_FAILED,
                 "failed",
                 logger,
-                debug,
+                browseMissionInstances,
+                debug=debug,
                 protectedPaths=failedWanted
             )
         )
@@ -1024,10 +314,6 @@ def run():
 def runTerminalMaintenance():
     """
     Slower maintenance pass for completed missions.
-
-    Completed mission sync is kept out of the fast loop because it is not part of
-    the real-time readiness gate. Active and failed mission handling stay in the
-    fast pass.
     """
     logger = _log()
     debug = _debug_enabled()
@@ -1037,7 +323,7 @@ def runTerminalMaintenance():
     try:
         nowDate = system.date.now()
         nowTimestamp = system.date.format(nowDate, "yyyy-MM-dd HH:mm:ss.SSS")
-        robotMappings = _readRobotFolderMappings()
+        robotMappings = readRobotFolderMappings(robotsPath=ROBOTS_PATH, logger=logger)
         completedWanted = set()
         removed = []
 
@@ -1049,14 +335,22 @@ def runTerminalMaintenance():
         )
 
         for mission in missions:
-            robotFolder = resolve_mission_robot_folder(mission, robotMappings)
+            robotFolder = resolve_mission_robot_folder(
+                mission,
+                robotMappings=robotMappings,
+                robotsPath=ROBOTS_PATH,
+                logger=logger,
+            )
             syncResult = sync_mission_into_bucket(
                 mission,
                 robotFolder,
                 "completed",
                 nowTimestamp,
                 logger,
-                debug
+                ACTIVE_PATH,
+                COMPLETED_PATH,
+                FAILED_PATH,
+                debug=debug
             )
             completedWanted.add(syncResult["paths"]["completed"])
             removed.extend(syncResult["removed"])
@@ -1067,8 +361,9 @@ def runTerminalMaintenance():
                 completedWanted,
                 "completed",
                 logger,
-                debug,
-                nowTimestamp
+                browseMissionInstances,
+                debug=debug,
+                nowTimestamp=nowTimestamp
             )
         )
         removed.extend(
@@ -1078,7 +373,8 @@ def runTerminalMaintenance():
                 MAX_COMPLETED,
                 "completed",
                 logger,
-                debug,
+                browseMissionInstances,
+                debug=debug,
                 protectedPaths=completedWanted
             )
         )

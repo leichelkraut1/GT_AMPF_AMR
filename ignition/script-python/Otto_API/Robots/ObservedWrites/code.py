@@ -1,0 +1,31 @@
+from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.TagHelpers import writeObservedTagValues
+
+
+def buildRobotSyncResult(ok, level, message, records=None, writes=None, data=None):
+    records = list(records or [])
+    writes = list(writes or [])
+    return buildOperationResult(
+        ok,
+        level,
+        message,
+        data={
+            "records": records,
+            "writes": writes,
+            "value": data,
+        },
+        records=records,
+        writes=writes,
+    )
+
+
+def writeObservedPairs(writes, label, logger):
+    writePairs = list(writes or [])
+    if not writePairs:
+        return
+    writeObservedTagValues(
+        [path for path, _ in writePairs],
+        [value for _, value in writePairs],
+        labels=[label] * len(writePairs),
+        logger=logger
+    )
