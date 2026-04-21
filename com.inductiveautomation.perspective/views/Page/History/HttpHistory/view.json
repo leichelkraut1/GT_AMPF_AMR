@@ -43,18 +43,10 @@
           "y": "1%"
         },
         "propConfig": {
-          "props.Dataset": {
-            "binding": {
-              "config": {
-                "expression": "toStr(now(3000)) + \":\" + {../DatasetModeDropdown.props.value}"
-              },
-              "transforms": [
-                {
-                  "code": "\tparts \u003d str(value or \"all\").rsplit(\":\", 1)\n\tmode \u003d parts[-1] if parts else \"all\"\n\tpathByMode \u003d {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\",\n\t}\n\ttagPath \u003d pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue \u003d system.tag.readBlocking([tagPath])[0].value\n\tif datasetValue is None:\n\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\ttry:\n\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\texcept Exception:\n\t\treturn datasetValue",
-                  "type": "script"
-                }
-              ],
-              "type": "expr"
+          "props.value": {
+            "onChange": {
+              "enabled": null,
+              "script": "\tself.getSibling(\"HttpHistoryTable\").props.UpdateTable \u003d True"
             }
           }
         },
@@ -79,7 +71,7 @@
           "style": {
             "textAlign": "left"
           },
-          "value": "post"
+          "value": "all"
         },
         "type": "ia.input.dropdown"
       },
@@ -93,7 +85,24 @@
           "x": "1%",
           "y": "7%"
         },
+        "propConfig": {
+          "props.data": {
+            "binding": {
+              "config": {
+                "expression": "toStr(now(5000)+{this.props.UpdateTable})"
+              },
+              "transforms": [
+                {
+                  "code": "\tdropdown \u003d self.getSibling(\"DatasetModeDropdown\")\n\tvalue\u003ddropdown.props.value\n\tparts \u003d str(value or \"all\").rsplit(\":\", 1)\n\tmode \u003d parts[-1] if parts else \"all\"\n\tpathByMode \u003d {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\",\n\t}\n\ttagPath \u003d pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue \u003d system.tag.readBlocking([tagPath])[0].value\n\tif(self.props.UpdateTable or self.props.data is None):\n\t\tself.props.UpdateTable\u003dFalse\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue\n\t\t\t\n\treturn self.props.data",
+                  "type": "script"
+                }
+              ],
+              "type": "expr"
+            }
+          }
+        },
         "props": {
+          "UpdateTable": false,
           "columns": [
             {
               "field": "Ts",
@@ -338,55 +347,6 @@
               "width": 150
             }
           ],
-          "data": {
-            "$": [
-              "ds",
-              192,
-              1776784063823
-            ],
-            "$columns": [
-              {
-                "data": [],
-                "name": "Ts",
-                "type": "String"
-              },
-              {
-                "data": [],
-                "name": "Method",
-                "type": "String"
-              },
-              {
-                "data": [],
-                "name": "Url",
-                "type": "String"
-              },
-              {
-                "data": [],
-                "name": "Request",
-                "type": "String"
-              },
-              {
-                "data": [],
-                "name": "Response",
-                "type": "String"
-              },
-              {
-                "data": [],
-                "name": "Ok",
-                "type": "String"
-              },
-              {
-                "data": [],
-                "name": "DurationMs",
-                "type": "String"
-              },
-              {
-                "data": [],
-                "name": "Error",
-                "type": "String"
-              }
-            ]
-          },
           "dragOrderable": false,
           "rows": {
             "striped": {
@@ -408,6 +368,17 @@
             "borderRadius": "6px",
             "overflow": "hidden"
           }
+        },
+        "scripts": {
+          "customMethods": [
+            {
+              "name": "UpdateDataset",
+              "params": [],
+              "script": "\tdropdown \u003d self.getSibling(\"DatasetModeDropdown\")\n\tvalue\u003ddropdown.props.value\n\tparts \u003d str(value or \"all\").rsplit(\":\", 1)\n\tmode \u003d parts[-1] if parts else \"all\"\n\tpathByMode \u003d {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\",\n\t}\n\ttagPath \u003d pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue \u003d system.tag.readBlocking([tagPath])[0].value\n\tif(self.props.UpdateTable or self.props.data is None):\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue"
+            }
+          ],
+          "extensionFunctions": null,
+          "messageHandlers": []
         },
         "type": "ia.display.table"
       },
@@ -608,7 +579,7 @@
           "dom": {
             "onClick": {
               "config": {
-                "script": "\tself.getSibling(\"HttpHistoryTable\").props.data \u003d self.getSibling(\"DatasetModeDropdown\").props.Dataset"
+                "script": "\tself.getSibling(\"HttpHistoryTable\").props.UpdateTable \u003d True"
               },
               "scope": "G",
               "type": "script"
@@ -655,12 +626,11 @@
             },
             "onChange": {
               "enabled": null,
-              "script": "\tif (self.props.selected):\n\t\tself.getSibling(\"HttpHistoryTable\").props.data \u003d self.getSibling(\"DatasetModeDropdown\").props.Dataset"
+              "script": "\tif (self.props.selected):\n\t\tself.getSibling(\"HttpHistoryTable\").props.UpdateTable \u003d True"
             }
           }
         },
         "props": {
-          "selected": true,
           "text": "Auto Refresh"
         },
         "type": "ia.input.checkbox"
