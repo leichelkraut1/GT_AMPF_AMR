@@ -13,17 +13,13 @@
           "name": "AMR_Control"
         },
         "position": {
-          "basis": "320px"
+          "basis": "336px"
         },
         "props": {
           "params": {
             "RVNum": 1
           },
-          "path": "Page/Components/AMR_Control",
-          "style": {
-            "marginBottom": "16px",
-            "marginRight": "16px"
-          }
+          "path": "Page/Components/AMR_Control"
         },
         "type": "ia.display.view"
       },
@@ -32,17 +28,13 @@
           "name": "AMR_Control_0"
         },
         "position": {
-          "basis": "320px"
+          "basis": "336px"
         },
         "props": {
           "params": {
             "RVNum": 2
           },
-          "path": "Page/Components/AMR_Control",
-          "style": {
-            "marginBottom": "16px",
-            "marginRight": "16px"
-          }
+          "path": "Page/Components/AMR_Control"
         },
         "type": "ia.display.view"
       },
@@ -51,17 +43,13 @@
           "name": "AMR_Control_1"
         },
         "position": {
-          "basis": "320px"
+          "basis": "336px"
         },
         "props": {
           "params": {
             "RVNum": 3
           },
-          "path": "Page/Components/AMR_Control",
-          "style": {
-            "marginBottom": "16px",
-            "marginRight": "16px"
-          }
+          "path": "Page/Components/AMR_Control"
         },
         "type": "ia.display.view"
       },
@@ -70,17 +58,13 @@
           "name": "AMR_Control_2"
         },
         "position": {
-          "basis": "320px"
+          "basis": "336px"
         },
         "props": {
           "params": {
             "RVNum": 4
           },
-          "path": "Page/Components/AMR_Control",
-          "style": {
-            "marginBottom": "16px",
-            "marginRight": "16px"
-          }
+          "path": "Page/Components/AMR_Control"
         },
         "type": "ia.display.view"
       },
@@ -89,17 +73,13 @@
           "name": "AMR_Control_3"
         },
         "position": {
-          "basis": "320px"
+          "basis": "336px"
         },
         "props": {
           "params": {
             "RVNum": 5
           },
-          "path": "Page/Components/AMR_Control",
-          "style": {
-            "marginBottom": "16px",
-            "marginRight": "16px"
-          }
+          "path": "Page/Components/AMR_Control"
         },
         "type": "ia.display.view"
       }
@@ -110,7 +90,9 @@
     "props": {
       "style": {
         "paddingBottom": "8px",
-        "paddingRight": "8px"
+        "paddingLeft": "8px",
+        "paddingRight": "8px",
+        "paddingTop": "8px"
       },
       "wrap": "wrap"
     },
