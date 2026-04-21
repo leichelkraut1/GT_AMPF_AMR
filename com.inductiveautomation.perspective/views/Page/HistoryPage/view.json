@@ -33,7 +33,7 @@
           "tabIndex": 2
         },
         "props": {
-          "path": "Page/History/VehicleHistory"
+          "path": "Page/History/ControlHistory"
         },
         "type": "ia.display.view"
       },

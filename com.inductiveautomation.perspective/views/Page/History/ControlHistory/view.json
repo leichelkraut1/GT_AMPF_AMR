@@ -14,10 +14,10 @@
           "name": "Table"
         },
         "position": {
-          "height": "98%",
+          "height": 658,
           "width": "98%",
-          "x": "1%",
-          "y": "1%"
+          "x": 10.8,
+          "y": 7.44
         },
         "propConfig": {
           "props.data": {
@@ -730,7 +730,7 @@
               "resizable": true,
               "sort": "none",
               "sortable": true,
-              "strictWidth": true,
+              "strictWidth": false,
               "style": {
                 "borderRight": "1px solid #d7dce5",
                 "paddingLeft": "10px",
@@ -843,7 +843,7 @@
               },
               "viewParams": {},
               "viewPath": "",
-              "visible": true,
+              "visible": false,
               "width": ""
             }
           ],
@@ -863,7 +863,14 @@
             }
           },
           "selection": {
-            "enableColumnSelection": true
+            "data": [
+              {
+                "Robot": "AMPF_AMR_RV4"
+              }
+            ],
+            "enableColumnSelection": true,
+            "selectedColumn": "Robot",
+            "selectedRow": 98
           },
           "sortOrder": [
             "Ts"
@@ -876,6 +883,70 @@
           }
         },
         "type": "ia.display.table"
+      },
+      {
+        "meta": {
+          "hasDelegate": true,
+          "name": "RequestTitle_0"
+        },
+        "position": {
+          "height": 0,
+          "width": 0,
+          "x": 14.46,
+          "y": 666.11
+        },
+        "props": {
+          "style": {
+            "color": "#111827",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "paddingLeft": "4px"
+          },
+          "text": "Message"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "hasDelegate": true,
+          "name": "UrlValue"
+        },
+        "position": {
+          "height": 46,
+          "width": "98%",
+          "x": "1%",
+          "y": 686.75
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "../Table.props.selection.selectedRow"
+              },
+              "transforms": [
+                {
+                  "code": "\tif value:\n\t\treturn self.getSibling(\"Table\").props.data[value][7]\n\treturn \"\"",
+                  "type": "script"
+                }
+              ],
+              "type": "property"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#ffffff",
+            "border": "1px solid #cfd6df",
+            "borderRadius": "6px",
+            "color": "#111827",
+            "fontFamily": "Consolas, monospace",
+            "fontSize": "12px",
+            "overflow": "auto",
+            "padding": "8px",
+            "whiteSpace": "pre-wrap"
+          }
+        },
+        "type": "ia.display.label"
       }
     ],
     "meta": {
