@@ -41,9 +41,21 @@ ROBOT_STATE_HISTORY_HEADERS = [
     "NewActivityState",
 ]
 
+HTTP_HISTORY_HEADERS = [
+    "Ts",
+    "Method",
+    "Url",
+    "Request",
+    "Response",
+    "Ok",
+    "DurationMs",
+    "Error",
+]
+
 COMMAND_HISTORY_MAX_ROWS = 100
 MISSION_STATE_HISTORY_MAX_ROWS = 100
 ROBOT_STATE_HISTORY_MAX_ROWS = 100
+HTTP_HISTORY_MAX_ROWS = 500
 
 
 def runtimePaths():
@@ -59,6 +71,7 @@ def runtimePaths():
         "command_history": RUNTIME_BASE + "/CommandHistory",
         "mission_state_history": RUNTIME_BASE + "/MissionStateHistory",
         "robot_state_history": RUNTIME_BASE + "/RobotStateHistory",
+        "http_history": RUNTIME_BASE + "/HttpHistory",
     }
 
 
@@ -86,6 +99,11 @@ def ensureRuntimeTags():
         paths["robot_state_history"],
         "DataSet",
         system.dataset.toDataSet(ROBOT_STATE_HISTORY_HEADERS, [])
+    )
+    ensureMemoryTag(
+        paths["http_history"],
+        "DataSet",
+        system.dataset.toDataSet(HTTP_HISTORY_HEADERS, [])
     )
 
 
@@ -213,4 +231,39 @@ def appendRobotStateHistoryRow(
             str(newActivityState or ""),
         ],
         maxRows=ROBOT_STATE_HISTORY_MAX_ROWS,
+    )
+
+
+def _historyText(value, maxLen=4000):
+    text = "" if value is None else str(value)
+    if len(text) <= maxLen:
+        return text
+    return text[: maxLen - 3] + "..."
+
+
+def appendHttpHistoryRow(
+    nowTimestamp,
+    method,
+    url,
+    requestText,
+    responseText,
+    ok,
+    durationMs,
+    errorText=""
+):
+    """Append one HTTP request/response row to runtime history."""
+    appendRuntimeDatasetRow(
+        "http_history",
+        HTTP_HISTORY_HEADERS,
+        [
+            str(nowTimestamp or ""),
+            str(method or ""),
+            str(url or ""),
+            _historyText(requestText),
+            _historyText(responseText),
+            bool(ok),
+            int(durationMs or 0),
+            _historyText(errorText),
+        ],
+        maxRows=HTTP_HISTORY_MAX_ROWS,
     )

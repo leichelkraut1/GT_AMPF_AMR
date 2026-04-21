@@ -85,4 +85,5 @@ def runtimePaths():
         "command_history": RUNTIME_BASE + "/CommandHistory",
         "mission_state_history": RUNTIME_BASE + "/MissionStateHistory",
         "robot_state_history": RUNTIME_BASE + "/RobotStateHistory",
+        "http_history": RUNTIME_BASE + "/HttpHistory",
     }
