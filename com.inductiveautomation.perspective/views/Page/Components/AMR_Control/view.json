@@ -708,7 +708,7 @@
           "text": "Finalize Ready Manual"
         },
         "type": "ia.input.checkbox"
-      },
+      }
     ],
     "meta": {
       "name": "root"
