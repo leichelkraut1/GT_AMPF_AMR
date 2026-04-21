@@ -63,7 +63,7 @@
           "style": {
             "textAlign": "left"
           },
-          "value": "all"
+          "value": "get"
         },
         "type": "ia.input.dropdown"
       },
@@ -85,7 +85,7 @@
               },
               "transforms": [
                 {
-                  "code": "\tparts = str(value or \"all\").rsplit(\":\", 1)\n\tmode = parts[-1] if parts else \"all\"\n\tpathByMode = {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\",\n\t}\n\ttagPath = pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue = system.tag.readBlocking([tagPath])[0].value\n\tif datasetValue is None:\n\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\ttry:\n\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\texcept Exception:\n\t\treturn datasetValue",
+                  "code": "\tparts \u003d str(value or \"all\").rsplit(\":\", 1)\n\tmode \u003d parts[-1] if parts else \"all\"\n\tpathByMode \u003d {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\",\n\t}\n\ttagPath \u003d pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue \u003d system.tag.readBlocking([tagPath])[0].value\n\tif datasetValue is None:\n\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\ttry:\n\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\texcept Exception:\n\t\treturn datasetValue",
                   "type": "script"
                 }
               ],
@@ -339,9 +339,6 @@
             }
           ],
           "dragOrderable": false,
-          "pager": {
-            "activeOption": 25
-          },
           "rows": {
             "striped": {
               "color": {
@@ -354,8 +351,21 @@
             }
           },
           "selection": {
-            "data": [],
-            "enableColumnSelection": true
+            "data": [
+              {
+                "DurationMs": "16",
+                "Error": "",
+                "Method": "GET",
+                "Ok": "true",
+                "Request": "",
+                "Response": "{\"session_start\":\"2026-04-18T11:23:26.575439Z\",\"state\":\"RUNNING\"}",
+                "Ts": "2026-04-21 07:40:43",
+                "Url": "https://10.137.22.58/api/fleet/v2/system/state/"
+              }
+            ],
+            "enableColumnSelection": true,
+            "selectedColumn": "Url",
+            "selectedRow": 109
           },
           "sortOrder": [
             "Ts"
@@ -377,8 +387,8 @@
         "position": {
           "height": "4%",
           "width": "98%",
-          "x": "1%",
-          "y": "51%"
+          "x": -27.359375,
+          "y": 409.61
         },
         "props": {
           "style": {
@@ -410,7 +420,7 @@
               },
               "transforms": [
                 {
-                  "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Url\", \"\")\n\treturn \"\"",
+                  "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Url\", \"\")\n\treturn \"\"",
                   "type": "script"
                 }
               ],
@@ -429,8 +439,7 @@
             "overflow": "auto",
             "padding": "8px",
             "whiteSpace": "pre-wrap"
-          },
-          "text": ""
+          }
         },
         "type": "ia.display.label"
       },
@@ -497,7 +506,7 @@
               },
               "transforms": [
                 {
-                  "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Request\", \"\")\n\treturn \"\"",
+                  "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Request\", \"\")\n\treturn \"\"",
                   "type": "script"
                 }
               ],
@@ -516,8 +525,7 @@
             "overflow": "auto",
             "padding": "8px",
             "whiteSpace": "pre-wrap"
-          },
-          "text": ""
+          }
         },
         "type": "ia.display.label"
       },
@@ -540,7 +548,7 @@
               },
               "transforms": [
                 {
-                  "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Response\", \"\")\n\treturn \"\"",
+                  "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Response\", \"\")\n\treturn \"\"",
                   "type": "script"
                 }
               ],
@@ -559,8 +567,7 @@
             "overflow": "auto",
             "padding": "8px",
             "whiteSpace": "pre-wrap"
-          },
-          "text": ""
+          }
         },
         "type": "ia.display.label"
       },
@@ -582,8 +589,8 @@
         "position": {
           "height": 34,
           "width": 76,
-          "x": 979.33,
-          "y": 319.58
+          "x": 867.33,
+          "y": 364.61125
         },
         "props": {
           "text": "Refresh"
@@ -600,8 +607,8 @@
             "anchor": "64% 50%"
           },
           "width": 136,
-          "x": 830,
-          "y": 319.158
+          "x": 699.492,
+          "y": 346.92325
         },
         "propConfig": {
           "props.Time": {
@@ -618,7 +625,6 @@
           }
         },
         "props": {
-          "selected": true,
           "text": "Auto Refresh"
         },
         "type": "ia.input.checkbox"
@@ -626,6 +632,10 @@
     ],
     "meta": {
       "name": "root"
+    },
+    "position": {
+      "x": -63.671875,
+      "y": 7.4375
     },
     "type": "ia.container.coord"
   }
