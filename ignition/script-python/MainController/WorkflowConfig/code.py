@@ -54,13 +54,6 @@ def _iterWorkflowConfigRows(datasetValue):
     return rows
 
 
-def _coerceExclusive(value):
-    if isinstance(value, bool):
-        return value
-    text = str(value or "").strip().lower()
-    return text not in ["", "0", "false", "no"]
-
-
 def _groupWorkflowRows(rows):
     grouped = {}
 
@@ -78,7 +71,6 @@ def _groupWorkflowRows(rows):
                 "place_name": str(row.get("PlaceName") or "").strip(),
                 "template_name": str(row.get("TemplateName") or "").strip(),
                 "mission_type": str(row.get("MissionType") or "").strip(),
-                "exclusive": _coerceExclusive(row.get("Exclusive")),
             }
             grouped[workflowNumber] = workflowDef
 

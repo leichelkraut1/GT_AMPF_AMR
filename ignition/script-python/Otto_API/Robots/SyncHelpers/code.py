@@ -209,7 +209,9 @@ def buildInvalidRobotSyncWrites(robotPath):
         robotPath + "/NotReadyReason",
         mainControlRobotPath + "/MissionStarved",
         mainControlRobotPath + "/MissionReadyforAttachment",
-        mainControlRobotPath + "/MissionNameForAttachment",
+        mainControlRobotPath + "/CurrentMissionName",
+        mainControlRobotPath + "/CurrentMissionId",
+        mainControlRobotPath + "/CurrentMissionStatus",
     ]
     values = [
         None,
@@ -223,6 +225,8 @@ def buildInvalidRobotSyncWrites(robotPath):
         False,
         "invalid_robot_id",
         False,
+        "",
+        "",
         "",
         "",
     ]

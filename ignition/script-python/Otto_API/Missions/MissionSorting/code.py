@@ -14,6 +14,7 @@ from Otto_API.Missions.Buckets import classify_mission_bucket
 from Otto_API.Missions.Buckets import make_instance_name
 from Otto_API.Missions.Buckets import readRobotFolderMappings
 from Otto_API.Missions.Buckets import resolve_mission_robot_folder
+from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
 from Otto_API.Missions.Get import getMissions
 from Otto_API.Missions.Maintenance import cleanup_stale_bucket
 from Otto_API.Missions.Maintenance import cleanup_terminal_folder
@@ -171,6 +172,9 @@ def run():
         missionStarvedByFolder = {}
         attachmentReadyByFolder = {}
         attachmentMissionNameByFolder = {}
+        currentMissionIdByFolder = {}
+        currentMissionStatusByFolder = {}
+        activeMissionsByFolder = {}
         removed = []
 
         for mission in missions:
@@ -205,6 +209,7 @@ def run():
             else:
                 activeWanted.add(syncResult["paths"]["active"])
                 activeCountsByFolder[robotFolder] = activeCountsByFolder.get(robotFolder, 0) + 1
+                activeMissionsByFolder.setdefault(robotFolder, []).append(mission)
                 if attachmentState.get("mission_starved") is True:
                     missionStarvedByFolder[robotFolder] = True
                 if attachmentState.get("ready_for_attachment") is True:
@@ -212,6 +217,13 @@ def run():
                     attachmentMissionNameByFolder[robotFolder] = str(
                         attachmentState.get("attachment_mission_name") or mission.get("name") or ""
                     )
+
+        for robotFolder, robotMissions in list(dict(activeMissionsByFolder or {}).items()):
+            currentMission = selectCurrentActiveMissionRecord(robotMissions)
+            if currentMission is None:
+                continue
+            currentMissionIdByFolder[robotFolder] = str(currentMission.get("id") or "")
+            currentMissionStatusByFolder[robotFolder] = str(currentMission.get("mission_status") or "")
 
         ensure_maincontrol_robot_attachment_tags(robotMappings)
 
@@ -243,7 +255,21 @@ def run():
             build_robot_member_writes(
                 robotMappings,
                 attachmentMissionNameByFolder,
-                "MissionNameForAttachment",
+                "CurrentMissionName",
+                transform=lambda value: str(value or ""),
+                basePath=MAINCONTROL_ROBOTS_PATH
+            ) +
+            build_robot_member_writes(
+                robotMappings,
+                currentMissionIdByFolder,
+                "CurrentMissionId",
+                transform=lambda value: str(value or ""),
+                basePath=MAINCONTROL_ROBOTS_PATH
+            ) +
+            build_robot_member_writes(
+                robotMappings,
+                currentMissionStatusByFolder,
+                "CurrentMissionStatus",
                 transform=lambda value: str(value or ""),
                 basePath=MAINCONTROL_ROBOTS_PATH
             )
