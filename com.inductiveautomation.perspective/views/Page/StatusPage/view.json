@@ -37,7 +37,7 @@
           "name": "FleetStatus"
         },
         "position": {
-          "grow": 1
+          "shrink": 0
         },
         "props": {
           "path": "Page/Components/FleetStatus"

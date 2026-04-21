@@ -22,7 +22,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 310,
+      "height": 560,
       "width": 320
     }
   },
@@ -368,7 +368,258 @@
       },
       {
         "meta": {
-          "name": "Checkbox"
+          "name": "MissionSectionTitle"
+        },
+        "position": {
+          "basis": "28px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "borderTop": "1px solid #e5e7eb",
+            "color": "#475569",
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "marginTop": "6px",
+            "paddingTop": "8px",
+            "textTransform": "uppercase"
+          },
+          "text": "Current Mission"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CurrentMissionName"
+        },
+        "position": {
+          "basis": "40px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]MainControl/Robots/AMPF_AMR_RV{1}/CurrentMissionName"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Mission Name: \" + if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "whiteSpace": "normal"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CurrentMissionStatus"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]MainControl/Robots/AMPF_AMR_RV{1}/CurrentMissionStatus"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Mission Status: \" + if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ManualWorkflowSectionTitle"
+        },
+        "position": {
+          "basis": "28px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "borderTop": "1px solid #e5e7eb",
+            "color": "#475569",
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "marginTop": "6px",
+            "paddingTop": "8px",
+            "textTransform": "uppercase"
+          },
+          "text": "Manual Workflow"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "WFManualCheckbox"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.selected": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/HMI/WF_Manual"
+              },
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "text": "WF Manual"
+        },
+        "type": "ia.input.checkbox"
+      },
+      {
+        "meta": {
+          "name": "WFNumManualDropdown"
+        },
+        "position": {
+          "basis": "42px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.options": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]Fleet/Config/WorkflowConfig"
+              },
+              "transforms": [
+                {
+                  "code": "\toptionsByWorkflow = {}\n\trobotName = str(self.custom.RVTagName or \"\")\n\tif hasattr(value, \"getRowCount\"):\n\t\tfor rowIndex in range(value.getRowCount()):\n\t\t\trowRobot = str(value.getValueAt(rowIndex, \"RobotName\") or \"\").strip()\n\t\t\tif rowRobot != robotName:\n\t\t\t\tcontinue\n\t\t\ttry:\n\t\t\t\tworkflowNumber = int(value.getValueAt(rowIndex, \"WorkflowNumber\"))\n\t\t\texcept Exception:\n\t\t\t\tcontinue\n\t\t\tplaceName = str(value.getValueAt(rowIndex, \"PlaceName\") or \"\").strip()\n\t\t\toptionsByWorkflow[workflowNumber] = {\n\t\t\t\t\"value\": workflowNumber,\n\t\t\t\t\"label\": \"WF {} - {}\".format(workflowNumber, placeName or \"-\")\n\t\t\t}\n\treturn [optionsByWorkflow[key] for key in sorted(optionsByWorkflow.keys())]",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/HMI/WF_NumManual"
+              },
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "placeholder": {
+            "text": "Select workflow"
+          }
+        },
+        "type": "ia.input.dropdown"
+      },
+      {
+        "meta": {
+          "name": "WFSendManualNumCheckbox"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.selected": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/HMI/WF_SendManualNum"
+              },
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "text": "Send Manual Num"
+        },
+        "type": "ia.input.checkbox"
+      },
+      {
+        "meta": {
+          "name": "WFFinalizeReadyManualCheckbox"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.selected": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/HMI/WF_FinalizeReadyManual"
+              },
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "text": "Finalize Ready Manual"
+        },
+        "type": "ia.input.checkbox"
+      },
+      {
+        "meta": {
+          "name": "DisableIgnitionControlCheckbox"
         },
         "position": {
           "basis": "40px",
