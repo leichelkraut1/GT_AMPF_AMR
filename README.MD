@@ -19,7 +19,7 @@ having to reconstruct it from a long chain of script modules.
 
 Top-level orchestration lives in:
 
-- `ignition/script-python/MainController/Cycle/ControllerCycle/code.py`
+- `ignition/script-python/MainController/Loop/ControllerCycle/code.py`
 
 The main entrypoint is:
 

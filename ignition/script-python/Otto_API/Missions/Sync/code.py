@@ -9,11 +9,10 @@ from Otto_API.Missions.Buckets import make_instance_name
 from Otto_API.Missions.Maintenance import remove_instance
 from Otto_API.Missions.Runtime import build_mission_write_signature
 from Otto_API.Missions.Runtime import carry_forward_last_logged_status
-from Otto_API.Missions.Runtime import mission_runtime_paths
+from Otto_API.Missions.Runtime import mission_runtime_tag_path
 from Otto_API.Missions.Runtime import read_previous_mission_status
 from Otto_API.Missions.Runtime import read_previous_mission_value
 from Otto_API.Missions.Runtime import record_mission_status_if_changed
-from Otto_API.Missions.Runtime import warn_missing_mission_runtime_member
 
 
 def mission_to_tag_values(mission):
@@ -55,9 +54,14 @@ def write_mission_data(instancePath, mission, logger):
     """
     values = mission_to_tag_values(mission)
     signature = build_mission_write_signature(values)
-    runtimePaths = mission_runtime_paths(instancePath)
-    hasWriteSignatureTag = tagExists(runtimePaths["last_write_signature"])
-    if hasWriteSignatureTag:
+    runtimePath = mission_runtime_tag_path(
+        instancePath,
+        "last_write_signature",
+        "_LastWriteSignature",
+        logger=logger,
+        warn=True
+    )
+    if runtimePath:
         currentSignature = read_previous_mission_value(
             [instancePath],
             "_LastWriteSignature",
@@ -66,16 +70,10 @@ def write_mission_data(instancePath, mission, logger):
         )
         if str(currentSignature or "") == signature:
             return False
-    else:
-        warn_missing_mission_runtime_member(
-            "_LastWriteSignature",
-            logger
-        )
-
     paths = [instancePath + "/" + k for k in values]
     vals = [values[k] for k in values]
-    if hasWriteSignatureTag:
-        paths.append(runtimePaths["last_write_signature"])
+    if runtimePath:
+        paths.append(runtimePath)
         vals.append(signature)
     writeRequiredTagValues(
         paths,
@@ -89,19 +87,17 @@ def build_robot_member_writes(robotMappings, valuesByFolder, memberName, transfo
     """
     Build robot-member writes for known robot folders.
     """
-    def _identity(value):
-        return value
-
-    if transform is None:
-        transform = _identity
     if basePath is None:
         basePath = getFleetRobotsPath()
 
     writes = []
     for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
+        value = valuesByFolder.get(robotFolder, 0)
+        if transform is not None:
+            value = transform(value)
         writes.append((
             basePath + "/" + robotFolder + "/" + memberName,
-            transform(valuesByFolder.get(robotFolder, 0))
+            value
         ))
     return writes
 
@@ -131,6 +127,9 @@ def sync_mission_into_bucket(
     """
     Move a mission into the requested bucket, write its data, and record history.
     """
+    def removalReason():
+        return "moved to {}".format(bucket.capitalize())
+
     instanceName = make_instance_name(mission)
     paths = build_mission_bucket_paths(
         activePath,
@@ -156,38 +155,17 @@ def sync_mission_into_bucket(
     )
     removed = []
 
-    moveReasons = {
-        "active": {
-            "completed": "moved_to_active",
-            "failed": "moved_to_active",
-        },
-        "completed": {
-            "active": "moved_to_completed",
-            "failed": "moved_to_completed",
-        },
-        "failed": {
-            "active": "moved_to_failed",
-            "completed": "moved_to_failed",
-        },
-    }
-    logReasons = {
-        "moved_to_active": "moved to Active",
-        "moved_to_completed": "moved to Completed",
-        "moved_to_failed": "moved to Failed",
-    }
-
     for otherBucket in ["active", "completed", "failed"]:
         if otherBucket == bucket:
             continue
-        removalKey = moveReasons[bucket][otherBucket]
         if tagExists(paths[otherBucket]):
             remove_instance(
                 paths[otherBucket],
                 logger,
                 debug,
-                logReasons[removalKey]
+                removalReason()
             )
-            removed.append((paths[otherBucket], removalKey))
+            removed.append((paths[otherBucket], "moved_to_" + bucket))
 
     targetPath = paths[bucket]
     if not tagExists(targetPath):

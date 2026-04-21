@@ -36,6 +36,103 @@ def _log():
     return system.util.getLogger("Otto_API.Robots.Get")
 
 
+def _fetch_json_results(url, failureMessage, logger, writeLastResponseValue=False):
+    response = httpGet(url=url, headerValues=jsonHeaders())
+    if not response:
+        logger.error("Otto API - {}".format(failureMessage))
+        return None, buildRobotSyncResult(False, "error", failureMessage)
+
+    if writeLastResponseValue:
+        writeLastSystemResponse(response)
+
+    try:
+        data = json.loads(response)
+    except Exception as exc:
+        message = "JSON decode error - {}".format(exc)
+        logger.error("Otto API - {}".format(message))
+        return None, buildRobotSyncResult(False, "error", message)
+
+    return data.get("results", []), None
+
+
+def _read_inventory_sync_context(basePath, logger):
+    _, robotTags, invalidRobotRows, _ = readRobotInventory(basePath)
+    invalidated = collectInvalidRobotWrites(invalidRobotRows, logger)
+    return robotTags, invalidated
+
+
+def _warn_unmatched_robot_ids(robotIds, logger):
+    for robotId in list(robotIds or []):
+        logger.warn("No matching robot tag found for robot ID " + robotId)
+
+
+def _sync_metric_records(
+    basePath,
+    results,
+    sourceField,
+    valueField,
+    tagMember,
+    logger,
+    operationLabel,
+    valueTransform=None,
+):
+    robotTags, invalidated = _read_inventory_sync_context(basePath, logger)
+    writes, unmatchedRobotIds = buildRobotMetricWrites(
+        robotTags,
+        results,
+        sourceField,
+        valueField,
+        tagMember
+    )
+    if valueTransform is not None:
+        writes = [
+            (path, valueTransform(value))
+            for path, value in list(writes or [])
+        ]
+    _warn_unmatched_robot_ids(unmatchedRobotIds, logger)
+    finalWrites = writes + invalidated
+    if finalWrites:
+        writeObservedPairs(finalWrites, operationLabel, logger)
+    return writes, finalWrites
+
+
+def _robot_keyed_values(records, robotField, valueField, valueTransform=None):
+    valuesByRobot = {}
+    for record in list(records or []):
+        robotId = record.get(robotField)
+        if robotId is None:
+            continue
+        value = record.get(valueField)
+        if valueTransform is not None:
+            value = valueTransform(value)
+        valuesByRobot[str(robotId).strip()] = value
+    return valuesByRobot
+
+
+def _read_current_robot_values(readPlan):
+    robotPaths = [row["robot_path"] for row in list(readPlan or [])]
+    currentValuePaths = []
+    for robotPath in robotPaths:
+        currentValuePaths.extend([
+            robotPath + "/SystemState",
+            robotPath + "/SubSystemState",
+            robotPath + "/SystemStatePriority",
+            robotPath + "/SystemStateUpdatedTs",
+            robotPath + "/ActivityState",
+            robotPath + "/ChargeLevel",
+            robotPath + "/ActiveMissionCount",
+            robotPath + "/FailedMissionCount",
+            robotPath + "/" + ROBOT_STATE_LOG_SIGNATURE_MEMBER,
+        ])
+
+    currentValues = {}
+    if currentValuePaths:
+        readResults = readTagValues(currentValuePaths)
+        for path, qualifiedValue in zip(currentValuePaths, readResults):
+            currentValues[path] = qualifiedValue.value if qualifiedValue.quality.isGood() else None
+    return currentValues
+
+
 def updateRobots():
     """
     Get vehicle information from OTTO and sync Fleet/Robots inventory tags.
@@ -45,22 +142,16 @@ def updateRobots():
     ottoLogger.info("Otto API - Updating /Robots/ Tags")
 
     try:
-        response = httpGet(url=url, headerValues=jsonHeaders())
-
-        if not response:
-            ottoLogger.error("Otto API - HTTPGet Failed for /Robots/")
-            return buildRobotSyncResult(False, "error", "HTTP GET failed for /Robots/")
-
-        writeLastSystemResponse(response)
-
-        try:
-            data = json.loads(response)
-        except Exception as jsonErr:
-            ottoLogger.error("Otto API - JSON decode error: {}".format(jsonErr))
-            return buildRobotSyncResult(False, "error", "Robot JSON decode error - {}".format(jsonErr))
+        robotResults, errorResult = _fetch_json_results(
+            url,
+            "HTTP GET failed for /Robots/",
+            ottoLogger,
+            writeLastResponseValue=True
+        )
+        if errorResult is not None:
+            return errorResult
 
         basePath = getFleetRobotsPath()
-        robotResults = data.get("results", [])
         apiRobots = []
         writes = []
 
@@ -113,20 +204,18 @@ def updateSystemStates():
     robotsBasePath = getFleetRobotsPath()
 
     try:
-        response = httpGet(url=url, headerValues=jsonHeaders())
-
-        if not response:
-            ottoLogger.error("Otto API - HTTP GET failed for /robots/system_states/")
-            return buildRobotSyncResult(False, "error", "HTTP GET failed for /robots/system_states/")
-
-        data = json.loads(response)
-        results = data.get("results", [])
+        results, errorResult = _fetch_json_results(
+            url,
+            "HTTP GET failed for /robots/system_states/",
+            ottoLogger
+        )
+        if errorResult is not None:
+            return errorResult
 
         statesByRobot = groupRecordsByRobot(results, "robot")
-        _, robotTags, invalidRobotRows, _ = readRobotInventory(robotsBasePath)
+        robotTags, invalidated = _read_inventory_sync_context(robotsBasePath, ottoLogger)
 
         writes = []
-        invalidated = collectInvalidRobotWrites(invalidRobotRows, ottoLogger)
         nowDate = system.date.now()
 
         for robotId, stateList in statesByRobot.items():
@@ -140,19 +229,12 @@ def updateSystemStates():
 
             robotPath = robotTags[robotId]
             try:
-                paths = [
-                    robotPath + "/SystemState",
-                    robotPath + "/SubSystemState",
-                    robotPath + "/SystemStatePriority",
-                    robotPath + "/SystemStateUpdatedTs",
-                ]
-                values = [
-                    dominant.get("system_state"),
-                    dominant.get("sub_system_state"),
-                    dominant.get("priority"),
-                    nowDate,
-                ]
-                writes.extend(zip(paths, values))
+                writes.extend([
+                    (robotPath + "/SystemState", dominant.get("system_state")),
+                    (robotPath + "/SubSystemState", dominant.get("sub_system_state")),
+                    (robotPath + "/SystemStatePriority", dominant.get("priority")),
+                    (robotPath + "/SystemStateUpdatedTs", nowDate),
+                ])
             except Exception as exc:
                 ottoLogger.warn(
                     "Failed to write SystemState for robot {} - {}".format(
@@ -187,35 +269,25 @@ def updateChargeLevels():
     ottoLogger = _log()
 
     try:
-        response = httpGet(url=url, headerValues=jsonHeaders())
-        if not response:
-            ottoLogger.error("Otto API - HTTP GET failed for /robots/batteries/")
-            return buildRobotSyncResult(False, "error", "HTTP GET failed for /robots/batteries/")
+        batteryResults, errorResult = _fetch_json_results(
+            url,
+            "HTTP GET failed for /robots/batteries/",
+            ottoLogger
+        )
+        if errorResult is not None:
+            return errorResult
 
-        batteryData = json.loads(response)
         basePath = getFleetRobotsPath()
-        batteryResults = batteryData.get("results", [])
-
-        _, robotTags, invalidRobotRows, _ = readRobotInventory(basePath)
-        invalidated = collectInvalidRobotWrites(invalidRobotRows, ottoLogger)
-        writes, unmatchedRobotIds = buildRobotMetricWrites(
-            robotTags,
+        writes, finalWrites = _sync_metric_records(
+            basePath,
             batteryResults,
             "robot",
             "percentage",
-            "ChargeLevel"
+            "ChargeLevel",
+            ottoLogger,
+            "Otto_API.Robots.Get charge sync",
+            valueTransform=normalizeChargePercentage
         )
-        writes = [
-            (path, normalizeChargePercentage(value))
-            for path, value in writes
-        ]
-
-        for robotId in unmatchedRobotIds:
-            ottoLogger.warn("No matching robot tag found for robot ID " + robotId)
-
-        finalWrites = writes + invalidated
-        if finalWrites:
-            writeObservedPairs(finalWrites, "Otto_API.Robots.Get charge sync", ottoLogger)
 
         return buildRobotSyncResult(
             True,
@@ -239,31 +311,24 @@ def updateActivityStates():
     ottoLogger = _log()
 
     try:
-        response = httpGet(url=url, headerValues=jsonHeaders())
-        if not response:
-            ottoLogger.error("Otto API - HTTP GET failed for /robots/activities/")
-            return buildRobotSyncResult(False, "error", "HTTP GET failed for /robots/activities/")
+        activityResults, errorResult = _fetch_json_results(
+            url,
+            "HTTP GET failed for /robots/activities/",
+            ottoLogger
+        )
+        if errorResult is not None:
+            return errorResult
 
-        activityData = json.loads(response)
         basePath = getFleetRobotsPath()
-        activityResults = activityData.get("results", [])
-
-        _, robotTags, invalidRobotRows, _ = readRobotInventory(basePath)
-        invalidated = collectInvalidRobotWrites(invalidRobotRows, ottoLogger)
-        writes, unmatchedRobotIds = buildRobotMetricWrites(
-            robotTags,
+        writes, finalWrites = _sync_metric_records(
+            basePath,
             activityResults,
             "robot",
             "activity",
-            "ActivityState"
+            "ActivityState",
+            ottoLogger,
+            "Otto_API.Robots.Get activity sync"
         )
-
-        for robotId in unmatchedRobotIds:
-            ottoLogger.warn("No matching robot tag found for robot ID " + robotId)
-
-        finalWrites = writes + invalidated
-        if finalWrites:
-            writeObservedPairs(finalWrites, "Otto_API.Robots.Get activity sync", ottoLogger)
 
         return buildRobotSyncResult(
             True,
@@ -306,69 +371,43 @@ def updateRobotOperationalState():
         return buildRobotSyncResult(False, "warn", message)
 
     try:
-        browseResults, robotTags, invalidRobotRows, readPlan = readRobotInventory(robotsBasePath)
+        _, robotTags, invalidRobotRows, readPlan = readRobotInventory(robotsBasePath)
         invalidated = collectInvalidRobotWrites(invalidRobotRows, ottoLogger)
-
-        robotPaths = [row["robot_path"] for row in readPlan]
-        currentValuePaths = []
-        for robotPath in robotPaths:
-            currentValuePaths.extend([
-                robotPath + "/SystemState",
-                robotPath + "/SubSystemState",
-                robotPath + "/SystemStatePriority",
-                robotPath + "/SystemStateUpdatedTs",
-                robotPath + "/ActivityState",
-                robotPath + "/ChargeLevel",
-                robotPath + "/ActiveMissionCount",
-                robotPath + "/FailedMissionCount",
-                robotPath + "/" + ROBOT_STATE_LOG_SIGNATURE_MEMBER,
-            ])
-
-        currentValues = {}
-        if currentValuePaths:
-            readResults = readTagValues(currentValuePaths)
-            for path, qualifiedValue in zip(currentValuePaths, readResults):
-                currentValues[path] = qualifiedValue.value if qualifiedValue.quality.isGood() else None
+        currentValues = _read_current_robot_values(readPlan)
 
         baseUrl = getApiBaseUrl()
-        systemStateResponse = httpGet(
-            url=baseUrl + "/robots/states/?fields=%2A",
-            headerValues=jsonHeaders()
+        systemStateResults, errorResult = _fetch_json_results(
+            baseUrl + "/robots/states/?fields=%2A",
+            "HTTP GET failed for /robots/system_states/",
+            ottoLogger
         )
-        activityResponse = httpGet(
-            url=baseUrl + "/robots/activities/?fields=activity,robot&offset=0&limit=100",
-            headerValues=jsonHeaders()
-        )
-        batteryResponse = httpGet(
-            url=baseUrl + "/robots/batteries/?fields=percentage,robot",
-            headerValues=jsonHeaders()
-        )
+        if errorResult is not None:
+            return errorResult
 
-        if not systemStateResponse:
-            return buildRobotSyncResult(False, "error", "HTTP GET failed for /robots/system_states/")
-        if not activityResponse:
-            return buildRobotSyncResult(False, "error", "HTTP GET failed for /robots/activities/")
-        if not batteryResponse:
-            return buildRobotSyncResult(False, "error", "HTTP GET failed for /robots/batteries/")
+        activityResults, errorResult = _fetch_json_results(
+            baseUrl + "/robots/activities/?fields=activity,robot&offset=0&limit=100",
+            "HTTP GET failed for /robots/activities/",
+            ottoLogger
+        )
+        if errorResult is not None:
+            return errorResult
 
-        systemStateResults = json.loads(systemStateResponse).get("results", [])
-        activityResults = json.loads(activityResponse).get("results", [])
-        batteryResults = json.loads(batteryResponse).get("results", [])
+        batteryResults, errorResult = _fetch_json_results(
+            baseUrl + "/robots/batteries/?fields=percentage,robot",
+            "HTTP GET failed for /robots/batteries/",
+            ottoLogger
+        )
+        if errorResult is not None:
+            return errorResult
 
         statesByRobot = groupRecordsByRobot(systemStateResults, "robot")
-        activityByRobot = {}
-        for record in list(activityResults or []):
-            robotId = record.get("robot")
-            if robotId is None:
-                continue
-            activityByRobot[str(robotId).strip()] = record.get("activity")
-
-        chargeByRobot = {}
-        for record in list(batteryResults or []):
-            robotId = record.get("robot")
-            if robotId is None:
-                continue
-            chargeByRobot[str(robotId).strip()] = normalizeChargePercentage(record.get("percentage"))
+        activityByRobot = _robot_keyed_values(activityResults, "robot", "activity")
+        chargeByRobot = _robot_keyed_values(
+            batteryResults,
+            "robot",
+            "percentage",
+            valueTransform=normalizeChargePercentage
+        )
 
         writesByPath = {}
         nowDate = system.date.now()

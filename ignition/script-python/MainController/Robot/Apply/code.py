@@ -28,7 +28,7 @@ def _buildCommandLogSignature(
     ])
 
 
-def _recordCommandHistory(snapshot, outcome, cycleResult):
+def _recordCommandHistory(snapshot, outcome):
     """Log non-idle controller decisions to the runtime history dataset."""
     action = str(outcome.get("action") or "")
     if action == "idle":
@@ -125,5 +125,5 @@ def applyRobotOutcome(snapshot, outcome):
         action=action,
         data=payload,
     )
-    _recordCommandHistory(snapshot, outcome, result)
+    _recordCommandHistory(snapshot, outcome)
     return result

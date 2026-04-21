@@ -1,6 +1,6 @@
 import time
 
-from MainController.Cycle import ControllerCycle
+from MainController.Loop import ControllerCycle
 from Otto_API.Common.RuntimeHistory import timestampString
 from MainController.State.Provisioning import ensureRuntimeTags
 from MainController.State.RuntimeStore import readRuntimeState

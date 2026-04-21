@@ -52,6 +52,12 @@ def _missionRuntimeTagPath(instancePath, keyName, memberName, warn=True):
     return tagPath
 
 
+def _missionInstancePath(missionRecord):
+    """Return the mission instance path used for controller-side runtime helpers."""
+    missionRecord = dict(missionRecord or {})
+    return str(missionRecord.get("instance_path") or missionRecord.get("path") or "")
+
+
 def _readMissionRuntimeValue(instancePath, keyName, memberName):
     """Read an optional mission runtime helper tag, warning once if the UDT member is absent."""
     tagPath = _missionRuntimeTagPath(instancePath, keyName, memberName)
@@ -89,8 +95,7 @@ def _buildMissionCommandLogSignature(actionName, result):
 
 def _hasMissionCommandAlreadyIssued(missionRecord, actionName):
     """Return True when this mission already accepted the same clear command in a prior scan."""
-    missionRecord = dict(missionRecord or {})
-    instancePath = str(missionRecord.get("instance_path") or missionRecord.get("path") or "")
+    instancePath = _missionInstancePath(missionRecord)
     signature = _readMissionRuntimeValue(
         instancePath,
         "last_issued_command_signature",
@@ -101,8 +106,7 @@ def _hasMissionCommandAlreadyIssued(missionRecord, actionName):
 
 def _markMissionCommandIssued(missionRecord, actionName):
     """Persist the successful per-mission clear command so later scans wait instead of repeating it."""
-    missionRecord = dict(missionRecord or {})
-    instancePath = str(missionRecord.get("instance_path") or missionRecord.get("path") or "")
+    instancePath = _missionInstancePath(missionRecord)
     return _writeMissionRuntimeValue(
         instancePath,
         "last_issued_command_signature",
@@ -123,7 +127,7 @@ def _recordMissionCommandHistory(
 ):
     """Append one explicit mission cancel/finalize row unless the mission-side log signature already matches."""
     missionRecord = dict(missionRecord or {})
-    instancePath = str(missionRecord.get("instance_path") or missionRecord.get("path") or "")
+    instancePath = _missionInstancePath(missionRecord)
     logSignature = _buildMissionCommandLogSignature(actionName, result)
     currentSignature = _readMissionRuntimeValue(
         instancePath,

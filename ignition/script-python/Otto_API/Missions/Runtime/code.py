@@ -43,6 +43,20 @@ def mission_runtime_paths(instancePath):
     }
 
 
+def mission_runtime_tag_path(instancePath, keyName, memberName=None, logger=None, warn=False):
+    """
+    Return one mission runtime helper tag path when the UDT member exists.
+    """
+    if not instancePath:
+        return None
+    tagPath = mission_runtime_paths(instancePath).get(keyName)
+    if not tagPath or not tagExists(tagPath):
+        if warn:
+            warn_missing_mission_runtime_member(memberName, logger)
+        return None
+    return tagPath
+
+
 def build_mission_write_signature(tagValues):
     """
     Build a stable signature for the current mission tag payload.
@@ -120,15 +134,14 @@ def record_mission_status_if_changed(
     Append mission-state history only when the mission instance's last logged state changes.
     """
     newStatus = str(mission.get("mission_status") or "")
-    hasLastLoggedStatusTag = tagExists(
-        mission_runtime_paths(instancePath)["last_logged_status"]
+    runtimePath = mission_runtime_tag_path(
+        instancePath,
+        "last_logged_status",
+        MISSION_LAST_LOGGED_STATUS_MEMBER,
+        logger=logger,
+        warn=True
     )
-    if not hasLastLoggedStatusTag:
-        warn_missing_mission_runtime_member(
-            MISSION_LAST_LOGGED_STATUS_MEMBER,
-            logger
-        )
-    if hasLastLoggedStatusTag:
+    if runtimePath:
         if str(lastLoggedStatus or "") == newStatus:
             return False
     elif previousStatus is not None and str(previousStatus) == newStatus:
@@ -141,9 +154,9 @@ def record_mission_status_if_changed(
         previousStatus,
         newStatus
     )
-    if hasLastLoggedStatusTag:
+    if runtimePath:
         writeRequiredTagValues(
-            [mission_runtime_paths(instancePath)["last_logged_status"]],
+            [runtimePath],
             [newStatus],
             labels=["MissionSorting last logged status"]
         )
@@ -157,8 +170,12 @@ def carry_forward_last_logged_status(instancePath, lastLoggedStatus):
     if not str(lastLoggedStatus or ""):
         return False
 
-    runtimePath = mission_runtime_paths(instancePath)["last_logged_status"]
-    if not tagExists(runtimePath):
+    runtimePath = mission_runtime_tag_path(
+        instancePath,
+        "last_logged_status",
+        MISSION_LAST_LOGGED_STATUS_MEMBER
+    )
+    if not runtimePath:
         return False
 
     currentValue = readOptionalTagValue(
@@ -181,16 +198,19 @@ def record_removed_mission_if_needed(instancePath, folderPath, nowTimestamp, log
     """
     Log a stale mission disappearing from OTTO as REMOVED before deleting the tag.
     """
-    runtimePaths = mission_runtime_paths(instancePath)
-    hasLastLoggedStatusTag = tagExists(runtimePaths["last_logged_status"])
+    runtimePath = mission_runtime_tag_path(
+        instancePath,
+        "last_logged_status",
+        MISSION_LAST_LOGGED_STATUS_MEMBER
+    )
     lastLoggedStatus = ""
-    if hasLastLoggedStatusTag:
+    if runtimePath:
         lastLoggedStatus = readOptionalTagValue(
-            runtimePaths["last_logged_status"],
+            runtimePath,
             "",
             allowEmptyString=True
         )
-    if hasLastLoggedStatusTag and str(lastLoggedStatus or "") == "REMOVED":
+    if runtimePath and str(lastLoggedStatus or "") == "REMOVED":
         return False
 
     missionId = str(readOptionalTagValue(instancePath + "/ID", "", allowEmptyString=True) or "")
@@ -219,9 +239,9 @@ def record_removed_mission_if_needed(instancePath, folderPath, nowTimestamp, log
         previousStatus,
         "REMOVED"
     )
-    if hasLastLoggedStatusTag:
+    if runtimePath:
         writeRequiredTagValues(
-            [runtimePaths["last_logged_status"]],
+            [runtimePath],
             ["REMOVED"],
             labels=["MissionSorting removed status"]
         )
