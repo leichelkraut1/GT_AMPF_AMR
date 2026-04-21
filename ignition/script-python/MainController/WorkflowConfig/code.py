@@ -1,123 +1,13 @@
 import re
 
 from Otto_API.Common.TagHelpers import getFleetRobotsPath
+from Otto_API.Common.TagHelpers import getWorkflowConfigPath
 from Otto_API.Common.TagHelpers import getFleetWorkflowsPath
+from Otto_API.Common.TagHelpers import readOptionalTagValue
+from Otto_API.Common.TagHelpers import ensureFleetConfigTags
+from MainController.WorkflowConfigSeed import getWorkflowConfigHeaders
+from MainController.WorkflowConfigSeed import getWorkflowConfigRows
 
-
-WORKFLOW_DEFS = {
-    201: {
-        "workflow_number": 201,
-        "allowed_robots": ["AMPF_AMR_RV4", "AMPF_AMR_RV5"],
-        "place_name": "EP02_TrackCart",
-        "template_name": "WF201_TrakPickup",
-        "mission_type": "Cart Pickup",
-        "exclusive": True,
-    },
-    202: {
-        "workflow_number": 202,
-        "allowed_robots": ["AMPF_AMR_RV4", "AMPF_AMR_RV5"],
-        "place_name": "EP02_TrackCart",
-        "template_name": "WF202_TrakDropoff",
-        "mission_type": "Cart Dropoff",
-        "exclusive": True,
-    },
-    300: {
-        "workflow_number": 300,
-        "allowed_robots": ["AMPF_AMR_RV1"],
-        "place_name": "EP03_Diamondsaw",
-        "template_name": "WF300_DiamondSawDock",
-        "mission_type": "Robot Service",
-        "exclusive": True,
-    },
-    400: {
-        "workflow_number": 400,
-        "allowed_robots": ["AMPF_AMR_RV1"],
-        "place_name": "EP04_MTS_Cell",
-        "template_name": "WF400_MTSDock",
-        "mission_type": "Robot Service",
-        "exclusive": True,
-    },
-    500: {
-        "workflow_number": 500,
-        "allowed_robots": ["AMPF_AMR_RV1"],
-        "place_name": "EP05_HeatTreatments",
-        "template_name": "WF500_HeatTreatDock",
-        "mission_type": "Robot Service",
-        "exclusive": True,
-    },
-    601: {
-        "workflow_number": 601,
-        "allowed_robots": ["AMPF_AMR_RV1"],
-        "place_name": "EP06-1_WetlabHandoff,outer",
-        "template_name": "WF601_WetLabOuterDock",
-        "mission_type": "Robot Service",
-        "exclusive": True,
-    },
-    602: {
-        "workflow_number": 602,
-        "allowed_robots": ["AMPF_AMR_RV2"],
-        "place_name": "EP06-2_WetLabHandoff,Inner",
-        "template_name": "WF602_WetLabInnerDock",
-        "mission_type": "Robot Service",
-        "exclusive": True,
-    },
-    900: {
-        "workflow_number": 900,
-        "allowed_robots": ["AMPF_AMR_RV2"],
-        "place_name": "EP09_RobometSystems",
-        "template_name": "WF900_RobometDock",
-        "mission_type": "Robot Service",
-        "exclusive": True,
-    },
-    1201: {
-        "workflow_number": 1201,
-        "allowed_robots": ["AMPF_AMR_RV1"],
-        "place_name": "EP12-1 MetLabHandoff,outer",
-        "template_name": "WF1201_MetLabOuterDock",
-        "mission_type": "Robot Service",
-        "exclusive": True,
-    },
-    1202: {
-        "workflow_number": 1202,
-        "allowed_robots": ["AMPF_AMR_RV3"],
-        "place_name": "EP12-2 MetLabHandoff,Inner",
-        "template_name": "WF1202_MetLabInnerDock",
-        "mission_type": "Robot Service",
-        "exclusive": True,
-    },
-    1300: {
-        "workflow_number": 1300,
-        "allowed_robots": ["AMPF_AMR_RV3"],
-        "place_name": "EP13_RigakuXPC/XRF Dock",
-        "template_name": "WF1300_RigakuDock",
-        "mission_type": "Robot Service",
-        "exclusive": True,
-    },
-    1600: {
-        "workflow_number": 1600,
-        "allowed_robots": ["AMPF_AMR_RV3"],
-        "place_name": "EP16_FinalPuckStorage",
-        "template_name": "WF1600_FinalPuckStorage",
-        "mission_type": "Robot Service",
-        "exclusive": True,
-    },
-    1901: {
-        "workflow_number": 1901,
-        "allowed_robots": ["AMPF_AMR_RV4", "AMPF_AMR_RV5"],
-        "place_name": "EP19_OptomecCart",
-        "template_name": "WF1901_OptomecPickup",
-        "mission_type": "CartPickup",
-        "exclusive": True,
-    },
-    1902: {
-        "workflow_number": 1902,
-        "allowed_robots": ["AMPF_AMR_RV4", "AMPF_AMR_RV5"],
-        "place_name": "EP19_OptomecCart",
-        "template_name": "WF1902_OptomecDropoff",
-        "mission_type": "CartDropoff",
-        "exclusive": True,
-    },
-}
 
 ROBOT_NAMES = [
     "AMPF_AMR_RV1",
@@ -143,12 +33,87 @@ def normalizeWorkflowNumber(value):
     return number
 
 
+def _defaultWorkflowConfigDataset():
+    return system.dataset.toDataSet(
+        getWorkflowConfigHeaders(),
+        getWorkflowConfigRows(),
+    )
+
+
+def _iterWorkflowConfigRows(datasetValue):
+    if not hasattr(datasetValue, "getRowCount"):
+        return []
+
+    headers = list(datasetValue.getColumnNames() or [])
+    rows = []
+    for rowIndex in range(datasetValue.getRowCount()):
+        row = {}
+        for header in headers:
+            row[str(header)] = datasetValue.getValueAt(rowIndex, header)
+        rows.append(row)
+    return rows
+
+
+def _coerceExclusive(value):
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    return text not in ["", "0", "false", "no"]
+
+
+def _groupWorkflowRows(rows):
+    grouped = {}
+
+    for row in list(rows or []):
+        workflowNumber = normalizeWorkflowNumber(row.get("WorkflowNumber"))
+        robotName = str(row.get("RobotName") or "").strip()
+        if workflowNumber is None or not robotName:
+            continue
+
+        workflowDef = grouped.get(workflowNumber)
+        if workflowDef is None:
+            workflowDef = {
+                "workflow_number": workflowNumber,
+                "allowed_robots": [],
+                "place_name": str(row.get("PlaceName") or "").strip(),
+                "template_name": str(row.get("TemplateName") or "").strip(),
+                "mission_type": str(row.get("MissionType") or "").strip(),
+                "exclusive": _coerceExclusive(row.get("Exclusive")),
+            }
+            grouped[workflowNumber] = workflowDef
+
+        if robotName not in workflowDef["allowed_robots"]:
+            workflowDef["allowed_robots"].append(robotName)
+
+    for workflowDef in list(grouped.values()):
+        workflowDef["allowed_robots"] = sorted(list(workflowDef["allowed_robots"]))
+
+    return grouped
+
+
+def _readWorkflowDatasetValue():
+    datasetValue = readOptionalTagValue(getWorkflowConfigPath(), None)
+    if hasattr(datasetValue, "getRowCount"):
+        return datasetValue
+
+    ensureFleetConfigTags()
+    datasetValue = readOptionalTagValue(getWorkflowConfigPath(), None)
+    if hasattr(datasetValue, "getRowCount"):
+        return datasetValue
+
+    return _defaultWorkflowConfigDataset()
+
+
+def getWorkflowDefs():
+    return _groupWorkflowRows(_iterWorkflowConfigRows(_readWorkflowDatasetValue()))
+
+
 def getWorkflowDef(workflowNumber):
-    """Return the static workflow definition for a workflow number."""
+    """Return the configured workflow definition for a workflow number."""
     workflowNumber = normalizeWorkflowNumber(workflowNumber)
     if workflowNumber is None:
         return None
-    return WORKFLOW_DEFS.get(workflowNumber)
+    return getWorkflowDefs().get(workflowNumber)
 
 
 def isWorkflowAllowedForRobot(workflowNumber, robotName):

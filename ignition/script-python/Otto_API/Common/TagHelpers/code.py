@@ -3,6 +3,9 @@ try:
 except NameError:
     string_types = (str,)
 
+from MainController.WorkflowConfigSeed import getWorkflowConfigHeaders
+from MainController.WorkflowConfigSeed import getWorkflowConfigRows
+
 
 PROJECT_ROOT_TAG_PATH = "[Otto_FleetManager]"
 FLEET_ROOT_TAG_PATH = PROJECT_ROOT_TAG_PATH + "Fleet"
@@ -30,6 +33,7 @@ MISSION_MAX_COMPLETED_COUNT_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/MaxComplet
 ROBOT_CHARGING_DELAY_MS_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/ChargingDelayMs"
 DISABLE_MAIN_CYCLE_HTTP_LOGGING_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/DisableLogOfMainCycleHTTP"
 MAIN_CYCLE_ENDPOINTS_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/MainCycleEndpoints"
+WORKFLOW_CONFIG_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/WorkflowConfig"
 MISSION_LAST_UPDATE_TS_TAG_PATH = FLEET_MISSIONS_ROOT_TAG_PATH + "/LastUpdateTS"
 MISSION_LAST_UPDATE_SUCCESS_TAG_PATH = FLEET_MISSIONS_ROOT_TAG_PATH + "/LastUpdateSuccess"
 
@@ -159,6 +163,10 @@ def getDisableLogOfMainCycleHttpPath():
 
 def getMainCycleEndpointsPath():
     return MAIN_CYCLE_ENDPOINTS_TAG_PATH
+
+
+def getWorkflowConfigPath():
+    return WORKFLOW_CONFIG_TAG_PATH
 
 
 def getMissionLastUpdateTsPath():
@@ -385,6 +393,14 @@ def ensureFleetConfigTags():
     ensureMemoryTag(getRobotChargingDelayMsPath(), "Int8", 0)
     ensureMemoryTag(getMissionMinChargePath(), "Float4", 0.0)
     ensureMemoryTag(getMissionMaxCompletedCountPath(), "Int4", 20)
+    ensureMemoryTag(
+        getWorkflowConfigPath(),
+        "DataSet",
+        system.dataset.toDataSet(
+            getWorkflowConfigHeaders(),
+            getWorkflowConfigRows(),
+        ),
+    )
 
 
 def deleteTagPaths(tagPaths):
