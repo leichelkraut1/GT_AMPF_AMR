@@ -22,60 +22,19 @@
   },
   "props": {
     "defaultSize": {
-      "height": 75,
-      "width": 241
+      "height": 310,
+      "width": 320
     }
   },
   "root": {
     "children": [
       {
         "meta": {
-          "name": "Checkbox"
+          "name": "Title"
         },
         "position": {
-          "height": 36,
-          "rotate": {
-            "anchor": "25% 36%"
-          },
-          "width": "100%",
-          "y": 31
-        },
-        "propConfig": {
-          "props.selected": {
-            "binding": {
-              "config": {
-                "fallbackDelay": 2.5,
-                "mode": "indirect",
-                "references": {
-                  "1": "{view.params.RVNum}"
-                },
-                "tagPath": "[Otto_FleetManager]MainControl/Robots/AMPF_AMR_RV{1}/DisableIgnitionControl"
-              },
-              "transforms": [
-                {
-                  "code": "\treturn value",
-                  "type": "script"
-                }
-              ],
-              "type": "tag"
-            }
-          }
-        },
-        "props": {
-          "text": "Disable Ignition Control"
-        },
-        "type": "ia.input.checkbox"
-      },
-      {
-        "meta": {
-          "name": "Label"
-        },
-        "position": {
-          "height": 32,
-          "rotate": {
-            "anchor": "25% 25%"
-          },
-          "width": "100%"
+          "basis": "30px",
+          "shrink": 0
         },
         "propConfig": {
           "props.text": {
@@ -89,15 +48,367 @@
         },
         "props": {
           "style": {
+            "color": "#111827",
+            "fontSize": "18px",
+            "fontWeight": "700",
             "textAlign": "center"
           }
         },
         "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Available"
+        },
+        "position": {
+          "basis": "26px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Robots/AMPF_AMR_RV{1}/AvailableForWork"
+              },
+              "transforms": [
+                {
+                  "expression": "if({value}, \"#166534\", \"#991b1b\")",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Robots/AMPF_AMR_RV{1}/AvailableForWork"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Available For Work: \" + if({value}, \"Yes\", \"No\")",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "14px",
+            "fontWeight": "700"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NotReadyReason"
+        },
+        "position": {
+          "basis": "42px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Robots/AMPF_AMR_RV{1}/NotReadyReason"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Not Ready Reason: \" + if(isNull({value}) || len(toStr({value})) = 0, \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "color": "#374151",
+            "fontSize": "13px",
+            "whiteSpace": "normal"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "SystemState"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Robots/AMPF_AMR_RV{1}/SystemState"
+              },
+              "transforms": [
+                {
+                  "expression": "\"System State: \" + if(isNull({value}), \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "SubSystemState"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Robots/AMPF_AMR_RV{1}/SubSystemState"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Sub System State: \" + if(isNull({value}), \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ActivityState"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Robots/AMPF_AMR_RV{1}/ActivityState"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Activity State: \" + if(isNull({value}), \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ChargeLevel"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Robots/AMPF_AMR_RV{1}/ChargeLevel"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Charge Level: \" + if(isNull({value}), \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ActiveMissionCount"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Robots/AMPF_AMR_RV{1}/ActiveMissionCount"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Active Mission Count: \" + if(isNull({value}), \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "FailedMissionCount"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Robots/AMPF_AMR_RV{1}/FailedMissionCount"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Failed Mission Count: \" + if(isNull({value}), \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Checkbox"
+        },
+        "position": {
+          "basis": "40px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.selected": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]MainControl/Robots/AMPF_AMR_RV{1}/DisableIgnitionControl"
+              },
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "text": "Disable Ignition Control"
+        },
+        "type": "ia.input.checkbox"
       }
     ],
     "meta": {
       "name": "root"
     },
-    "type": "ia.container.coord"
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#ffffff",
+        "border": "1px solid #d7dce5",
+        "borderRadius": "8px",
+        "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
+        "padding": "12px"
+      }
+    },
+    "type": "ia.container.flex"
   }
 }

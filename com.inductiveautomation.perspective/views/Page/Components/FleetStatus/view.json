@@ -1,11 +1,653 @@
 {
   "custom": {},
   "params": {},
-  "props": {},
+  "props": {
+    "defaultSize": {
+      "height": 720,
+      "width": 1040
+    }
+  },
   "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "BannerCard"
+        },
+        "position": {
+          "basis": "120px",
+          "shrink": 0
+        },
+        "props": {
+          "direction": "column",
+          "style": {
+            "backgroundColor": "#f8fafc",
+            "border": "1px solid #cfd6df",
+            "borderRadius": "10px",
+            "padding": "16px"
+          }
+        },
+        "children": [
+          {
+            "meta": {
+              "hasDelegate": true,
+              "name": "BannerTitle"
+            },
+            "position": {
+              "basis": "26px",
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "color": "#475569",
+                "fontSize": "13px",
+                "fontWeight": "700",
+                "textTransform": "uppercase"
+              },
+              "text": "Main Loop Status"
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "name": "BannerStatus"
+            },
+            "position": {
+              "basis": "38px",
+              "shrink": 0
+            },
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "fallbackDelay": 2.5,
+                    "mode": "direct",
+                    "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopIsRunning"
+                  },
+                  "transforms": [
+                    {
+                      "expression": "if({value}, \"#166534\", \"#991b1b\")",
+                      "type": "expression"
+                    }
+                  ],
+                  "type": "tag"
+                }
+              },
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "fallbackDelay": 2.5,
+                    "mode": "direct",
+                    "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopIsRunning"
+                  },
+                  "transforms": [
+                    {
+                      "expression": "if({value}, \"Running\", \"Stopped\")",
+                      "type": "expression"
+                    }
+                  ],
+                  "type": "tag"
+                }
+              }
+            },
+            "props": {
+              "style": {
+                "fontSize": "28px",
+                "fontWeight": "700"
+              }
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "name": "BannerResult"
+            },
+            "position": {
+              "basis": "22px",
+              "shrink": 0
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "fallbackDelay": 2.5,
+                    "mode": "direct",
+                    "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopLastResult"
+                  },
+                  "transforms": [
+                    {
+                      "expression": "\"Last Result: \" + if(isNull({value}) || len(toStr({value})) = 0, \"-\", toStr({value}))",
+                      "type": "expression"
+                    }
+                  ],
+                  "type": "tag"
+                }
+              }
+            },
+            "props": {
+              "style": {
+                "color": "#374151",
+                "fontSize": "13px"
+              }
+            },
+            "type": "ia.display.label"
+          }
+        ],
+        "type": "ia.container.flex"
+      },
+      {
+        "meta": {
+          "name": "RuntimeCards"
+        },
+        "position": {
+          "basis": "190px",
+          "shrink": 0
+        },
+        "props": {
+          "wrap": "wrap"
+        },
+        "children": [
+          {
+            "meta": {
+              "name": "RunningCard"
+            },
+            "position": {
+              "basis": "180px"
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #d7dce5",
+                "borderRadius": "8px",
+                "marginRight": "12px",
+                "marginBottom": "12px",
+                "padding": "12px"
+              }
+            },
+            "children": [
+              {
+                "meta": {
+                  "hasDelegate": true,
+                  "name": "RunningTitle"
+                },
+                "position": {
+                  "basis": "22px",
+                  "shrink": 0
+                },
+                "props": {
+                  "style": {
+                    "color": "#475569",
+                    "fontSize": "12px",
+                    "fontWeight": "700",
+                    "textTransform": "uppercase"
+                  },
+                  "text": "Running"
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "RunningValue"
+                },
+                "position": {
+                  "basis": "32px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "fallbackDelay": 2.5,
+                        "mode": "direct",
+                        "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopIsRunning"
+                      },
+                      "transforms": [
+                        {
+                          "expression": "if({value}, \"Yes\", \"No\")",
+                          "type": "expression"
+                        }
+                      ],
+                      "type": "tag"
+                    }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "fontSize": "24px",
+                    "fontWeight": "700"
+                  }
+                },
+                "type": "ia.display.label"
+              }
+            ],
+            "type": "ia.container.flex"
+          },
+          {
+            "meta": {
+              "name": "DurationCard"
+            },
+            "position": {
+              "basis": "180px"
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #d7dce5",
+                "borderRadius": "8px",
+                "marginRight": "12px",
+                "marginBottom": "12px",
+                "padding": "12px"
+              }
+            },
+            "children": [
+              {
+                "meta": {
+                  "hasDelegate": true,
+                  "name": "DurationTitle"
+                },
+                "position": {
+                  "basis": "22px",
+                  "shrink": 0
+                },
+                "props": {
+                  "style": {
+                    "color": "#475569",
+                    "fontSize": "12px",
+                    "fontWeight": "700",
+                    "textTransform": "uppercase"
+                  },
+                  "text": "Last Duration"
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "DurationValue"
+                },
+                "position": {
+                  "basis": "32px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "fallbackDelay": 2.5,
+                        "mode": "direct",
+                        "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopLastDurationMs"
+                      },
+                      "transforms": [
+                        {
+                          "expression": "if(isNull({value}), \"-\", toStr({value}) + \" ms\")",
+                          "type": "expression"
+                        }
+                      ],
+                      "type": "tag"
+                    }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "fontSize": "24px",
+                    "fontWeight": "700"
+                  }
+                },
+                "type": "ia.display.label"
+              }
+            ],
+            "type": "ia.container.flex"
+          },
+          {
+            "meta": {
+              "name": "StartCard"
+            },
+            "position": {
+              "basis": "220px"
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #d7dce5",
+                "borderRadius": "8px",
+                "marginRight": "12px",
+                "marginBottom": "12px",
+                "padding": "12px"
+              }
+            },
+            "children": [
+              {
+                "meta": {
+                  "hasDelegate": true,
+                  "name": "StartTitle"
+                },
+                "position": {
+                  "basis": "22px",
+                  "shrink": 0
+                },
+                "props": {
+                  "style": {
+                    "color": "#475569",
+                    "fontSize": "12px",
+                    "fontWeight": "700",
+                    "textTransform": "uppercase"
+                  },
+                  "text": "Last Start"
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "StartValue"
+                },
+                "position": {
+                  "basis": "40px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "fallbackDelay": 2.5,
+                        "mode": "direct",
+                        "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopLastStartTs"
+                      },
+                      "transforms": [
+                        {
+                          "expression": "if(isNull({value}) || len(toStr({value})) = 0, \"-\", toStr({value}))",
+                          "type": "expression"
+                        }
+                      ],
+                      "type": "tag"
+                    }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "fontSize": "16px",
+                    "fontWeight": "700",
+                    "whiteSpace": "normal"
+                  }
+                },
+                "type": "ia.display.label"
+              }
+            ],
+            "type": "ia.container.flex"
+          },
+          {
+            "meta": {
+              "name": "EndCard"
+            },
+            "position": {
+              "basis": "220px"
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #d7dce5",
+                "borderRadius": "8px",
+                "marginRight": "12px",
+                "marginBottom": "12px",
+                "padding": "12px"
+              }
+            },
+            "children": [
+              {
+                "meta": {
+                  "hasDelegate": true,
+                  "name": "EndTitle"
+                },
+                "position": {
+                  "basis": "22px",
+                  "shrink": 0
+                },
+                "props": {
+                  "style": {
+                    "color": "#475569",
+                    "fontSize": "12px",
+                    "fontWeight": "700",
+                    "textTransform": "uppercase"
+                  },
+                  "text": "Last End"
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "EndValue"
+                },
+                "position": {
+                  "basis": "40px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "fallbackDelay": 2.5,
+                        "mode": "direct",
+                        "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopLastEndTs"
+                      },
+                      "transforms": [
+                        {
+                          "expression": "if(isNull({value}) || len(toStr({value})) = 0, \"-\", toStr({value}))",
+                          "type": "expression"
+                        }
+                      ],
+                      "type": "tag"
+                    }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "fontSize": "16px",
+                    "fontWeight": "700",
+                    "whiteSpace": "normal"
+                  }
+                },
+                "type": "ia.display.label"
+              }
+            ],
+            "type": "ia.container.flex"
+          },
+          {
+            "meta": {
+              "name": "ResultCard"
+            },
+            "position": {
+              "basis": "220px"
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #d7dce5",
+                "borderRadius": "8px",
+                "marginRight": "12px",
+                "marginBottom": "12px",
+                "padding": "12px"
+              }
+            },
+            "children": [
+              {
+                "meta": {
+                  "hasDelegate": true,
+                  "name": "ResultTitle"
+                },
+                "position": {
+                  "basis": "22px",
+                  "shrink": 0
+                },
+                "props": {
+                  "style": {
+                    "color": "#475569",
+                    "fontSize": "12px",
+                    "fontWeight": "700",
+                    "textTransform": "uppercase"
+                  },
+                  "text": "Last Result"
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "ResultValue"
+                },
+                "position": {
+                  "basis": "40px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "fallbackDelay": 2.5,
+                        "mode": "direct",
+                        "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopLastResult"
+                      },
+                      "transforms": [
+                        {
+                          "expression": "if(isNull({value}) || len(toStr({value})) = 0, \"-\", toStr({value}))",
+                          "type": "expression"
+                        }
+                      ],
+                      "type": "tag"
+                    }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "fontSize": "16px",
+                    "fontWeight": "700",
+                    "whiteSpace": "normal"
+                  }
+                },
+                "type": "ia.display.label"
+              }
+            ],
+            "type": "ia.container.flex"
+          },
+          {
+            "meta": {
+              "name": "OverlapCard"
+            },
+            "position": {
+              "basis": "180px"
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #d7dce5",
+                "borderRadius": "8px",
+                "marginRight": "12px",
+                "marginBottom": "12px",
+                "padding": "12px"
+              }
+            },
+            "children": [
+              {
+                "meta": {
+                  "hasDelegate": true,
+                  "name": "OverlapTitle"
+                },
+                "position": {
+                  "basis": "22px",
+                  "shrink": 0
+                },
+                "props": {
+                  "style": {
+                    "color": "#475569",
+                    "fontSize": "12px",
+                    "fontWeight": "700",
+                    "textTransform": "uppercase"
+                  },
+                  "text": "Overlap Count"
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "OverlapValue"
+                },
+                "position": {
+                  "basis": "32px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "fallbackDelay": 2.5,
+                        "mode": "direct",
+                        "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopOverlapCount"
+                      },
+                      "transforms": [
+                        {
+                          "expression": "if(isNull({value}), \"-\", toStr({value}))",
+                          "type": "expression"
+                        }
+                      ],
+                      "type": "tag"
+                    }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "fontSize": "24px",
+                    "fontWeight": "700"
+                  }
+                },
+                "type": "ia.display.label"
+              }
+            ],
+            "type": "ia.container.flex"
+          }
+        ],
+        "type": "ia.container.flex"
+      },
+      {
+        "meta": {
+          "hasDelegate": true,
+          "name": "AmrSectionTitle"
+        },
+        "position": {
+          "basis": "32px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "color": "#111827",
+            "fontSize": "20px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "6px"
+          },
+          "text": "AMR Status"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RV_Control"
+        },
+        "position": {
+          "grow": 1
+        },
+        "props": {
+          "path": "Page/Components/RV_Control"
+        },
+        "type": "ia.display.view"
+      }
+    ],
     "meta": {
       "name": "root"
     },
-    "type": "ia.container.coord"
+    "props": {
+      "direction": "column"
+    },
+    "type": "ia.container.flex"
   }
 }

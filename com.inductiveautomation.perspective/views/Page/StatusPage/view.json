@@ -6,13 +6,41 @@
     "children": [
       {
         "meta": {
-          "name": "RV_Control"
+          "name": "Title"
         },
         "position": {
-          "basis": "320px"
+          "basis": "56px",
+          "shrink": 0
         },
         "props": {
-          "path": "Page/Components/RV_Control"
+          "params": {
+            "icon": "dashboard",
+            "text": "Status"
+          },
+          "path": "Page/Embedded/Title"
+        },
+        "type": "ia.display.view"
+      },
+      {
+        "meta": {
+          "hasDelegate": true,
+          "name": "Spacer"
+        },
+        "position": {
+          "basis": "12px",
+          "shrink": 0
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "FleetStatus"
+        },
+        "position": {
+          "grow": 1
+        },
+        "props": {
+          "path": "Page/Components/FleetStatus"
         },
         "type": "ia.display.view"
       }
@@ -21,7 +49,10 @@
       "name": "root"
     },
     "props": {
-      "direction": "column"
+      "direction": "column",
+      "style": {
+        "classes": "Page/Page"
+      }
     },
     "type": "ia.container.flex"
   }

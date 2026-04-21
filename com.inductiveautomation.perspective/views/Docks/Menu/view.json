@@ -144,6 +144,28 @@
                 "icon": {
                   "path": ""
                 },
+                "text": "Status"
+              },
+              "navIcon": {
+                "color": "",
+                "path": "material/chevron_right"
+              },
+              "resetOnClick": false,
+              "showHeader": true,
+              "style": {
+                "classes": ""
+              },
+              "target": "/statuspage",
+              "visible": true
+            },
+            {
+              "backActionText": "",
+              "enabled": true,
+              "items": [],
+              "label": {
+                "icon": {
+                  "path": ""
+                },
                 "text": "Robot History"
               },
               "navIcon": {
