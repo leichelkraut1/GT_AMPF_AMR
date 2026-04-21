@@ -1,8 +1,8 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Containers import Get as ContainerGet
+from Otto_API.System import Get as FleetGet
 from Otto_API.Missions import MissionSorting
 from Otto_API.Robots import Get as RobotGet
-from Otto_API.System import Get as SystemGet
 
 from MainController.CommandHelpers import buildWorkflowReservedMap
 from MainController.CommandHelpers import ensureRobotRunnerTags
@@ -67,7 +67,7 @@ def runMainControllerCycle(
     been refreshed in the same cycle. Server status is read from the slower
     cached status timer rather than making a fresh HTTP call in this fast loop.
     """
-    serverStatusResult = SystemGet.readCachedServerStatus()
+    serverStatusResult = FleetGet.readCachedServerStatus()
     robotStateResult = RobotGet.updateRobotOperationalState()
     containerStateResult = ContainerGet.updateContainers()
     missionSortResult = MissionSorting.run()
