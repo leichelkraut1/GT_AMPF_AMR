@@ -43,6 +43,52 @@ def _buildResult(ok, level, message, missionId=None, responseText=None, payload=
 	)
 
 
+def _buildCancelBatchResult(ok, level, message, missionIds=None, responseTexts=None, payloads=None):
+	"""
+	Build a structured batch-cancel result object.
+	"""
+	missionIds = list(missionIds or [])
+	responseTexts = list(responseTexts or [])
+	payloads = list(payloads or [])
+	firstMissionId = missionIds[0] if missionIds else None
+	return buildOperationResult(
+		ok,
+		level,
+		message,
+		data={
+			"mission_ids": missionIds,
+			"response_texts": responseTexts,
+			"payloads": payloads,
+		},
+		mission_ids=missionIds,
+		response_texts=responseTexts,
+		payloads=payloads,
+		mission_id=firstMissionId,
+	)
+
+
+def _writeAndLogMissionResult(result, logger):
+	"""
+	Write response/message side effects and log one structured mission result.
+	"""
+	responseText = result.get("response_text")
+	if responseText is None and result.get("response_texts"):
+		responseText = result["response_texts"][-1]
+
+	if responseText is not None:
+		writeLastSystemResponse(responseText, asyncWrite=True)
+
+	if result["level"] == "info":
+		logger.info(result["message"])
+	elif result["level"] == "warn":
+		logger.warn(result["message"])
+	else:
+		logger.error(result["message"])
+
+	writeLastTriggerResponse(result["message"], asyncWrite=True)
+	return result
+
+
 def _runMissionCommandFromInputs(actionName, missionId, fleetManagerURL, postFunc):
 	"""
 	Run one explicit finalize/cancel mission command and return a structured result.
@@ -110,20 +156,18 @@ def _cancelMissionIdsFromInputs(
 	Cancel an explicit list of mission ids and return a structured result.
 	"""
 	targetMissionIds = [str(missionId) for missionId in list(targetMissionIds or []) if missionId]
-	if not targetMissionIds:
-		return buildOperationResult(
-			False,
-			"warn",
-			emptyWarnMessage,
-			data={
-				"mission_ids": [],
-				"response_texts": [],
-				"payloads": [],
-			},
-			mission_ids=[],
-			response_texts=[],
-			payloads=[],
+	def _cancelBatchResult(ok, level, message, missionIds=None, responseTexts=None, payloads=None):
+		return _buildCancelBatchResult(
+			ok=ok,
+			level=level,
+			message=message,
+			missionIds=missionIds,
+			responseTexts=responseTexts,
+			payloads=payloads
 		)
+
+	if not targetMissionIds:
+		return _cancelBatchResult(False, "warn", emptyWarnMessage)
 
 	responseTexts = []
 	payloads = []
@@ -138,52 +182,35 @@ def _cancelMissionIdsFromInputs(
 				postFunc,
 			)
 			if not result.get("ok"):
-				return buildOperationResult(
+				return _cancelBatchResult(
 					False,
 					result.get("level", "warn"),
 					result.get("message", ""),
-					data={
-						"mission_ids": canceledMissionIds,
-						"response_texts": responseTexts + [result.get("response_text")],
-						"payloads": payloads + [result.get("payload")],
-					},
-					mission_ids=canceledMissionIds,
-					response_texts=responseTexts + [result.get("response_text")],
-					payloads=payloads + [result.get("payload")],
+					missionIds=canceledMissionIds,
+					responseTexts=responseTexts + [result.get("response_text")],
+					payloads=payloads + [result.get("payload")]
 				)
 
 			canceledMissionIds.append(missionId)
 			responseTexts.append(result.get("response_text"))
 			payloads.append(result.get("payload"))
 
-		return buildOperationResult(
+		return _cancelBatchResult(
 			True,
 			"info",
 			successMessage.format(len(canceledMissionIds)),
-			data={
-				"mission_ids": canceledMissionIds,
-				"response_texts": responseTexts,
-				"payloads": payloads,
-			},
-			mission_ids=canceledMissionIds,
-			response_texts=responseTexts,
-			payloads=payloads,
-			mission_id=canceledMissionIds[0] if canceledMissionIds else None,
+			missionIds=canceledMissionIds,
+			responseTexts=responseTexts,
+			payloads=payloads
 		)
 	except Exception as e:
-		return buildOperationResult(
+		return _cancelBatchResult(
 			False,
 			"error",
 			errorMessage.format(str(e)),
-			data={
-				"mission_ids": canceledMissionIds,
-				"response_texts": responseTexts,
-				"payloads": payloads,
-			},
-			mission_ids=canceledMissionIds,
-			response_texts=responseTexts,
-			payloads=payloads,
-			mission_id=canceledMissionIds[0] if canceledMissionIds else None,
+			missionIds=canceledMissionIds,
+			responseTexts=responseTexts,
+			payloads=payloads
 		)
 
 
@@ -364,19 +391,7 @@ def createMission(templateTagPath, robotTagPath, missionName):
 			fleetManagerURL,
 			httpPost
 		)
-
-		if result["response_text"] is not None:
-			writeLastSystemResponse(result["response_text"], asyncWrite=True)
-
-		if result["level"] == "info":
-			ottoLogger.info(result["message"])
-		elif result["level"] == "warn":
-			ottoLogger.warn(result["message"])
-		else:
-			ottoLogger.error(result["message"])
-
-		writeLastTriggerResponse(result["message"], asyncWrite=True)
-		return result
+		return _writeAndLogMissionResult(result, ottoLogger)
 
 	except Exception as e:
 		msg = "Error posting mission: {}".format(str(e))
@@ -398,19 +413,7 @@ def finalizeMissionId(missionId):
 		fleetManagerURL,
 		httpPost
 	)
-
-	if result["response_text"] is not None:
-		writeLastSystemResponse(result["response_text"], asyncWrite=True)
-
-	if result["level"] == "info":
-		ottoLogger.info(result["message"])
-	elif result["level"] == "warn":
-		ottoLogger.warn(result["message"])
-	else:
-		ottoLogger.error(result["message"])
-
-	writeLastTriggerResponse(result["message"], asyncWrite=True)
-	return result
+	return _writeAndLogMissionResult(result, ottoLogger)
 
 
 def cancelMissionIds(missionIds):
@@ -430,19 +433,7 @@ def cancelMissionIds(missionIds):
 		"Canceled {} explicit mission(s)",
 		"Error canceling explicit missions: {}"
 	)
-
-	if result.get("response_texts"):
-		writeLastSystemResponse(result["response_texts"][-1], asyncWrite=True)
-
-	if result["level"] == "info":
-		ottoLogger.info(result["message"])
-	elif result["level"] == "warn":
-		ottoLogger.warn(result["message"])
-	else:
-		ottoLogger.error(result["message"])
-
-	writeLastTriggerResponse(result["message"], asyncWrite=True)
-	return result
+	return _writeAndLogMissionResult(result, ottoLogger)
 
 
 def cancelAllActiveMissions():
@@ -461,19 +452,7 @@ def cancelAllActiveMissions():
 			fleetManagerURL,
 			httpPost
 		)
-
-		if result.get("response_texts"):
-			writeLastSystemResponse(result["response_texts"][-1], asyncWrite=True)
-
-		if result["level"] == "info":
-			ottoLogger.info(result["message"])
-		elif result["level"] == "warn":
-			ottoLogger.warn(result["message"])
-		else:
-			ottoLogger.error(result["message"])
-
-		writeLastTriggerResponse(result["message"], asyncWrite=True)
-		return result
+		return _writeAndLogMissionResult(result, ottoLogger)
 
 	except Exception as e:
 		msg = "Error canceling all active missions: {}".format(str(e))
@@ -506,19 +485,7 @@ def cancelAllFailedMissions():
 			"Canceled {} failed mission(s)",
 			"Error canceling failed missions: {}"
 		)
-
-		if result.get("response_texts"):
-			writeLastSystemResponse(result["response_texts"][-1], asyncWrite=True)
-
-		if result["level"] == "info":
-			ottoLogger.info(result["message"])
-		elif result["level"] == "warn":
-			ottoLogger.warn(result["message"])
-		else:
-			ottoLogger.error(result["message"])
-
-		writeLastTriggerResponse(result["message"], asyncWrite=True)
-		return result
+		return _writeAndLogMissionResult(result, ottoLogger)
 
 	except Exception as e:
 		msg = "Error canceling all failed missions: {}".format(str(e))

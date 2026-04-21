@@ -58,6 +58,28 @@ def _missionInstancePath(missionRecord):
     return str(missionRecord.get("instance_path") or missionRecord.get("path") or "")
 
 
+def _missionContext(missionRecord):
+    missionRecord = dict(missionRecord or {})
+    missionName = str(missionRecord.get("mission_name") or missionRecord.get("name") or "")
+    missionId = str(missionRecord.get("id") or "")
+    instancePath = _missionInstancePath(missionRecord)
+    missionLabel = missionName or missionId or instancePath or "mission"
+    return {
+        "record": missionRecord,
+        "instance_path": instancePath,
+        "mission_name": missionName,
+        "mission_id": missionId,
+        "mission_label": missionLabel,
+        "workflow_number": normalizeWorkflowNumber(missionRecord.get("workflow_number")) or 0,
+    }
+def _missionCommandResult(ok, level, message):
+    return {
+        "ok": bool(ok),
+        "level": str(level or "warn"),
+        "message": str(message or ""),
+    }
+
+
 def _readMissionRuntimeValue(instancePath, keyName, memberName):
     """Read an optional mission runtime helper tag, warning once if the UDT member is absent."""
     tagPath = _missionRuntimeTagPath(instancePath, keyName, memberName)
@@ -95,9 +117,9 @@ def _buildMissionCommandLogSignature(actionName, result):
 
 def _hasMissionCommandAlreadyIssued(missionRecord, actionName):
     """Return True when this mission already accepted the same clear command in a prior scan."""
-    instancePath = _missionInstancePath(missionRecord)
+    context = _missionContext(missionRecord)
     signature = _readMissionRuntimeValue(
-        instancePath,
+        context["instance_path"],
         "last_issued_command_signature",
         MISSION_LAST_ISSUED_COMMAND_SIGNATURE_MEMBER
     )
@@ -106,9 +128,9 @@ def _hasMissionCommandAlreadyIssued(missionRecord, actionName):
 
 def _markMissionCommandIssued(missionRecord, actionName):
     """Persist the successful per-mission clear command so later scans wait instead of repeating it."""
-    instancePath = _missionInstancePath(missionRecord)
+    context = _missionContext(missionRecord)
     return _writeMissionRuntimeValue(
-        instancePath,
+        context["instance_path"],
         "last_issued_command_signature",
         MISSION_LAST_ISSUED_COMMAND_SIGNATURE_MEMBER,
         _buildMissionIssuedCommandSignature(actionName)
@@ -126,25 +148,23 @@ def _recordMissionCommandHistory(
     stateName="mission_active"
 ):
     """Append one explicit mission cancel/finalize row unless the mission-side log signature already matches."""
-    missionRecord = dict(missionRecord or {})
-    instancePath = _missionInstancePath(missionRecord)
+    context = _missionContext(missionRecord)
+    missionRecord = context["record"]
     logSignature = _buildMissionCommandLogSignature(actionName, result)
     currentSignature = _readMissionRuntimeValue(
-        instancePath,
+        context["instance_path"],
         "last_command_log_signature",
         MISSION_LAST_COMMAND_LOG_SIGNATURE_MEMBER
     )
     if currentSignature == logSignature:
         return
 
-    missionName = str(missionRecord.get("mission_name") or missionRecord.get("name") or "")
-    missionId = str(missionRecord.get("id") or "")
     message = str((result or {}).get("message") or "")
     missionBits = []
-    if missionName:
-        missionBits.append(missionName)
-    if missionId:
-        missionBits.append(missionId)
+    if context["mission_name"]:
+        missionBits.append(context["mission_name"])
+    if context["mission_id"]:
+        missionBits.append(context["mission_id"])
     if missionBits:
         missionText = ", ".join(missionBits)
         message = "{} ({})".format(message, missionText) if message else missionText
@@ -156,7 +176,7 @@ def _recordMissionCommandHistory(
             timestampString(nowEpochMs),
             robotName,
             normalizeWorkflowNumber(requestedWorkflowNumber) or 0,
-            normalizeWorkflowNumber(missionRecord.get("workflow_number"))
+            context["workflow_number"]
             or normalizeWorkflowNumber(activeWorkflowNumber)
             or 0,
             actionName,
@@ -167,7 +187,7 @@ def _recordMissionCommandHistory(
         maxRows=COMMAND_HISTORY_MAX_ROWS,
     )
     _writeMissionRuntimeValue(
-        instancePath,
+        context["instance_path"],
         "last_command_log_signature",
         MISSION_LAST_COMMAND_LOG_SIGNATURE_MEMBER,
         logSignature
@@ -220,33 +240,26 @@ def issueMissionCommands(
     failedMessages = []
 
     for missionRecord in list(missionRecords or []):
-        missionRecord = dict(missionRecord or {})
+        missionContext = _missionContext(missionRecord)
+        missionRecord = missionContext["record"]
         actionName = _clearTargetActionName(missionRecord)
         if _hasMissionCommandAlreadyIssued(missionRecord, actionName):
             skippedCount += 1
             continue
 
-        missionId = str(missionRecord.get("id") or "")
-        if not missionId:
-            missionLabel = (
-                missionRecord.get("mission_name")
-                or missionRecord.get("name")
-                or missionRecord.get("instance_path")
-                or missionRecord.get("path")
-                or "mission"
-            )
-            result = {
-                "ok": False,
-                "level": "warn",
-                "message": "Cannot {} because [{}] is missing its mission id".format(
+        if not missionContext["mission_id"]:
+            result = _missionCommandResult(
+                False,
+                "warn",
+                "Cannot {} because [{}] is missing its mission id".format(
                     actionName.replace("_", " "),
-                    missionLabel
-                ),
-            }
+                    missionContext["mission_label"]
+                )
+            )
         else:
             result = callMissionCommand(
                 actionName,
-                missionId,
+                missionContext["mission_id"],
                 finalizeMissionId=finalizeMissionId,
                 cancelMissionIds=cancelMissionIds,
             )

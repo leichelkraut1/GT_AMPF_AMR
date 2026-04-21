@@ -59,6 +59,41 @@ def _buildResult(
     )
 
 
+def _resultWithDefaults(defaultFields=None, defaultExtraData=None):
+    defaultFields = dict(defaultFields or {})
+    defaultExtraData = dict(defaultExtraData or {})
+
+    def _result(
+        ok,
+        level,
+        message,
+        responseText=None,
+        payload=None,
+        extraData=None,
+        **overrideFields
+    ):
+        resultFields = dict(defaultFields)
+        resultFields.update({
+            key: value for key, value in overrideFields.items()
+            if key in ["containerId", "placeId", "robotId"]
+        })
+
+        mergedExtraData = dict(defaultExtraData)
+        mergedExtraData.update(dict(extraData or {}))
+
+        return _buildResult(
+            ok=ok,
+            level=level,
+            message=message,
+            responseText=responseText,
+            payload=payload,
+            extraData=mergedExtraData,
+            **resultFields
+        )
+
+    return _result
+
+
 def _writeResponseAndLogResult(result, logger):
     if result["response_text"] is not None:
         writeLastSystemResponse(result["response_text"], asyncWrite=True)
@@ -217,8 +252,10 @@ def createContainerFromInputs(containerFields, fleetManagerURL, postFunc):
     """
     Create one container from explicit fields and return a structured result.
     """
+    _result = _resultWithDefaults()
+
     if not containerFields:
-        return _buildResult(False, "warn", "No container fields supplied for create")
+        return _result(False, "warn", "No container fields supplied for create")
 
     try:
         payload = buildCreateContainerPayload(containerFields)
@@ -229,7 +266,7 @@ def createContainerFromInputs(containerFields, fleetManagerURL, postFunc):
         )
 
         logLevel, message, containerId = interpretCreateContainerResponse(response)
-        return _buildResult(
+        return _result(
             ok=(logLevel == "info"),
             level=logLevel,
             message=message,
@@ -238,7 +275,7 @@ def createContainerFromInputs(containerFields, fleetManagerURL, postFunc):
             payload=payload,
         )
     except Exception as e:
-        return _buildResult(
+        return _result(
             False,
             "error",
             "Error creating container: {}".format(str(e)),
@@ -249,8 +286,10 @@ def createContainerAtPlaceFromInputs(containerFields, placeId, fleetManagerURL, 
     """
     Create one container at an explicit place and return a structured result.
     """
+    _result = _resultWithDefaults({"placeId": placeId})
+
     if not placeId:
-        return _buildResult(False, "warn", "No place id supplied for container create")
+        return _result(False, "warn", "No place id supplied for container create")
 
     containerFields = dict(containerFields or {})
     containerFields.pop("robot", None)
@@ -262,8 +301,10 @@ def createContainerAtRobotFromInputs(containerFields, robotId, fleetManagerURL, 
     """
     Create one container at an explicit robot and return a structured result.
     """
+    _result = _resultWithDefaults({"robotId": robotId})
+
     if not robotId:
-        return _buildResult(False, "warn", "No robot id supplied for container create")
+        return _result(False, "warn", "No robot id supplied for container create")
 
     containerFields = dict(containerFields or {})
     containerFields.pop("place", None)
@@ -275,10 +316,12 @@ def updateContainerPlaceByIdFromInputs(containerId, placeId, fleetManagerURL, po
     """
     Update one container's place using explicit inputs and return a structured result.
     """
+    _result = _resultWithDefaults({"containerId": containerId, "placeId": placeId})
+
     if not containerId:
-        return _buildResult(False, "warn", "No container id supplied for update", placeId=placeId)
+        return _result(False, "warn", "No container id supplied for update", containerId=None)
     if not placeId:
-        return _buildResult(False, "warn", "No place id supplied for container update", containerId=containerId)
+        return _result(False, "warn", "No place id supplied for container update", placeId=None)
 
     try:
         payload = buildUpdateContainerPlacePayload(containerId, placeId)
@@ -289,22 +332,18 @@ def updateContainerPlaceByIdFromInputs(containerId, placeId, fleetManagerURL, po
         )
 
         logLevel, message = interpretUpdateContainerPlaceResponse(response, containerId, placeId)
-        return _buildResult(
+        return _result(
             ok=(logLevel == "info"),
             level=logLevel,
             message=message,
-            containerId=containerId,
-            placeId=placeId,
             responseText=response,
             payload=payload,
         )
     except Exception as e:
-        return _buildResult(
+        return _result(
             False,
             "error",
             "Error updating container [{}] place to [{}]: {}".format(containerId, placeId, str(e)),
-            containerId=containerId,
-            placeId=placeId,
         )
 
 
@@ -312,10 +351,12 @@ def updateContainerRobotByIdFromInputs(containerId, robotId, fleetManagerURL, po
     """
     Update one container's robot using explicit inputs and return a structured result.
     """
+    _result = _resultWithDefaults({"containerId": containerId, "robotId": robotId})
+
     if not containerId:
-        return _buildResult(False, "warn", "No container id supplied for update", robotId=robotId)
+        return _result(False, "warn", "No container id supplied for update", containerId=None)
     if not robotId:
-        return _buildResult(False, "warn", "No robot id supplied for container update", containerId=containerId)
+        return _result(False, "warn", "No robot id supplied for container update", robotId=None)
 
     try:
         payload = buildUpdateContainerRobotPayload(containerId, robotId)
@@ -326,22 +367,18 @@ def updateContainerRobotByIdFromInputs(containerId, robotId, fleetManagerURL, po
         )
 
         logLevel, message = interpretUpdateContainerRobotResponse(response, containerId, robotId)
-        return _buildResult(
+        return _result(
             ok=(logLevel == "info"),
             level=logLevel,
             message=message,
-            containerId=containerId,
-            robotId=robotId,
             responseText=response,
             payload=payload,
         )
     except Exception as e:
-        return _buildResult(
+        return _result(
             False,
             "error",
             "Error updating container [{}] robot to [{}]: {}".format(containerId, robotId, str(e)),
-            containerId=containerId,
-            robotId=robotId,
         )
 
 
@@ -349,8 +386,10 @@ def deleteContainerByIdFromInputs(containerId, fleetManagerURL, postFunc):
     """
     Delete one container by explicit inputs and return a structured result.
     """
+    _result = _resultWithDefaults({"containerId": containerId})
+
     if not containerId:
-        return _buildResult(False, "warn", "No container id supplied for delete")
+        return _result(False, "warn", "No container id supplied for delete", containerId=None)
 
     try:
         payload = buildDeleteContainerPayload(containerId)
@@ -361,20 +400,18 @@ def deleteContainerByIdFromInputs(containerId, fleetManagerURL, postFunc):
         )
 
         logLevel, message = interpretDeleteContainerResponse(response, containerId)
-        return _buildResult(
+        return _result(
             ok=(logLevel == "info"),
             level=logLevel,
             message=message,
-            containerId=containerId,
             responseText=response,
             payload=payload,
         )
     except Exception as e:
-        return _buildResult(
+        return _result(
             False,
             "error",
             "Error deleting container [{}]: {}".format(containerId, str(e)),
-            containerId=containerId,
         )
 
 
@@ -387,10 +424,10 @@ def _deleteMatchedContainerIds(
     partialMessageBuilder,
     resultFields=None,
 ):
-    resultFields = dict(resultFields or {})
+    _result = _resultWithDefaults(resultFields)
 
     if not matchedContainerIds:
-        return _buildResult(
+        return _result(
             False,
             "warn",
             noMatchMessage,
@@ -399,7 +436,6 @@ def _deleteMatchedContainerIds(
                 "deleted_container_ids": [],
                 "delete_results": [],
             },
-            **resultFields
         )
 
     deleteResults = []
@@ -420,7 +456,7 @@ def _deleteMatchedContainerIds(
         level = "warn"
         message = partialMessageBuilder(deletedContainerIds, matchedContainerIds)
 
-    return _buildResult(
+    return _result(
         allSucceeded,
         level,
         message,
@@ -429,7 +465,6 @@ def _deleteMatchedContainerIds(
             "deleted_container_ids": deletedContainerIds,
             "delete_results": deleteResults,
         },
-        **resultFields
     )
 
 

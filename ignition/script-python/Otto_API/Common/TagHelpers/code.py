@@ -9,6 +9,7 @@ FLEET_ROOT_TAG_PATH = PROJECT_ROOT_TAG_PATH + "Fleet"
 FLEET_SYSTEM_ROOT_TAG_PATH = FLEET_ROOT_TAG_PATH + "/System"
 FLEET_ROBOTS_ROOT_TAG_PATH = FLEET_ROOT_TAG_PATH + "/Robots"
 FLEET_MISSIONS_ROOT_TAG_PATH = FLEET_ROOT_TAG_PATH + "/Missions"
+FLEET_CONFIG_ROOT_TAG_PATH = FLEET_ROOT_TAG_PATH + "/Config"
 FLEET_TRIGGERS_ROOT_TAG_PATH = FLEET_ROOT_TAG_PATH + "/Triggers"
 FLEET_PLACES_ROOT_TAG_PATH = FLEET_ROOT_TAG_PATH + "/Places"
 FLEET_MAPS_ROOT_TAG_PATH = FLEET_ROOT_TAG_PATH + "/Maps"
@@ -24,7 +25,9 @@ MAINCONTROL_RUNTIME_ROOT_TAG_PATH = MAINCONTROL_ROOT_TAG_PATH + "/Runtime"
 API_BASE_URL_TAG_PATH = FLEET_ROOT_TAG_PATH + "/Url_ApiBase"
 SYSTEM_LAST_RESPONSE_TAG_PATH = FLEET_SYSTEM_ROOT_TAG_PATH + "/lastResponse"
 MISSION_TRIGGER_LAST_RESPONSE_TAG_PATH = FLEET_MISSIONS_ROOT_TAG_PATH + "/Triggers/lastResponse"
-MISSION_MIN_CHARGE_TAG_PATH = FLEET_MISSIONS_ROOT_TAG_PATH + "/minChargeLevelForMissioning"
+MISSION_MIN_CHARGE_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/MinChargeLevelForMissioning"
+MISSION_MAX_COMPLETED_COUNT_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/MaxCompletedCount"
+ROBOT_CHARGING_DELAY_MS_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/ChargingDelayMs"
 MISSION_LAST_UPDATE_TS_TAG_PATH = FLEET_MISSIONS_ROOT_TAG_PATH + "/LastUpdateTS"
 MISSION_LAST_UPDATE_SUCCESS_TAG_PATH = FLEET_MISSIONS_ROOT_TAG_PATH + "/LastUpdateSuccess"
 
@@ -39,6 +42,10 @@ def getFleetRootPath():
 
 def getFleetSystemPath():
     return FLEET_SYSTEM_ROOT_TAG_PATH
+
+
+def getFleetConfigPath():
+    return FLEET_CONFIG_ROOT_TAG_PATH
 
 
 def getFleetRobotsPath():
@@ -130,6 +137,14 @@ def getOttoOperationsUrl():
 
 def getMissionMinChargePath():
     return MISSION_MIN_CHARGE_TAG_PATH
+
+
+def getMissionMaxCompletedCountPath():
+    return MISSION_MAX_COMPLETED_COUNT_TAG_PATH
+
+
+def getRobotChargingDelayMsPath():
+    return ROBOT_CHARGING_DELAY_MS_TAG_PATH
 
 
 def getMissionLastUpdateTsPath():
@@ -344,6 +359,17 @@ def ensureMemoryTag(path, dataType, initialValue=None, collisionPolicy="i"):
     if initialValue is not None and not existed:
         writeTagValue(path, initialValue)
     return result
+
+
+def ensureFleetConfigTags():
+    """
+    Ensure the shared Fleet/Config memory tags exist with safe defaults.
+    """
+    ensureFolder(getFleetRootPath())
+    ensureFolder(getFleetConfigPath())
+    ensureMemoryTag(getRobotChargingDelayMsPath(), "Int8", 0)
+    ensureMemoryTag(getMissionMinChargePath(), "Float4", 0.0)
+    ensureMemoryTag(getMissionMaxCompletedCountPath(), "Int4", 20)
 
 
 def deleteTagPaths(tagPaths):

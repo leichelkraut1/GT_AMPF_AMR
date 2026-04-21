@@ -10,9 +10,17 @@
     "/charts": {
       "viewPath": "Page/Charts"
     },
+    "/httphistory": {
+      "title": "",
+      "viewPath": "Page/HttpHistory"
+    },
     "/missionhistory": {
       "title": "",
       "viewPath": "Page/MissionHistory"
+    },
+    "/robothistory": {
+      "title": "",
+      "viewPath": "Page/RobotHistory"
     },
     "/vehiclehistory": {
       "title": "Mission Control",

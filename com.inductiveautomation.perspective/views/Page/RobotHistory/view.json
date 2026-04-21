@@ -1,0 +1,286 @@
+{
+  "custom": {},
+  "params": {},
+  "props": {
+    "defaultSize": {
+      "height": 745,
+      "width": 1081
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "Table"
+        },
+        "position": {
+          "height": "98%",
+          "width": "98%",
+          "x": "1%",
+          "y": "1%"
+        },
+        "propConfig": {
+          "props.data": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]MainControl/Runtime/RobotStateHistory"
+              },
+              "transforms": [
+                {
+                  "code": "\tif value is None:\n\t\treturn value\n\ttry:\n\t\treturn system.dataset.sort(value, \"Ts\", True)\n\texcept Exception:\n\t\treturn value",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "columns": [
+            {
+              "field": "Ts",
+              "header": {
+                "align": "center",
+                "justify": "center",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Time stamp"
+              },
+              "sort": "descending",
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 120
+            },
+            {
+              "field": "Robot",
+              "header": {
+                "align": "center",
+                "justify": "left",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Robot"
+              },
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 110
+            },
+            {
+              "field": "OldSystemState",
+              "header": {
+                "align": "center",
+                "justify": "center",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Old System"
+              },
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 130
+            },
+            {
+              "field": "NewSystemState",
+              "header": {
+                "align": "center",
+                "justify": "center",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "New System"
+              },
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 130
+            },
+            {
+              "field": "OldSubSystemState",
+              "header": {
+                "align": "center",
+                "justify": "center",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Old Subsystem"
+              },
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 150
+            },
+            {
+              "field": "NewSubSystemState",
+              "header": {
+                "align": "center",
+                "justify": "center",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "New Subsystem"
+              },
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 150
+            },
+            {
+              "field": "OldActivityState",
+              "header": {
+                "align": "center",
+                "justify": "center",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Old Activity"
+              },
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 130
+            },
+            {
+              "field": "NewActivityState",
+              "header": {
+                "align": "center",
+                "justify": "center",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "New Activity"
+              },
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 130
+            }
+          ],
+          "dragOrderable": false,
+          "pager": {
+            "activeOption": 100
+          },
+          "rows": {
+            "striped": {
+              "color": {
+                "even": "#D5D5D5"
+              }
+            },
+            "style": {
+              "borderBottom": "1px solid #e3e8ef",
+              "fontSize": "13px"
+            }
+          },
+          "selection": {
+            "enableColumnSelection": true
+          },
+          "sortOrder": [
+            "Ts"
+          ],
+          "style": {
+            "backgroundColor": "#ffffff",
+            "border": "1px solid #cfd6df",
+            "borderRadius": "6px",
+            "overflow": "hidden"
+          }
+        },
+        "type": "ia.display.table"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "type": "ia.container.coord"
+  }
+}

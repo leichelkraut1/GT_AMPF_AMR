@@ -1,0 +1,282 @@
+{
+  "custom": {},
+  "params": {},
+  "props": {
+    "defaultSize": {
+      "height": 745,
+      "width": 1081
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "Table"
+        },
+        "position": {
+          "height": "98%",
+          "width": "98%",
+          "x": "1%",
+          "y": "1%"
+        },
+        "propConfig": {
+          "props.data": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]MainControl/Runtime/HttpHistory"
+              },
+              "transforms": [
+                {
+                  "code": "\tif value is None:\n\t\treturn value\n\ttry:\n\t\treturn system.dataset.sort(value, \"Ts\", True)\n\texcept Exception:\n\t\treturn value",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "columns": [
+            {
+              "field": "Ts",
+              "header": {
+                "align": "center",
+                "justify": "center",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Time stamp"
+              },
+              "sort": "descending",
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 120
+            },
+            {
+              "field": "Method",
+              "header": {
+                "align": "center",
+                "justify": "center",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Method"
+              },
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 90
+            },
+            {
+              "field": "Url",
+              "header": {
+                "align": "center",
+                "justify": "left",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Url"
+              },
+              "sortable": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 260
+            },
+            {
+              "field": "Request",
+              "header": {
+                "align": "center",
+                "justify": "left",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Request"
+              },
+              "sortable": false,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 240
+            },
+            {
+              "field": "Response",
+              "header": {
+                "align": "center",
+                "justify": "left",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Response"
+              },
+              "sortable": false,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 240
+            },
+            {
+              "field": "Ok",
+              "header": {
+                "align": "center",
+                "justify": "center",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Ok"
+              },
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 70
+            },
+            {
+              "field": "DurationMs",
+              "header": {
+                "align": "center",
+                "justify": "center",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "borderRight": "1px solid #374151",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Duration ms"
+              },
+              "sortable": true,
+              "strictWidth": true,
+              "style": {
+                "borderRight": "1px solid #d7dce5",
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 110
+            },
+            {
+              "field": "Error",
+              "header": {
+                "align": "center",
+                "justify": "left",
+                "style": {
+                  "backgroundColor": "#1f2937",
+                  "borderBottom": "1px solid #111827",
+                  "color": "#ffffff",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "paddingLeft": "10px",
+                  "paddingRight": "10px"
+                },
+                "title": "Error"
+              },
+              "sortable": false,
+              "style": {
+                "paddingLeft": "10px",
+                "paddingRight": "10px"
+              },
+              "width": 220
+            }
+          ],
+          "dragOrderable": false,
+          "pager": {
+            "activeOption": 100
+          },
+          "rows": {
+            "striped": {
+              "color": {
+                "even": "#D5D5D5"
+              }
+            },
+            "style": {
+              "borderBottom": "1px solid #e3e8ef",
+              "fontSize": "13px"
+            }
+          },
+          "selection": {
+            "enableColumnSelection": true
+          },
+          "sortOrder": [
+            "Ts"
+          ],
+          "style": {
+            "backgroundColor": "#ffffff",
+            "border": "1px solid #cfd6df",
+            "borderRadius": "6px",
+            "overflow": "hidden"
+          }
+        },
+        "type": "ia.display.table"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "type": "ia.container.coord"
+  }
+}

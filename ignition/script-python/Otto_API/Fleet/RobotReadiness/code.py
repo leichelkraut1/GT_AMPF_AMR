@@ -1,8 +1,11 @@
 from Otto_API.Common.TagHelpers import browseTagResults
+from Otto_API.Common.TagHelpers import ensureFleetConfigTags
+from Otto_API.Common.TagHelpers import ensureMemoryTag
 from Otto_API.Common.TagHelpers import getFleetRobotsPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateTsPath
 from Otto_API.Common.TagHelpers import getMissionMinChargePath
+from Otto_API.Common.TagHelpers import getRobotChargingDelayMsPath
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
@@ -31,6 +34,8 @@ def _robotStatusReadPaths(robotPath):
         robotPath + "/ChargeLevel",
         robotPath + "/ActiveMissionCount",
         robotPath + "/FailedMissionCount",
+        robotPath + "/ChargingTOF",
+        robotPath + "/Charging_TS",
     ]
 
 
@@ -50,6 +55,9 @@ def _buildRobotReadinessResult(
     minCharge=None,
     activeMissionCount=None,
     failedMissionCount=None,
+    chargingTof=None,
+    chargingTs=None,
+    chargingDelayMs=None,
     missionLastUpdateTs=None,
     missionLastUpdateSuccess=None
 ):
@@ -63,6 +71,9 @@ def _buildRobotReadinessResult(
         "min_charge": minCharge,
         "active_mission_count": activeMissionCount,
         "failed_mission_count": failedMissionCount,
+        "charging_tof": chargingTof,
+        "charging_ts": chargingTs,
+        "charging_delay_ms": chargingDelayMs,
         "mission_last_update_ts": missionLastUpdateTs,
         "mission_last_update_success": missionLastUpdateSuccess,
     }
@@ -78,6 +89,9 @@ def evaluateRobotReadiness(
     missionLastUpdateTs=None,
     missionLastUpdateSuccess=None,
     failedMissionCount=None,
+    chargingTof=None,
+    chargingTs=None,
+    chargingDelayMs=None,
     allowedActivityStates=None
 ):
     """
@@ -94,214 +108,72 @@ def evaluateRobotReadiness(
         if value is not None
     ])
 
+    baseResult = _buildRobotReadinessResult(
+        robotName=robotName,
+        available=False,
+        reason="not_evaluated",
+        systemState=normalizedSystemState,
+        activityState=normalizedActivityState,
+        chargeLevel=chargeLevel,
+        minCharge=minCharge,
+        activeMissionCount=activeMissionCount,
+        failedMissionCount=failedMissionCount,
+        chargingTof=chargingTof,
+        chargingTs=chargingTs,
+        chargingDelayMs=chargingDelayMs,
+        missionLastUpdateTs=missionLastUpdateTs,
+        missionLastUpdateSuccess=missionLastUpdateSuccess
+    )
+
+    def _result(reason, available=False):
+        result = dict(baseResult)
+        result["reason"] = reason
+        result["available"] = bool(available)
+        return result
+
     if minCharge is None:
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "min_charge_missing",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("min_charge_missing")
 
     if normalizedSystemState is None:
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "system_state_missing",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("system_state_missing")
 
     if normalizedActivityState is None:
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "activity_state_missing",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("activity_state_missing")
 
     if chargeLevel is None:
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "charge_level_missing",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("charge_level_missing")
 
     if not missionLastUpdateSuccess:
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "mission_data_not_successful",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("mission_data_not_successful")
 
     if missionLastUpdateTs is None or not str(missionLastUpdateTs).strip():
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "mission_data_missing_timestamp",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("mission_data_missing_timestamp")
 
     if normalizedSystemState != "RUN":
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "system_state_not_run",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("system_state_not_run")
 
     if normalizedActivityState not in normalizedAllowedStates:
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "activity_state_not_allowed",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("activity_state_not_allowed")
 
     if chargeLevel < minCharge:
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "charge_below_minimum",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("charge_below_minimum")
+
+    if chargingTof:
+        return _result("recently_charging")
 
     if activeMissionCount is None:
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "active_mission_count_missing",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("active_mission_count_missing")
 
     if activeMissionCount != 0:
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "active_missions_present",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("active_missions_present")
 
     if failedMissionCount is None:
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "failed_mission_count_missing",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("failed_mission_count_missing")
 
     if failedMissionCount != 0:
-        return _buildRobotReadinessResult(
-            robotName,
-            False,
-            "failed_missions_present",
-            normalizedSystemState,
-            normalizedActivityState,
-            chargeLevel,
-            minCharge,
-            activeMissionCount,
-            failedMissionCount,
-            missionLastUpdateTs,
-            missionLastUpdateSuccess
-        )
+        return _result("failed_missions_present")
 
-    return _buildRobotReadinessResult(
-        robotName,
-        True,
-        "available",
-        normalizedSystemState,
-        normalizedActivityState,
-        chargeLevel,
-        minCharge,
-        activeMissionCount,
-        failedMissionCount,
-        missionLastUpdateTs,
-        missionLastUpdateSuccess
-    )
+    return _result("available", available=True)
 
 
 def isRobotAvailable(
@@ -313,6 +185,9 @@ def isRobotAvailable(
     missionLastUpdateTs=None,
     missionLastUpdateSuccess=None,
     failedMissionCount=None,
+    chargingTof=None,
+    chargingTs=None,
+    chargingDelayMs=None,
     allowedActivityStates=None
 ):
     """
@@ -328,6 +203,9 @@ def isRobotAvailable(
         missionLastUpdateTs,
         missionLastUpdateSuccess,
         failedMissionCount,
+        chargingTof,
+        chargingTs,
+        chargingDelayMs,
         allowedActivityStates
     )["available"]
 
@@ -363,6 +241,7 @@ def _reasonToTagValue(readiness):
 def buildReadinessResultsAndWrites(
     robotSnapshots,
     minCharge,
+    chargingDelayMs,
     missionLastUpdateTs=None,
     missionLastUpdateSuccess=None
 ):
@@ -376,6 +255,8 @@ def buildReadinessResultsAndWrites(
     - charge_level
     - active_mission_count
     - failed_mission_count
+    - charging_tof
+    - charging_ts
     """
     robotResults = []
     writePaths = []
@@ -392,6 +273,9 @@ def buildReadinessResultsAndWrites(
             missionLastUpdateTs,
             missionLastUpdateSuccess,
             snapshot.get("failed_mission_count"),
+            snapshot.get("charging_tof"),
+            snapshot.get("charging_ts"),
+            chargingDelayMs,
         )
         robotResults.append(readiness)
 
@@ -432,10 +316,15 @@ def updateAvailableForWork():
 
     try:
         try:
+            ensureFleetConfigTags()
             minCharge = readRequiredTagValue(
                 minChargePath,
                 "Minimum charge threshold"
             )
+            chargingDelayMs = int(readOptionalTagValue(
+                getRobotChargingDelayMsPath(),
+                0
+            ) or 0)
             missionLastUpdateTs = readOptionalTagValue(
                 missionLastUpdateTsPath,
                 None,
@@ -460,6 +349,8 @@ def updateAvailableForWork():
 
             robotName = str(tag["name"])
             robotPath = robotsBasePath + "/" + robotName
+            ensureMemoryTag(robotPath + "/ChargingTOF", "Boolean", False)
+            ensureMemoryTag(robotPath + "/Charging_TS", "Int8", 0)
             robotRows.append({
                 "robot_name": robotName,
                 "robot_path": robotPath,
@@ -470,7 +361,7 @@ def updateAvailableForWork():
         if readPaths:
             readResults = readTagValues(readPaths)
 
-        expectedReadCount = len(robotRows) * 5
+        expectedReadCount = len(robotRows) * 7
         if len(readResults) < expectedReadCount:
             message = (
                 "AvailableForWork evaluation failed - expected {} readiness tag values but received {}"
@@ -480,7 +371,7 @@ def updateAvailableForWork():
 
         robotSnapshots = []
         for index, robotRow in enumerate(robotRows):
-            offset = index * 5
+            offset = index * 7
             robotSnapshots.append({
                 "robot_name": robotRow["robot_name"],
                 "robot_path": robotRow["robot_path"],
@@ -497,11 +388,22 @@ def updateAvailableForWork():
                     if readResults[offset + 4].quality.isGood()
                     else None
                 ),
+                "charging_tof": (
+                    readResults[offset + 5].value
+                    if readResults[offset + 5].quality.isGood()
+                    else False
+                ),
+                "charging_ts": (
+                    readResults[offset + 6].value
+                    if readResults[offset + 6].quality.isGood()
+                    else 0
+                ),
             })
 
         readinessBatch = buildReadinessResultsAndWrites(
             robotSnapshots,
             minCharge,
+            chargingDelayMs,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )

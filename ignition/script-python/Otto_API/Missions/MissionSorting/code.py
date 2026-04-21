@@ -1,10 +1,13 @@
 from Otto_API.AttachmentPhaseHelpers import deriveMissionAttachmentState
 from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.TagHelpers import ensureFleetConfigTags
 from Otto_API.Common.TagHelpers import getFleetMissionsPath
 from Otto_API.Common.TagHelpers import getFleetRobotsPath
 from Otto_API.Common.TagHelpers import getMainControlRobotsPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateTsPath
+from Otto_API.Common.TagHelpers import getMissionMaxCompletedCountPath
+from Otto_API.Common.TagHelpers import readRequiredTagValue
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import writeRequiredTagValues
 from Otto_API.Missions.Buckets import classify_mission_bucket
@@ -51,7 +54,6 @@ FAILED_STATUSES = [
     "FAILED"
 ]
 
-MAX_COMPLETED = 20
 MAX_FAILED = 50
 COMPLETED_RETENTION_DAYS = 5
 FAILED_RETENTION_DAYS = 5
@@ -104,6 +106,14 @@ def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None
         failed_wanted=failedWanted,
         removed=removed,
     )
+
+
+def _readMaxCompletedCount():
+    ensureFleetConfigTags()
+    return int(readRequiredTagValue(
+        getMissionMaxCompletedCountPath(),
+        "Mission max completed count"
+    ) or 0)
 
 
 def _writeMissionUpdateStatus(success, timestampValue, logger=None):
@@ -321,6 +331,7 @@ def runTerminalMaintenance():
     _dlog(logger, debug, "MissionSorting.runTerminalMaintenance START")
 
     try:
+        maxCompleted = _readMaxCompletedCount()
         nowDate = system.date.now()
         nowTimestamp = system.date.format(nowDate, "yyyy-MM-dd HH:mm:ss.SSS")
         robotMappings = readRobotFolderMappings(robotsPath=ROBOTS_PATH, logger=logger)
@@ -331,7 +342,7 @@ def runTerminalMaintenance():
             logger,
             debug,
             mission_status=TERMINAL_STATUSES,
-            limit=MAX_COMPLETED
+            limit=maxCompleted
         )
 
         for mission in missions:
@@ -370,7 +381,7 @@ def runTerminalMaintenance():
             cleanup_terminal_folder(
                 COMPLETED_PATH,
                 COMPLETED_RETENTION_DAYS,
-                MAX_COMPLETED,
+                maxCompleted,
                 "completed",
                 logger,
                 browseMissionInstances,

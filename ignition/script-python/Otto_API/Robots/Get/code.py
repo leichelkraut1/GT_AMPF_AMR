@@ -1,4 +1,5 @@
 import json
+import time
 
 from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
@@ -6,12 +7,15 @@ from Otto_API.Common.RuntimeHistory import timestampString
 from Otto_API.Common.SyncHelpers import listUdtInstanceNames
 from Otto_API.Common.TagHelpers import browseTagResults
 from Otto_API.Common.TagHelpers import deleteTagPath
+from Otto_API.Common.TagHelpers import ensureFleetConfigTags
+from Otto_API.Common.TagHelpers import ensureMemoryTag
 from Otto_API.Common.TagHelpers import ensureUdtInstancePath
 from Otto_API.Common.TagHelpers import getApiBaseUrl
 from Otto_API.Common.TagHelpers import getFleetRobotsPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
 from Otto_API.Common.TagHelpers import getMissionLastUpdateTsPath
 from Otto_API.Common.TagHelpers import getMissionMinChargePath
+from Otto_API.Common.TagHelpers import getRobotChargingDelayMsPath
 from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValue
 from Otto_API.Common.TagHelpers import readTagValues
@@ -61,11 +65,6 @@ def _read_inventory_sync_context(basePath, logger):
     return robotTags, invalidated
 
 
-def _warn_unmatched_robot_ids(robotIds, logger):
-    for robotId in list(robotIds or []):
-        logger.warn("No matching robot tag found for robot ID " + robotId)
-
-
 def _sync_metric_records(
     basePath,
     results,
@@ -89,7 +88,8 @@ def _sync_metric_records(
             (path, valueTransform(value))
             for path, value in list(writes or [])
         ]
-    _warn_unmatched_robot_ids(unmatchedRobotIds, logger)
+    for robotId in list(unmatchedRobotIds or []):
+        logger.warn("No matching robot tag found for robot ID " + robotId)
     finalWrites = writes + invalidated
     if finalWrites:
         writeObservedPairs(finalWrites, operationLabel, logger)
@@ -122,6 +122,8 @@ def _read_current_robot_values(readPlan):
             robotPath + "/ChargeLevel",
             robotPath + "/ActiveMissionCount",
             robotPath + "/FailedMissionCount",
+            robotPath + "/ChargingTOF",
+            robotPath + "/Charging_TS",
             robotPath + "/" + ROBOT_STATE_LOG_SIGNATURE_MEMBER,
         ])
 
@@ -131,6 +133,30 @@ def _read_current_robot_values(readPlan):
         for path, qualifiedValue in zip(currentValuePaths, readResults):
             currentValues[path] = qualifiedValue.value if qualifiedValue.quality.isGood() else None
     return currentValues
+
+
+def _chargingStateUpdate(activityState, chargingTof, chargingTs, chargingDelayMs, nowEpochMs):
+    normalizedActivity = str(activityState or "").strip().upper()
+    currentChargingTof = bool(chargingTof)
+    currentChargingTs = int(chargingTs or 0)
+    delayMs = max(0, int(chargingDelayMs or 0))
+    nowEpochMs = int(nowEpochMs or 0)
+
+    if normalizedActivity == "CHARGING":
+        return True, nowEpochMs
+
+    if currentChargingTof and currentChargingTs > 0 and (nowEpochMs - currentChargingTs) < delayMs:
+        return True, currentChargingTs
+
+    return False, currentChargingTs
+
+
+def _epochMillis(dateValue):
+    if hasattr(dateValue, "getTime"):
+        return int(dateValue.getTime())
+    if hasattr(dateValue, "to_datetime"):
+        return int(time.mktime(dateValue.to_datetime().timetuple()) * 1000 + (dateValue.to_datetime().microsecond // 1000))
+    return int(time.time() * 1000)
 
 
 def updateRobots():
@@ -251,8 +277,8 @@ def updateSystemStates():
             True,
             "info",
             "System states updated for {} robot(s)".format(len(writes) // 4),
-            records=results,
-            writes=finalWrites
+            records=list(results or []),
+            writes=list(finalWrites or [])
         )
 
     except Exception as e:
@@ -293,8 +319,8 @@ def updateChargeLevels():
             True,
             "info",
             "Charge levels updated for {} robot(s)".format(len(writes)),
-            records=batteryResults,
-            writes=finalWrites
+            records=list(batteryResults or []),
+            writes=list(finalWrites or [])
         )
 
     except Exception as e:
@@ -334,8 +360,8 @@ def updateActivityStates():
             True,
             "info",
             "Activity states updated for {} robot(s)".format(len(writes)),
-            records=activityResults,
-            writes=finalWrites
+            records=list(activityResults or []),
+            writes=list(finalWrites or [])
         )
 
     except Exception as e:
@@ -352,10 +378,15 @@ def updateRobotOperationalState():
     robotsBasePath = getFleetRobotsPath()
 
     try:
+        ensureFleetConfigTags()
         minCharge = readRequiredTagValue(
             getMissionMinChargePath(),
             "Minimum charge threshold"
         )
+        chargingDelayMs = int(readOptionalTagValue(
+            getRobotChargingDelayMsPath(),
+            0
+        ) or 0)
         missionLastUpdateTs = readOptionalTagValue(
             getMissionLastUpdateTsPath(),
             None,
@@ -418,9 +449,12 @@ def updateRobotOperationalState():
             writesByPath[invalidPath] = invalidValue
 
         robotSnapshots = []
+        nowEpochMs = _epochMillis(nowDate)
         for robotId, robotPath in robotTags.items():
             robotName = str(robotPath).rsplit("/", 1)[1]
             dominant = selectDominantSystemState(statesByRobot.get(robotId, []), logger=ottoLogger)
+            ensureMemoryTag(robotPath + "/ChargingTOF", "Boolean", False)
+            ensureMemoryTag(robotPath + "/Charging_TS", "Int8", 0)
 
             systemStatePath = robotPath + "/SystemState"
             subSystemPath = robotPath + "/SubSystemState"
@@ -430,6 +464,8 @@ def updateRobotOperationalState():
             chargePath = robotPath + "/ChargeLevel"
             activeMissionCountPath = robotPath + "/ActiveMissionCount"
             failedMissionCountPath = robotPath + "/FailedMissionCount"
+            chargingTofPath = robotPath + "/ChargingTOF"
+            chargingTsPath = robotPath + "/Charging_TS"
             robotStateLogSignaturePath = robotPath + "/" + ROBOT_STATE_LOG_SIGNATURE_MEMBER
 
             previousSystemState = currentValues.get(systemStatePath)
@@ -443,6 +479,8 @@ def updateRobotOperationalState():
             effectiveCharge = currentValues.get(chargePath)
             effectiveActiveMissionCount = currentValues.get(activeMissionCountPath)
             effectiveFailedMissionCount = currentValues.get(failedMissionCountPath)
+            effectiveChargingTof = currentValues.get(chargingTofPath)
+            effectiveChargingTs = currentValues.get(chargingTsPath)
             previousRobotStateLogSignature = currentValues.get(robotStateLogSignaturePath)
 
             if dominant is not None:
@@ -462,6 +500,16 @@ def updateRobotOperationalState():
             if robotId in chargeByRobot:
                 effectiveCharge = chargeByRobot.get(robotId)
                 writesByPath[chargePath] = effectiveCharge
+
+            effectiveChargingTof, effectiveChargingTs = _chargingStateUpdate(
+                effectiveActivity,
+                effectiveChargingTof,
+                effectiveChargingTs,
+                chargingDelayMs,
+                nowEpochMs
+            )
+            writesByPath[chargingTofPath] = effectiveChargingTof
+            writesByPath[chargingTsPath] = effectiveChargingTs
 
             historyUpdate = buildRobotStateHistoryUpdate(
                 robotName,
@@ -489,11 +537,14 @@ def updateRobotOperationalState():
                 "charge_level": effectiveCharge,
                 "active_mission_count": effectiveActiveMissionCount,
                 "failed_mission_count": effectiveFailedMissionCount,
+                "charging_tof": effectiveChargingTof,
+                "charging_ts": effectiveChargingTs,
             })
 
         readinessBatch = buildReadinessResultsAndWrites(
             robotSnapshots,
             minCharge,
+            chargingDelayMs,
             missionLastUpdateTs,
             missionLastUpdateSuccess
         )
@@ -514,8 +565,8 @@ def updateRobotOperationalState():
             True,
             "info",
             "Robot operational state updated for {} robot(s)".format(len(robotTags)),
-            records=allRecords,
-            writes=writes
+            records=list(allRecords or []),
+            writes=list(writes or [])
         )
 
     except Exception as e:
