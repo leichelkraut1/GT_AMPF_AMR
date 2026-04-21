@@ -420,7 +420,7 @@ def updateAvailableForWork():
 
     This is kept as a standalone manual/fallback/debugging entrypoint.
     At this time it is not the intended main runtime path; the normal
-    runtime flow should prefer Otto_API.Fleet.Get.updateRobotOperationalState()
+    runtime flow should prefer Otto_API.Robots.Get.updateRobotOperationalState()
     so OTTO sync and readiness evaluation happen in one pass.
     """
     ottoLogger = _log()

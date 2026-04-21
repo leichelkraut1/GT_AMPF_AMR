@@ -27,10 +27,11 @@ The main entrypoint is:
 
 The cycle order is intentional:
 
-1. `Get.readCachedServerStatus()`
-2. `Get.updateRobotOperationalState()`
-3. `MissionSorting.run()`
-4. `runAllRobotWorkflowCycles(...)`
+1. `FleetGet.readCachedServerStatus()`
+2. `RobotGet.updateRobotOperationalState()`
+3. `ContainerGet.updateContainers()`
+4. `MissionSorting.run()`
+5. `runAllRobotWorkflowCycles(...)`
 
 The important rule is:
 

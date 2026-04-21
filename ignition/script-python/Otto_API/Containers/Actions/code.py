@@ -142,15 +142,6 @@ def interpretUpdateContainerPlaceResponse(responseText, containerId, placeId):
             responseText
         )
     )
-
-
-def interpretUpdateContainerResponse(responseText, containerId, placeId):
-    """
-    Backwards-compatible alias for place-specific update parsing.
-    """
-    return interpretUpdateContainerPlaceResponse(responseText, containerId, placeId)
-
-
 def interpretUpdateContainerRobotResponse(responseText, containerId, robotId):
     """
     Parse an updateContainer(robot=<robotId>) response and return (logLevel, message).

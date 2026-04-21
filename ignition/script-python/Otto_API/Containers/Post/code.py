@@ -10,7 +10,6 @@ from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readRequiredTagValues
 from Otto_API.Common.TagHelpers import writeLastSystemResponse
 from Otto_API.Common.TagHelpers import writeLastTriggerResponse
-from Otto_API.Fleet.ContentSync import sanitizeTagName
 from Otto_API.Containers.Actions import buildCreateContainerPayload
 from Otto_API.Containers.Actions import buildDeleteContainerPayload
 from Otto_API.Containers.Actions import buildUpdateContainerPlacePayload
@@ -172,7 +171,7 @@ def _iterContainerInstancePaths(containersBase):
         yield instancePath
 
 
-def _buildContainerCreateId(containerTagPath, uuidFactory=None):
+def _buildContainerCreateId(uuidFactory=None):
     """
     Build a generated container id as a UUID string.
     """
@@ -197,7 +196,7 @@ def _readCreateContainerBaseFields(containerTagPath, uuidFactory=None):
     )
 
     containerFields = {
-        "id": _buildContainerCreateId(containerTagPath, uuidFactory),
+        "id": _buildContainerCreateId(uuidFactory),
     }
     for (fieldName, _path, _label), value in zip(requiredFieldSpecs, requiredValues):
         containerFields[fieldName] = value
@@ -379,6 +378,61 @@ def deleteContainerByIdFromInputs(containerId, fleetManagerURL, postFunc):
         )
 
 
+def _deleteMatchedContainerIds(
+    matchedContainerIds,
+    fleetManagerURL,
+    postFunc,
+    noMatchMessage,
+    successMessageBuilder,
+    partialMessageBuilder,
+    resultFields=None,
+):
+    resultFields = dict(resultFields or {})
+
+    if not matchedContainerIds:
+        return _buildResult(
+            False,
+            "warn",
+            noMatchMessage,
+            extraData={
+                "matched_container_ids": [],
+                "deleted_container_ids": [],
+                "delete_results": [],
+            },
+            **resultFields
+        )
+
+    deleteResults = []
+    deletedContainerIds = []
+    allSucceeded = True
+    for containerId in matchedContainerIds:
+        result = deleteContainerByIdFromInputs(containerId, fleetManagerURL, postFunc)
+        deleteResults.append(result)
+        if result["ok"]:
+            deletedContainerIds.append(containerId)
+        else:
+            allSucceeded = False
+
+    if allSucceeded:
+        level = "info"
+        message = successMessageBuilder(deletedContainerIds, matchedContainerIds)
+    else:
+        level = "warn"
+        message = partialMessageBuilder(deletedContainerIds, matchedContainerIds)
+
+    return _buildResult(
+        allSucceeded,
+        level,
+        message,
+        extraData={
+            "matched_container_ids": matchedContainerIds,
+            "deleted_container_ids": deletedContainerIds,
+            "delete_results": deleteResults,
+        },
+        **resultFields
+    )
+
+
 def deleteContainersAtPlaceFromInputs(placeId, fleetManagerURL, postFunc):
     """
     Delete every container currently assigned to the provided place id.
@@ -398,51 +452,21 @@ def deleteContainersAtPlaceFromInputs(placeId, fleetManagerURL, postFunc):
             continue
         matchedContainerIds.append(containerId)
 
-    if not matchedContainerIds:
-        return _buildResult(
-            False,
-            "warn",
-            "No containers found at place [{}]".format(placeId),
-            placeId=placeId,
-            extraData={
-                "matched_container_ids": [],
-                "deleted_container_ids": [],
-                "delete_results": [],
-            },
-        )
-
-    deleteResults = []
-    deletedContainerIds = []
-    allSucceeded = True
-    for containerId in matchedContainerIds:
-        result = deleteContainerByIdFromInputs(containerId, fleetManagerURL, postFunc)
-        deleteResults.append(result)
-        if result["ok"]:
-            deletedContainerIds.append(containerId)
-        else:
-            allSucceeded = False
-
-    if allSucceeded:
-        level = "info"
-        message = "Deleted {} container(s) at place [{}]".format(len(deletedContainerIds), placeId)
-    else:
-        level = "warn"
-        message = "Deleted {} of {} container(s) at place [{}]".format(
-            len(deletedContainerIds),
-            len(matchedContainerIds),
-            placeId,
-        )
-
-    return _buildResult(
-        allSucceeded,
-        level,
-        message,
-        placeId=placeId,
-        extraData={
-            "matched_container_ids": matchedContainerIds,
-            "deleted_container_ids": deletedContainerIds,
-            "delete_results": deleteResults,
-        },
+    return _deleteMatchedContainerIds(
+        matchedContainerIds,
+        fleetManagerURL,
+        postFunc,
+        "No containers found at place [{}]".format(placeId),
+        lambda deletedIds, _matchedIds: "Deleted {} container(s) at place [{}]".format(
+            len(deletedIds),
+            placeId
+        ),
+        lambda deletedIds, matchedIds: "Deleted {} of {} container(s) at place [{}]".format(
+            len(deletedIds),
+            len(matchedIds),
+            placeId
+        ),
+        resultFields={"placeId": placeId},
     )
 
 
@@ -459,48 +483,16 @@ def deleteAllContainersFromInputs(fleetManagerURL, postFunc):
             continue
         matchedContainerIds.append(containerId)
 
-    if not matchedContainerIds:
-        return _buildResult(
-            False,
-            "warn",
-            "No containers found to delete",
-            extraData={
-                "matched_container_ids": [],
-                "deleted_container_ids": [],
-                "delete_results": [],
-            },
-        )
-
-    deleteResults = []
-    deletedContainerIds = []
-    allSucceeded = True
-    for containerId in matchedContainerIds:
-        result = deleteContainerByIdFromInputs(containerId, fleetManagerURL, postFunc)
-        deleteResults.append(result)
-        if result["ok"]:
-            deletedContainerIds.append(containerId)
-        else:
-            allSucceeded = False
-
-    if allSucceeded:
-        level = "info"
-        message = "Deleted {} container(s)".format(len(deletedContainerIds))
-    else:
-        level = "warn"
-        message = "Deleted {} of {} container(s)".format(
-            len(deletedContainerIds),
-            len(matchedContainerIds),
-        )
-
-    return _buildResult(
-        allSucceeded,
-        level,
-        message,
-        extraData={
-            "matched_container_ids": matchedContainerIds,
-            "deleted_container_ids": deletedContainerIds,
-            "delete_results": deleteResults,
-        },
+    return _deleteMatchedContainerIds(
+        matchedContainerIds,
+        fleetManagerURL,
+        postFunc,
+        "No containers found to delete",
+        lambda deletedIds, _matchedIds: "Deleted {} container(s)".format(len(deletedIds)),
+        lambda deletedIds, matchedIds: "Deleted {} of {} container(s)".format(
+            len(deletedIds),
+            len(matchedIds)
+        ),
     )
 
 
@@ -521,48 +513,18 @@ def deleteContainersWithoutLocationFromInputs(fleetManagerURL, postFunc):
             continue
         matchedContainerIds.append(containerId)
 
-    if not matchedContainerIds:
-        return _buildResult(
-            False,
-            "warn",
-            "No containers without robot or place were found",
-            extraData={
-                "matched_container_ids": [],
-                "deleted_container_ids": [],
-                "delete_results": [],
-            },
-        )
-
-    deleteResults = []
-    deletedContainerIds = []
-    allSucceeded = True
-    for containerId in matchedContainerIds:
-        result = deleteContainerByIdFromInputs(containerId, fleetManagerURL, postFunc)
-        deleteResults.append(result)
-        if result["ok"]:
-            deletedContainerIds.append(containerId)
-        else:
-            allSucceeded = False
-
-    if allSucceeded:
-        level = "info"
-        message = "Deleted {} container(s) without robot or place".format(len(deletedContainerIds))
-    else:
-        level = "warn"
-        message = "Deleted {} of {} container(s) without robot or place".format(
-            len(deletedContainerIds),
-            len(matchedContainerIds),
-        )
-
-    return _buildResult(
-        allSucceeded,
-        level,
-        message,
-        extraData={
-            "matched_container_ids": matchedContainerIds,
-            "deleted_container_ids": deletedContainerIds,
-            "delete_results": deleteResults,
-        },
+    return _deleteMatchedContainerIds(
+        matchedContainerIds,
+        fleetManagerURL,
+        postFunc,
+        "No containers without robot or place were found",
+        lambda deletedIds, _matchedIds: "Deleted {} container(s) without robot or place".format(
+            len(deletedIds)
+        ),
+        lambda deletedIds, matchedIds: "Deleted {} of {} container(s) without robot or place".format(
+            len(deletedIds),
+            len(matchedIds)
+        ),
     )
 
 
@@ -672,35 +634,3 @@ def cleanupContainersWithoutLocation():
 
     writeLastTriggerResponse(result["message"], asyncWrite=True)
     return result
-
-
-def CreateAtPlace(containerUdtPath, placeId):
-    return createContainerAtPlace(containerUdtPath, placeId)
-
-
-def CreateAtRobot(containerUdtPath, robotId):
-    return createContainerAtRobot(containerUdtPath, robotId)
-
-
-def UpdatePlaceById(containerId, placeId):
-    return updateContainerPlaceById(containerId, placeId)
-
-
-def UpdateRobotById(containerId, robotId):
-    return updateContainerRobotById(containerId, robotId)
-
-
-def DeleteById(containerId):
-    return deleteContainerById(containerId)
-
-
-def DeleteAtPlace(placeId):
-    return deleteContainersAtPlace(placeId)
-
-
-def DeleteAll():
-    return deleteAllContainers()
-
-
-def CleanupWithoutLocation():
-    return cleanupContainersWithoutLocation()

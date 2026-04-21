@@ -21,7 +21,7 @@ from Otto_API.AttachmentPhaseHelpers import deriveMissionAttachmentState
 from Otto_API.Fleet.ContentSync import sanitizeTagName
 from Otto_API.Fleet.FleetSync import parseIsoTimestampToEpochMillis
 from Otto_API.Fleet.FleetSync import readRobotInventoryMetadata
-from Otto_API.Fleet.Get import getMissions
+from Otto_API.Missions.Get import getMissions
 from MainController.CommandHelpers import MISSION_STATE_HISTORY_HEADERS
 from MainController.CommandHelpers import MISSION_STATE_HISTORY_MAX_ROWS
 from MainController.CommandHelpers import appendRuntimeDatasetRow

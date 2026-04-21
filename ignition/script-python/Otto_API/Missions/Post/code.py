@@ -322,7 +322,7 @@ def cancelAllActiveMissionsFromInputs(missionRecords, fleetManagerURL, postFunc)
 def createMission(templateTagPath, robotTagPath, missionName):
 	"""
 	Posts a mission to the OTTO Fleet Manager using the mission templates and robot ID specified by tag paths.
-	Mission templates (workflows) can be pulled into Ignition using Otto_API.Fleet.Get.updateWorkflows()
+	Mission templates (workflows) can be pulled into Ignition using Otto_API.Workflows.Get.updateWorkflows()
 
 	Args:
 		templateTagPath (str): Full tag path to the mission template JSON string.

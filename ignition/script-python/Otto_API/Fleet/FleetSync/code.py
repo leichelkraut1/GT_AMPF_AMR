@@ -1,7 +1,10 @@
 import calendar
-import json
 import re
 
+from Otto_API.Common.ParseHelpers import parseJsonResponse as _parseJsonResponse
+from Otto_API.Common.ParseHelpers import parseListPayload as _parseListPayload
+from Otto_API.Common.ParseHelpers import parseMissionResults as _parseMissionResults
+from Otto_API.Common.ParseHelpers import parseServerStatus as _parseServerStatus
 from Otto_API.Common.TagHelpers import browseTagResults
 from Otto_API.Common.TagHelpers import getMainControlRobotsPath
 from Otto_API.Common.TagHelpers import readTagValues
@@ -17,11 +20,7 @@ def parseServerStatus(responseText):
     """
     Parse a Fleet Manager server-state response and return a status string.
     """
-    if not responseText:
-        raise ValueError("Empty server status response")
-
-    payload = json.loads(responseText)
-    return payload.get("state", "Unknown")
+    return _parseServerStatus(responseText)
 
 
 def _normalizeMissionStatusList(missionStatus):
@@ -69,37 +68,21 @@ def parseMissionResults(responseText):
     """
     Parse a missions response and return the list payload.
     """
-    if not responseText:
-        return []
-
-    payload = json.loads(responseText)
-    results = payload.get("results", [])
-    if not isinstance(results, list):
-        return []
-    return results
+    return _parseMissionResults(responseText)
 
 
 def parseJsonResponse(responseText):
     """
     Parse a JSON response body and return the decoded payload.
     """
-    if not responseText:
-        raise ValueError("Empty JSON response")
-    return json.loads(responseText)
+    return _parseJsonResponse(responseText)
 
 
 def parseListPayload(responseText):
     """
     Parse a JSON response that may be either a list or a dict with results.
     """
-    payload = parseJsonResponse(responseText)
-    if isinstance(payload, list):
-        return payload
-    if isinstance(payload, dict):
-        results = payload.get("results", [])
-        if isinstance(results, list):
-            return results
-    return []
+    return _parseListPayload(responseText)
 
 
 def _createdSortValue(created):

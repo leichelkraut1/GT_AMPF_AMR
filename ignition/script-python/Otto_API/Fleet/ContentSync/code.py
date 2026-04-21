@@ -25,90 +25,32 @@ def buildRobotTagValues(basePath, robotRecord):
     """
     Build the tag value map for a robot record.
     """
-    instanceName = robotRecord.get("name")
-    if not instanceName:
-        return None, {}
-
-    instancePath = basePath + "/" + instanceName
-    return instanceName, {
-        instancePath + "/Hostname": robotRecord.get("hostname"),
-        instancePath + "/ID": robotRecord.get("id"),
-        instancePath + "/SerialNum": robotRecord.get("serial_number"),
-    }
+    from Otto_API.Robots.Normalize import buildRobotTagValues as _buildRobotTagValues
+    return _buildRobotTagValues(basePath, robotRecord)
 
 
 def normalizePlaceRecord(placeRecord):
     """
     Normalize a place record and skip TEMPLATE entries.
     """
-    if placeRecord.get("place_type") == "TEMPLATE":
-        return None
-
-    instanceName = buildPlaceInstanceName(placeRecord)
-    if not instanceName:
-        return None
-
-    recipes = placeRecord.get("recipes", {})
-    if not isinstance(recipes, dict):
-        recipes = {}
-
-    return {
-        "instance_name": instanceName,
-        "recipes": recipes,
-        "tag_values": {
-            "/Container_Types_Supported": placeRecord.get("container_types_supported"),
-            "/Created": placeRecord.get("created"),
-            "/Description": placeRecord.get("description"),
-            "/Enabled": placeRecord.get("enabled"),
-            "/Exit_Recipe": placeRecord.get("exit_recipe"),
-            "/Feature_Queue": placeRecord.get("feature_queue"),
-            "/ID": placeRecord.get("id"),
-            "/Metadata": placeRecord.get("metadata"),
-            "/Name": placeRecord.get("name"),
-            "/Ownership_Queue": placeRecord.get("ownership_queue"),
-            "/Place_Groups": placeRecord.get("place_groups"),
-            "/Place_Type": placeRecord.get("place_type"),
-            "/Primary_Marker_ID": placeRecord.get("primary_marker_id"),
-            "/Primary_Marker_Intent": placeRecord.get("primary_marker_intent"),
-            "/Source_ID": placeRecord.get("source_id"),
-            "/Zone": placeRecord.get("zone"),
-        }
-    }
+    from Otto_API.Places.Normalize import normalizePlaceRecord as _normalizePlaceRecord
+    return _normalizePlaceRecord(placeRecord)
 
 
 def buildPlaceRecipeWrites(instancePath, recipes):
     """
     Build value and enabled writes for place recipes.
     """
-    valueWrites = {}
-    boolWrites = {}
-
-    for recipeName, recipeValue in dict(recipes or {}).items():
-        safeRecipeName = sanitizeTagName(recipeName)
-        valueWrites["{}/recipes/{}/Value".format(instancePath, safeRecipeName)] = recipeValue
-        boolWrites["{}/recipes/{}/Able".format(instancePath, safeRecipeName)] = (
-            1 if recipeValue is not None else 0
-        )
-
-    return valueWrites, boolWrites
+    from Otto_API.Places.Normalize import buildPlaceRecipeWrites as _buildPlaceRecipeWrites
+    return _buildPlaceRecipeWrites(instancePath, recipes)
 
 
 def buildPlaceInstanceName(placeRecord):
     """
     Build a safe unique Ignition instance name for a place record.
     """
-    placeName = placeRecord.get("name")
-    placeId = placeRecord.get("id")
-
-    if not placeName and not placeId:
-        return None
-
-    safeName = sanitizeTagName(placeName or "Place")
-    safeId = compactTagSuffix(placeId)
-
-    if safeId:
-        return "{}_{}".format(safeName, safeId)
-    return safeName
+    from Otto_API.Places.Normalize import buildPlaceInstanceName as _buildPlaceInstanceName
+    return _buildPlaceInstanceName(placeRecord)
 
 
 def compactTagSuffix(rawId):
@@ -141,89 +83,32 @@ def selectMostRecentMap(mapItems):
     """
     Select the map with the newest last_modified timestamp.
     """
-    items = list(mapItems or [])
-    if not items:
-        return None
-
-    return sorted(
-        items,
-        key=lambda item: str(item.get("last_modified", "1970-01-01T00:00:00Z")),
-        reverse=True
-    )[0]
+    from Otto_API.Maps.Normalize import selectMostRecentMap as _selectMostRecentMap
+    return _selectMostRecentMap(mapItems)
 
 
 def buildMapTagValues(basePath, mapItem):
     """
     Build the tag value map for a map record.
     """
-    instanceName = buildMapInstanceName(mapItem)
-    instancePath = basePath + "/" + instanceName
-
-    return instanceName, {
-        instancePath + "/ID": mapItem.get("id"),
-        instancePath + "/Last_Modified": mapItem.get("last_modified"),
-        instancePath + "/Created": mapItem.get("created"),
-        instancePath + "/Name": mapItem.get("name"),
-        instancePath + "/Description": mapItem.get("description"),
-        instancePath + "/Project": mapItem.get("project"),
-        instancePath + "/Tag": mapItem.get("tag"),
-        instancePath + "/Cached": mapItem.get("cached"),
-        instancePath + "/Disabled": mapItem.get("disabled"),
-        instancePath + "/User_ID": mapItem.get("user_id"),
-        instancePath + "/Author": mapItem.get("author"),
-        instancePath + "/Revision": mapItem.get("revision"),
-        instancePath + "/Tag_Index": mapItem.get("tag_index"),
-        instancePath + "/Source_Map": mapItem.get("source_map")
-    }
+    from Otto_API.Maps.Normalize import buildMapTagValues as _buildMapTagValues
+    return _buildMapTagValues(basePath, mapItem)
 
 
 def buildWorkflowTagValues(basePath, templateItem):
     """
     Build the tag value map for a workflow / mission template record.
     """
-    instanceName = templateItem.get("name")
-    if not instanceName:
-        return None, {}
-
-    instancePath = basePath + "/" + instanceName
-    return instanceName, {
-        instancePath + "/ID": templateItem.get("id"),
-        instancePath + "/Description": templateItem.get("description", ""),
-        instancePath + "/Priority": templateItem.get("priority", 0),
-        instancePath + "/NominalDuration": templateItem.get("nominal_duration"),
-        instancePath + "/MaxDuration": templateItem.get("max_duration"),
-        instancePath + "/RobotTeam": templateItem.get("robot_team"),
-        instancePath + "/OverridePrompts": templateItem.get("override_prompts_json"),
-        instancePath + "/jsonString": json.dumps(templateItem)
-    }
+    from Otto_API.Workflows.Normalize import buildWorkflowTagValues as _buildWorkflowTagValues
+    return _buildWorkflowTagValues(basePath, templateItem)
 
 
 def normalizeContainerRecord(containerRecord):
     """
     Normalize an OTTO container record for Fleet/Containers sync.
     """
-    containerId = containerRecord.get("id")
-    if containerId is None or not str(containerId).strip():
-        return None
-
-    return {
-        "instance_name": str(containerId).strip(),
-        "tag_values": {
-            "/ID": containerRecord.get("id"),
-            "/ContainerType": containerRecord.get("container_type"),
-            "/Created": containerRecord.get("created"),
-            "/Description": containerRecord.get("description"),
-            "/Empty": containerRecord.get("empty"),
-            "/Name": containerRecord.get("name"),
-            "/Place": containerRecord.get("place"),
-            "/ReservedAt": containerRecord.get("reserved_at"),
-            "/ReservedBy": containerRecord.get("reserved_by"),
-            "/Robot": containerRecord.get("robot"),
-            "/State": containerRecord.get("state"),
-            "/SystemCreated": containerRecord.get("system_created"),
-            "/jsonString": json.dumps(containerRecord),
-        }
-    }
+    from Otto_API.Containers.Normalize import normalizeContainerRecord as _normalizeContainerRecord
+    return _normalizeContainerRecord(containerRecord)
 
 
 def sanitizeTagName(text):
