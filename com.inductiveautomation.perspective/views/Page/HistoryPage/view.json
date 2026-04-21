@@ -33,7 +33,7 @@
           "tabIndex": 2
         },
         "props": {
-          "path": "Page/History/VehicleHistory"
+          "path": "Page/History/ControlHistory"
         },
         "type": "ia.display.view"
       },
@@ -54,11 +54,12 @@
       "name": "root"
     },
     "props": {
+      "currentTabIndex": 2,
       "tabs": [
-        "",
-        "",
-        "",
-        ""
+        "Missions",
+        "AMR State",
+        "Control",
+        "HTTP"
       ]
     },
     "type": "ia.container.tab"
