@@ -11,141 +11,114 @@
     "children": [
       {
         "meta": {
-          "name": "BannerCard"
+          "hasDelegate": true,
+          "name": "LoopSectionTitle"
         },
         "position": {
-          "basis": "120px",
+          "basis": "32px",
           "shrink": 0
         },
         "props": {
-          "direction": "column",
           "style": {
-            "backgroundColor": "#f8fafc",
-            "border": "1px solid #cfd6df",
-            "borderRadius": "10px",
-            "padding": "16px"
-          }
+            "color": "#111827",
+            "fontSize": "20px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "6px"
+          },
+          "text": "Main Loop Status"
         },
-        "children": [
-          {
-            "meta": {
-              "hasDelegate": true,
-              "name": "BannerTitle"
-            },
-            "position": {
-              "basis": "26px",
-              "shrink": 0
-            },
-            "props": {
-              "style": {
-                "color": "#475569",
-                "fontSize": "13px",
-                "fontWeight": "700",
-                "textTransform": "uppercase"
-              },
-              "text": "Main Loop Status"
-            },
-            "type": "ia.display.label"
-          },
-          {
-            "meta": {
-              "name": "BannerStatus"
-            },
-            "position": {
-              "basis": "38px",
-              "shrink": 0
-            },
-            "propConfig": {
-              "props.style.color": {
-                "binding": {
-                  "config": {
-                    "fallbackDelay": 2.5,
-                    "mode": "direct",
-                    "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopIsRunning"
-                  },
-                  "transforms": [
-                    {
-                      "expression": "if({value}, \"#166534\", \"#991b1b\")",
-                      "type": "expression"
-                    }
-                  ],
-                  "type": "tag"
-                }
-              },
-              "props.text": {
-                "binding": {
-                  "config": {
-                    "fallbackDelay": 2.5,
-                    "mode": "direct",
-                    "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopIsRunning"
-                  },
-                  "transforms": [
-                    {
-                      "expression": "if({value}, \"Running\", \"Stopped\")",
-                      "type": "expression"
-                    }
-                  ],
-                  "type": "tag"
-                }
-              }
-            },
-            "props": {
-              "style": {
-                "fontSize": "28px",
-                "fontWeight": "700"
-              }
-            },
-            "type": "ia.display.label"
-          },
-          {
-            "meta": {
-              "name": "BannerResult"
-            },
-            "position": {
-              "basis": "22px",
-              "shrink": 0
-            },
-            "propConfig": {
-              "props.text": {
-                "binding": {
-                  "config": {
-                    "fallbackDelay": 2.5,
-                    "mode": "direct",
-                    "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopLastResult"
-                  },
-                  "transforms": [
-                    {
-                      "expression": "\"Last Result: \" + if(isNull({value}) || len(toStr({value})) = 0, \"-\", toStr({value}))",
-                      "type": "expression"
-                    }
-                  ],
-                  "type": "tag"
-                }
-              }
-            },
-            "props": {
-              "style": {
-                "color": "#374151",
-                "fontSize": "13px"
-              }
-            },
-            "type": "ia.display.label"
-          }
-        ],
-        "type": "ia.container.flex"
+        "type": "ia.display.label"
       },
       {
         "meta": {
           "name": "RuntimeCards"
         },
         "position": {
-          "basis": "190px",
+          "basis": "230px",
           "shrink": 0
         },
         "props": {
           "wrap": "wrap"
         },
         "children": [
+          {
+            "meta": {
+              "name": "ServerStatusCard"
+            },
+            "position": {
+              "basis": "220px"
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #d7dce5",
+                "borderRadius": "8px",
+                "marginBottom": "12px",
+                "marginRight": "12px",
+                "padding": "12px"
+              }
+            },
+            "children": [
+              {
+                "meta": {
+                  "hasDelegate": true,
+                  "name": "ServerStatusTitle"
+                },
+                "position": {
+                  "basis": "22px",
+                  "shrink": 0
+                },
+                "props": {
+                  "style": {
+                    "color": "#475569",
+                    "fontSize": "12px",
+                    "fontWeight": "700",
+                    "textTransform": "uppercase"
+                  },
+                  "text": "Fleet Server Status"
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "ServerStatusValue"
+                },
+                "position": {
+                  "basis": "40px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "fallbackDelay": 2.5,
+                        "mode": "direct",
+                        "tagPath": "[Otto_FleetManager]Fleet/System/ServerStatus"
+                      },
+                      "transforms": [
+                        {
+                          "expression": "if(isNull({value}) || len(toStr({value})) = 0, \"-\", toStr({value}))",
+                          "type": "expression"
+                        }
+                      ],
+                      "type": "tag"
+                    }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "fontSize": "22px",
+                    "fontWeight": "700",
+                    "whiteSpace": "normal"
+                  }
+                },
+                "type": "ia.display.label"
+              }
+            ],
+            "type": "ia.container.flex"
+          },
           {
             "meta": {
               "name": "RunningCard"
@@ -159,8 +132,8 @@
                 "backgroundColor": "#ffffff",
                 "border": "1px solid #d7dce5",
                 "borderRadius": "8px",
-                "marginRight": "12px",
                 "marginBottom": "12px",
+                "marginRight": "12px",
                 "padding": "12px"
               }
             },
@@ -190,24 +163,36 @@
                   "name": "RunningValue"
                 },
                 "position": {
-                  "basis": "32px",
+                  "basis": "36px",
                   "shrink": 0
                 },
                 "propConfig": {
-                  "props.text": {
+                  "props.style.color": {
                     "binding": {
                       "config": {
-                        "fallbackDelay": 2.5,
-                        "mode": "direct",
-                        "tagPath": "[Otto_FleetManager]MainControl/Runtime/LoopIsRunning"
+                        "expression": "now(2000)"
                       },
                       "transforms": [
                         {
-                          "expression": "if({value}, \"Yes\", \"No\")",
-                          "type": "expression"
+                          "code": "\tresults = system.tag.readBlocking([\n\t\t\"[Otto_FleetManager]MainControl/Runtime/LoopIsRunning\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/LoopLastResult\"\n\t])\n\tisRunning = bool(results[0].value) if len(results) > 0 and results[0].quality.isGood() else False\n\tlastResult = str(results[1].value or \"\") if len(results) > 1 and results[1].quality.isGood() else \"\"\n\tif lastResult and \"error\" in lastResult.lower():\n\t\treturn \"#991b1b\"\n\tif isRunning:\n\t\treturn \"#166534\"\n\treturn \"#475569\"",
+                          "type": "script"
                         }
                       ],
-                      "type": "tag"
+                      "type": "expr"
+                    }
+                  },
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "expression": "now(2000)"
+                      },
+                      "transforms": [
+                        {
+                          "code": "\tresults = system.tag.readBlocking([\n\t\t\"[Otto_FleetManager]MainControl/Runtime/LoopIsRunning\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/LoopLastResult\"\n\t])\n\tisRunning = bool(results[0].value) if len(results) > 0 and results[0].quality.isGood() else False\n\tlastResult = str(results[1].value or \"\") if len(results) > 1 and results[1].quality.isGood() else \"\"\n\tif lastResult and \"error\" in lastResult.lower():\n\t\treturn \"Errored\"\n\tif isRunning:\n\t\treturn \"Running\"\n\treturn \"Idle\"",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "expr"
                     }
                   }
                 },
@@ -235,8 +220,8 @@
                 "backgroundColor": "#ffffff",
                 "border": "1px solid #d7dce5",
                 "borderRadius": "8px",
-                "marginRight": "12px",
                 "marginBottom": "12px",
+                "marginRight": "12px",
                 "padding": "12px"
               }
             },
@@ -266,7 +251,7 @@
                   "name": "DurationValue"
                 },
                 "position": {
-                  "basis": "32px",
+                  "basis": "36px",
                   "shrink": 0
                 },
                 "propConfig": {
@@ -311,8 +296,8 @@
                 "backgroundColor": "#ffffff",
                 "border": "1px solid #d7dce5",
                 "borderRadius": "8px",
-                "marginRight": "12px",
                 "marginBottom": "12px",
+                "marginRight": "12px",
                 "padding": "12px"
               }
             },
@@ -388,8 +373,8 @@
                 "backgroundColor": "#ffffff",
                 "border": "1px solid #d7dce5",
                 "borderRadius": "8px",
-                "marginRight": "12px",
                 "marginBottom": "12px",
+                "marginRight": "12px",
                 "padding": "12px"
               }
             },
@@ -465,8 +450,8 @@
                 "backgroundColor": "#ffffff",
                 "border": "1px solid #d7dce5",
                 "borderRadius": "8px",
-                "marginRight": "12px",
                 "marginBottom": "12px",
+                "marginRight": "12px",
                 "padding": "12px"
               }
             },
@@ -534,7 +519,7 @@
               "name": "OverlapCard"
             },
             "position": {
-              "basis": "180px"
+              "basis": "220px"
             },
             "props": {
               "direction": "column",
@@ -542,8 +527,8 @@
                 "backgroundColor": "#ffffff",
                 "border": "1px solid #d7dce5",
                 "borderRadius": "8px",
-                "marginRight": "12px",
                 "marginBottom": "12px",
+                "marginRight": "12px",
                 "padding": "12px"
               }
             },
@@ -601,6 +586,30 @@
                   }
                 },
                 "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "ClearOverlapButton"
+                },
+                "position": {
+                  "basis": "34px",
+                  "shrink": 0
+                },
+                "events": {
+                  "dom": {
+                    "onClick": {
+                      "config": {
+                        "script": "\tsystem.tag.writeBlocking([\"[Otto_FleetManager]MainControl/Runtime/LoopOverlapCount\"], [0])"
+                      },
+                      "scope": "G",
+                      "type": "script"
+                    }
+                  }
+                },
+                "props": {
+                  "text": "Clear"
+                },
+                "type": "ia.input.button"
               }
             ],
             "type": "ia.container.flex"
