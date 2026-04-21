@@ -22,7 +22,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 640,
+      "height": 860,
       "width": 320
     }
   },
@@ -391,6 +391,265 @@
         "props": {
           "style": {
             "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "PlcSectionTitle"
+        },
+        "position": {
+          "basis": "28px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "borderTop": "1px solid #e5e7eb",
+            "color": "#475569",
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "marginTop": "6px",
+            "paddingTop": "8px",
+            "textTransform": "uppercase"
+          },
+          "text": "PLC Interlocks"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "FinalizeOk"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/FromPLC/FinalizeOk"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Finalize Ok: \" + if({value}, \"Yes\", \"No\")",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RequestedWorkflowNumber"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/FromPLC/RequestedWorkflowNumber"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Requested Workflow: \" + if(isNull({value}) || toInt({value}) <= 0, \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ActiveWorkflowNumber"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/ToPLC/ActiveWorkflowNumber"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Active Workflow: \" + if(isNull({value}) || toInt({value}) <= 0, \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "MissionNeedsFinalized"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/ToPLC/MissionNeedsFinalized"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Mission Needs Finalized: \" + if({value}, \"Yes\", \"No\")",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "MissionReadyforAttachment"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/ToPLC/MissionReadyforAttachment"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Mission Ready For Attachment: \" + if({value}, \"Yes\", \"No\")",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "LastResultLabel"
+        },
+        "position": {
+          "basis": "20px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "color": "#475569",
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "paddingTop": "4px"
+          },
+          "text": "Mission Control Status"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "LastResult"
+        },
+        "position": {
+          "basis": "56px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]MainControl/Robots/AMPF_AMR_RV{1}/LastResult"
+              },
+              "transforms": [
+                {
+                  "expression": "if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
           }
         },
         "type": "ia.display.label"
