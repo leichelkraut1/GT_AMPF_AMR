@@ -11,660 +11,733 @@
     "children": [
       {
         "meta": {
-          "hasDelegate": true,
-          "name": "DatasetLabel"
+          "name": "TopPanel"
         },
         "position": {
-          "height": "4%",
-          "width": "10%",
-          "x": "1%",
-          "y": "1%"
+          "position": "top"
         },
         "props": {
+          "direction": "column",
           "style": {
-            "color": "#111827",
-            "fontSize": "13px",
-            "fontWeight": "700",
-            "paddingLeft": "4px",
-            "paddingTop": "8px"
-          },
-          "text": "Dataset"
-        },
-        "type": "ia.display.label"
-      },
-      {
-        "meta": {
-          "name": "DatasetModeDropdown"
-        },
-        "position": {
-          "height": "5%",
-          "width": "18%",
-          "x": "11%",
-          "y": "1%"
-        },
-        "propConfig": {
-          "props.value": {
-            "onChange": {
-              "enabled": null,
-              "script": "\tself.getSibling(\"HttpHistoryTable\").props.UpdateTable \u003d True"
-            }
+            "padding": "8px"
           }
         },
-        "props": {
-          "options": [
-            {
-              "label": "All HTTP",
-              "value": "all"
+        "children": [
+          {
+            "meta": {
+              "name": "Toolbar"
             },
-            {
-              "label": "GET Only",
-              "value": "get"
+            "position": {
+              "basis": "42px",
+              "shrink": 0
             },
-            {
-              "label": "POST Only",
-              "value": "post"
-            }
-          ],
-          "search": {
-            "enabled": false
-          },
-          "style": {
-            "textAlign": "left"
-          },
-          "value": "post"
-        },
-        "type": "ia.input.dropdown"
-      },
-      {
-        "meta": {
-          "name": "HttpHistoryTable"
-        },
-        "position": {
-          "height": "42%",
-          "width": "98%",
-          "x": "1%",
-          "y": "7%"
-        },
-        "propConfig": {
-          "props.data": {
-            "binding": {
-              "config": {
-                "expression": "toStr(now(5000)+{this.props.UpdateTable})"
-              },
-              "transforms": [
-                {
-                  "code": "\tdropdown \u003d self.getSibling(\"DatasetModeDropdown\")\n\tvalue\u003ddropdown.props.value\n\tparts \u003d str(value or \"all\").rsplit(\":\", 1)\n\tmode \u003d parts[-1] if parts else \"all\"\n\tpathByMode \u003d {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\",\n\t}\n\ttagPath \u003d pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue \u003d system.tag.readBlocking([tagPath])[0].value\n\tif(self.props.UpdateTable or self.props.data is None):\n\t\tself.props.UpdateTable\u003dFalse\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue\n\t\t\t\n\treturn self.props.data",
-                  "type": "script"
-                }
-              ],
-              "type": "expr"
-            }
-          }
-        },
-        "props": {
-          "UpdateTable": false,
-          "columns": [
-            {
-              "field": "Ts",
-              "header": {
-                "align": "center",
-                "justify": "center",
-                "style": {
-                  "backgroundColor": "#1f2937",
-                  "borderBottom": "1px solid #111827",
-                  "borderRight": "1px solid #374151",
-                  "color": "#ffffff",
-                  "fontSize": "14px",
-                  "fontWeight": "700",
-                  "paddingLeft": "10px",
-                  "paddingRight": "10px"
-                },
-                "title": "Time stamp"
-              },
-              "sort": "descending",
-              "sortable": true,
-              "strictWidth": true,
+            "props": {
+              "alignItems": "center",
+              "direction": "row",
               "style": {
-                "borderRight": "1px solid #d7dce5",
-                "paddingLeft": "10px",
-                "paddingRight": "10px"
-              },
-              "width": 120
-            },
-            {
-              "field": "Method",
-              "filter": {
-                "boolean": {
-                  "condition": "",
-                  "value": ""
-                },
-                "date": {
-                  "condition": "",
-                  "value": ""
-                },
-                "enabled": true,
-                "number": {
-                  "condition": "",
-                  "value": ""
-                },
-                "string": {
-                  "condition": "",
-                  "value": ""
-                },
-                "visible": "on-hover"
-              },
-              "header": {
-                "align": "center",
-                "justify": "center",
-                "style": {
-                  "backgroundColor": "#1f2937",
-                  "borderBottom": "1px solid #111827",
-                  "borderRight": "1px solid #374151",
-                  "color": "#ffffff",
-                  "fontSize": "14px",
-                  "fontWeight": "700",
-                  "paddingLeft": "10px",
-                  "paddingRight": "10px"
-                },
-                "title": "Method"
-              },
-              "sort": "none",
-              "sortable": true,
-              "strictWidth": true,
-              "style": {
-                "borderRight": "1px solid #d7dce5",
-                "paddingLeft": "10px",
-                "paddingRight": "10px"
-              },
-              "width": 90
-            },
-            {
-              "field": "Url",
-              "header": {
-                "align": "center",
-                "justify": "left",
-                "style": {
-                  "backgroundColor": "#1f2937",
-                  "borderBottom": "1px solid #111827",
-                  "borderRight": "1px solid #374151",
-                  "color": "#ffffff",
-                  "fontSize": "14px",
-                  "fontWeight": "700",
-                  "paddingLeft": "10px",
-                  "paddingRight": "10px"
-                },
-                "title": "Url"
-              },
-              "sort": "none",
-              "sortable": true,
-              "style": {
-                "borderRight": "1px solid #d7dce5",
-                "overflow": "hidden",
-                "paddingLeft": "10px",
-                "paddingRight": "10px",
-                "textOverflow": "ellipsis",
-                "whiteSpace": "nowrap"
-              },
-              "width": 230
-            },
-            {
-              "field": "Request",
-              "header": {
-                "align": "center",
-                "justify": "left",
-                "style": {
-                  "backgroundColor": "#1f2937",
-                  "borderBottom": "1px solid #111827",
-                  "borderRight": "1px solid #374151",
-                  "color": "#ffffff",
-                  "fontSize": "14px",
-                  "fontWeight": "700",
-                  "paddingLeft": "10px",
-                  "paddingRight": "10px"
-                },
-                "title": "Request"
-              },
-              "sort": "none",
-              "sortable": false,
-              "style": {
-                "borderRight": "1px solid #d7dce5",
-                "overflow": "hidden",
-                "paddingLeft": "10px",
-                "paddingRight": "10px",
-                "textOverflow": "ellipsis",
-                "whiteSpace": "nowrap"
-              },
-              "width": 180
-            },
-            {
-              "field": "Response",
-              "header": {
-                "align": "center",
-                "justify": "left",
-                "style": {
-                  "backgroundColor": "#1f2937",
-                  "borderBottom": "1px solid #111827",
-                  "borderRight": "1px solid #374151",
-                  "color": "#ffffff",
-                  "fontSize": "14px",
-                  "fontWeight": "700",
-                  "paddingLeft": "10px",
-                  "paddingRight": "10px"
-                },
-                "title": "Response"
-              },
-              "sort": "none",
-              "sortable": false,
-              "style": {
-                "borderRight": "1px solid #d7dce5",
-                "overflow": "hidden",
-                "paddingLeft": "10px",
-                "paddingRight": "10px",
-                "textOverflow": "ellipsis",
-                "whiteSpace": "nowrap"
-              },
-              "width": 180
-            },
-            {
-              "field": "Ok",
-              "header": {
-                "align": "center",
-                "justify": "center",
-                "style": {
-                  "backgroundColor": "#1f2937",
-                  "borderBottom": "1px solid #111827",
-                  "borderRight": "1px solid #374151",
-                  "color": "#ffffff",
-                  "fontSize": "14px",
-                  "fontWeight": "700",
-                  "paddingLeft": "10px",
-                  "paddingRight": "10px"
-                },
-                "title": "Ok"
-              },
-              "sort": "none",
-              "sortable": true,
-              "strictWidth": true,
-              "style": {
-                "borderRight": "1px solid #d7dce5",
-                "paddingLeft": "10px",
-                "paddingRight": "10px"
-              },
-              "width": 70
-            },
-            {
-              "field": "DurationMs",
-              "header": {
-                "align": "center",
-                "justify": "center",
-                "style": {
-                  "backgroundColor": "#1f2937",
-                  "borderBottom": "1px solid #111827",
-                  "borderRight": "1px solid #374151",
-                  "color": "#ffffff",
-                  "fontSize": "14px",
-                  "fontWeight": "700",
-                  "paddingLeft": "10px",
-                  "paddingRight": "10px"
-                },
-                "title": "Duration ms"
-              },
-              "sort": "none",
-              "sortable": true,
-              "strictWidth": true,
-              "style": {
-                "borderRight": "1px solid #d7dce5",
-                "paddingLeft": "10px",
-                "paddingRight": "10px"
-              },
-              "width": 110
-            },
-            {
-              "field": "Error",
-              "header": {
-                "align": "center",
-                "justify": "left",
-                "style": {
-                  "backgroundColor": "#1f2937",
-                  "borderBottom": "1px solid #111827",
-                  "color": "#ffffff",
-                  "fontSize": "14px",
-                  "fontWeight": "700",
-                  "paddingLeft": "10px",
-                  "paddingRight": "10px"
-                },
-                "title": "Error"
-              },
-              "sort": "none",
-              "sortable": false,
-              "style": {
-                "overflow": "hidden",
-                "paddingLeft": "10px",
-                "paddingRight": "10px",
-                "textOverflow": "ellipsis",
-                "whiteSpace": "nowrap"
-              },
-              "width": 150
-            }
-          ],
-          "dragOrderable": false,
-          "rows": {
-            "striped": {
-              "color": {
-                "even": "#D5D5D5"
+                "gap": "10px"
               }
             },
-            "style": {
-              "borderBottom": "1px solid #e3e8ef",
-              "fontSize": "13px"
-            }
-          },
-          "sortOrder": [
-            "Ts"
-          ],
-          "style": {
-            "backgroundColor": "#ffffff",
-            "border": "1px solid #cfd6df",
-            "borderRadius": "6px",
-            "overflow": "hidden"
-          }
-        },
-        "scripts": {
-          "customMethods": [
-            {
-              "name": "UpdateDataset",
-              "params": [],
-              "script": "\tdropdown \u003d self.getSibling(\"DatasetModeDropdown\")\n\tvalue\u003ddropdown.props.value\n\tparts \u003d str(value or \"all\").rsplit(\":\", 1)\n\tmode \u003d parts[-1] if parts else \"all\"\n\tpathByMode \u003d {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\",\n\t}\n\ttagPath \u003d pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue \u003d system.tag.readBlocking([tagPath])[0].value\n\tif(self.props.UpdateTable or self.props.data is None):\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue"
-            }
-          ],
-          "extensionFunctions": null,
-          "messageHandlers": []
-        },
-        "type": "ia.display.table"
-      },
-      {
-        "meta": {
-          "hasDelegate": true,
-          "name": "UrlTitle"
-        },
-        "position": {
-          "height": "4%",
-          "width": "98%",
-          "x": -27.359375,
-          "y": 409.61
-        },
-        "props": {
-          "style": {
-            "color": "#111827",
-            "fontSize": "13px",
-            "fontWeight": "700",
-            "paddingLeft": "4px"
-          },
-          "text": "URL"
-        },
-        "type": "ia.display.label"
-      },
-      {
-        "meta": {
-          "hasDelegate": true,
-          "name": "UrlValue"
-        },
-        "position": {
-          "height": 46,
-          "width": "98%",
-          "x": 10.8,
-          "y": 418.75
-        },
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "path": "../HttpHistoryTable.props.selection.data"
+            "children": [
+              {
+                "meta": {
+                  "hasDelegate": true,
+                  "name": "DatasetLabel"
+                },
+                "position": {
+                  "basis": "64px",
+                  "shrink": 0
+                },
+                "props": {
+                  "style": {
+                    "color": "#111827",
+                    "fontSize": "13px",
+                    "fontWeight": "700",
+                    "paddingLeft": "4px"
+                  },
+                  "text": "Dataset"
+                },
+                "type": "ia.display.label"
               },
-              "transforms": [
-                {
-                  "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Url\", \"\")\n\treturn \"\"",
-                  "type": "script"
-                }
-              ],
-              "type": "property"
-            }
-          }
-        },
-        "props": {
-          "style": {
-            "backgroundColor": "#ffffff",
-            "border": "1px solid #cfd6df",
-            "borderRadius": "6px",
-            "color": "#111827",
-            "fontFamily": "Consolas, monospace",
-            "fontSize": "12px",
-            "overflow": "auto",
-            "padding": "8px",
-            "whiteSpace": "pre-wrap"
-          }
-        },
-        "type": "ia.display.label"
-      },
-      {
-        "meta": {
-          "hasDelegate": true,
-          "name": "RequestTitle"
-        },
-        "position": {
-          "height": "4%",
-          "width": "48%",
-          "x": 10.6562,
-          "y": 467.5
-        },
-        "props": {
-          "style": {
-            "color": "#111827",
-            "fontSize": "13px",
-            "fontWeight": "700",
-            "paddingLeft": "4px"
-          },
-          "text": "Request Body"
-        },
-        "type": "ia.display.label"
-      },
-      {
-        "meta": {
-          "hasDelegate": true,
-          "name": "ResponseTitle"
-        },
-        "position": {
-          "height": "4%",
-          "width": "48%",
-          "x": 543.656,
-          "y": 467.5
-        },
-        "props": {
-          "style": {
-            "color": "#111827",
-            "fontSize": "13px",
-            "fontWeight": "700",
-            "paddingLeft": "4px"
-          },
-          "text": "Response"
-        },
-        "type": "ia.display.label"
-      },
-      {
-        "meta": {
-          "hasDelegate": true,
-          "name": "RequestValue"
-        },
-        "position": {
-          "height": 235,
-          "width": "48%",
-          "x": 10.66,
-          "y": 497.3
-        },
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "path": "../HttpHistoryTable.props.selection.data"
+              {
+                "meta": {
+                  "name": "DatasetModeDropdown"
+                },
+                "position": {
+                  "basis": "180px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.value": {
+                    "onChange": {
+                      "enabled": null,
+                      "script": "\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable = True"
+                    }
+                  }
+                },
+                "props": {
+                  "options": [
+                    {
+                      "label": "All HTTP",
+                      "value": "all"
+                    },
+                    {
+                      "label": "GET Only",
+                      "value": "get"
+                    },
+                    {
+                      "label": "POST Only",
+                      "value": "post"
+                    }
+                  ],
+                  "search": {
+                    "enabled": false
+                  },
+                  "style": {
+                    "textAlign": "left"
+                  },
+                  "value": "post"
+                },
+                "type": "ia.input.dropdown"
               },
-              "transforms": [
-                {
-                  "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Request\", \"\")\n\treturn \"\"",
-                  "type": "script"
-                }
-              ],
-              "type": "property"
-            }
-          }
-        },
-        "props": {
-          "style": {
-            "backgroundColor": "#ffffff",
-            "border": "1px solid #cfd6df",
-            "borderRadius": "6px",
-            "color": "#111827",
-            "fontFamily": "Consolas, monospace",
-            "fontSize": "12px",
-            "overflow": "auto",
-            "padding": "8px",
-            "whiteSpace": "pre-wrap"
-          }
-        },
-        "type": "ia.display.label"
-      },
-      {
-        "meta": {
-          "hasDelegate": true,
-          "name": "ResponseValue"
-        },
-        "position": {
-          "height": 235,
-          "width": 519,
-          "x": 543.66,
-          "y": 497.3
-        },
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "path": "../HttpHistoryTable.props.selection.data"
+              {
+                "meta": {
+                  "name": "Checkbox"
+                },
+                "position": {
+                  "basis": "136px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.Time": {
+                    "binding": {
+                      "config": {
+                        "expression": "now(5000)"
+                      },
+                      "type": "expr"
+                    },
+                    "onChange": {
+                      "enabled": null,
+                      "script": "\tif self.props.selected:\n\t\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable = True"
+                    }
+                  }
+                },
+                "props": {
+                  "text": "Auto Refresh"
+                },
+                "type": "ia.input.checkbox"
               },
-              "transforms": [
-                {
-                  "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Response\", \"\")\n\treturn \"\"",
-                  "type": "script"
-                }
-              ],
-              "type": "property"
-            }
-          }
-        },
-        "props": {
-          "style": {
-            "backgroundColor": "#ffffff",
-            "border": "1px solid #cfd6df",
-            "borderRadius": "6px",
-            "color": "#111827",
-            "fontFamily": "Consolas, monospace",
-            "fontSize": "12px",
-            "overflow": "auto",
-            "padding": "8px",
-            "whiteSpace": "pre-wrap"
-          }
-        },
-        "type": "ia.display.label"
-      },
-      {
-        "events": {
-          "dom": {
-            "onClick": {
-              "config": {
-                "script": "\tself.getSibling(\"HttpHistoryTable\").props.UpdateTable \u003d True"
+              {
+                "meta": {
+                  "name": "Button"
+                },
+                "position": {
+                  "basis": "76px",
+                  "shrink": 0
+                },
+                "events": {
+                  "dom": {
+                    "onClick": {
+                      "config": {
+                        "script": "\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable = True"
+                      },
+                      "scope": "G",
+                      "type": "script"
+                    }
+                  }
+                },
+                "props": {
+                  "text": "Refresh"
+                },
+                "type": "ia.input.button"
               },
-              "scope": "G",
-              "type": "script"
-            }
-          }
-        },
-        "meta": {
-          "name": "Button"
-        },
-        "position": {
-          "height": 34,
-          "rotate": {
-            "anchor": "50% 0%"
+              {
+                "meta": {
+                  "hasDelegate": true,
+                  "name": "ToolbarSpacer"
+                },
+                "position": {
+                  "basis": "0px",
+                  "grow": 1
+                },
+                "props": {
+                  "text": ""
+                },
+                "type": "ia.display.label"
+              }
+            ],
+            "type": "ia.container.flex"
           },
-          "width": 76,
-          "x": 453.51750000000004,
-          "y": 9.157375000000002
-        },
-        "props": {
-          "text": "Refresh"
-        },
-        "type": "ia.input.button"
-      },
-      {
-        "meta": {
-          "name": "Checkbox"
-        },
-        "position": {
-          "height": 36,
-          "rotate": {
-            "anchor": "64% 50%"
-          },
-          "width": 136,
-          "x": 318.00750000000005,
-          "y": 7.438375000000008
-        },
-        "propConfig": {
-          "props.Time": {
-            "binding": {
-              "config": {
-                "expression": "now(5000)"
-              },
-              "type": "expr"
+          {
+            "meta": {
+              "name": "HttpHistoryTable"
             },
-            "onChange": {
-              "enabled": null,
-              "script": "\tif (self.props.selected):\n\t\tself.getSibling(\"HttpHistoryTable\").props.UpdateTable \u003d True"
-            }
+            "position": {
+              "basis": "0px",
+              "grow": 1
+            },
+            "propConfig": {
+              "props.data": {
+                "binding": {
+                  "config": {
+                    "expression": "toStr(now(5000)+{this.props.UpdateTable})"
+                  },
+                  "transforms": [
+                    {
+                      "code": "\tdropdown = self.parent.getChild(\"Toolbar\").getChild(\"DatasetModeDropdown\")\n\tvalue = dropdown.props.value\n\tparts = str(value or \"all\").rsplit(\":\", 1)\n\tmode = parts[-1] if parts else \"all\"\n\tpathByMode = {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\"\n\t}\n\ttagPath = pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue = system.tag.readBlocking([tagPath])[0].value\n\tif self.props.UpdateTable or self.props.data is None:\n\t\tself.props.UpdateTable = False\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue\n\treturn self.props.data",
+                      "type": "script"
+                    }
+                  ],
+                  "type": "expr"
+                }
+              }
+            },
+            "props": {
+              "UpdateTable": false,
+              "columns": [
+                {
+                  "field": "Ts",
+                  "header": {
+                    "align": "center",
+                    "justify": "center",
+                    "style": {
+                      "backgroundColor": "#1f2937",
+                      "borderBottom": "1px solid #111827",
+                      "borderRight": "1px solid #374151",
+                      "color": "#ffffff",
+                      "fontSize": "14px",
+                      "fontWeight": "700",
+                      "paddingLeft": "10px",
+                      "paddingRight": "10px"
+                    },
+                    "title": "Time stamp"
+                  },
+                  "sort": "descending",
+                  "sortable": true,
+                  "strictWidth": true,
+                  "style": {
+                    "borderRight": "1px solid #d7dce5",
+                    "paddingLeft": "10px",
+                    "paddingRight": "10px"
+                  },
+                  "width": 120
+                },
+                {
+                  "field": "Method",
+                  "filter": {
+                    "boolean": {
+                      "condition": "",
+                      "value": ""
+                    },
+                    "date": {
+                      "condition": "",
+                      "value": ""
+                    },
+                    "enabled": true,
+                    "number": {
+                      "condition": "",
+                      "value": ""
+                    },
+                    "string": {
+                      "condition": "",
+                      "value": ""
+                    },
+                    "visible": "on-hover"
+                  },
+                  "header": {
+                    "align": "center",
+                    "justify": "center",
+                    "style": {
+                      "backgroundColor": "#1f2937",
+                      "borderBottom": "1px solid #111827",
+                      "borderRight": "1px solid #374151",
+                      "color": "#ffffff",
+                      "fontSize": "14px",
+                      "fontWeight": "700",
+                      "paddingLeft": "10px",
+                      "paddingRight": "10px"
+                    },
+                    "title": "Method"
+                  },
+                  "sort": "none",
+                  "sortable": true,
+                  "strictWidth": true,
+                  "style": {
+                    "borderRight": "1px solid #d7dce5",
+                    "paddingLeft": "10px",
+                    "paddingRight": "10px"
+                  },
+                  "width": 90
+                },
+                {
+                  "field": "Url",
+                  "header": {
+                    "align": "center",
+                    "justify": "left",
+                    "style": {
+                      "backgroundColor": "#1f2937",
+                      "borderBottom": "1px solid #111827",
+                      "borderRight": "1px solid #374151",
+                      "color": "#ffffff",
+                      "fontSize": "14px",
+                      "fontWeight": "700",
+                      "paddingLeft": "10px",
+                      "paddingRight": "10px"
+                    },
+                    "title": "Url"
+                  },
+                  "sort": "none",
+                  "sortable": true,
+                  "style": {
+                    "borderRight": "1px solid #d7dce5",
+                    "overflow": "hidden",
+                    "paddingLeft": "10px",
+                    "paddingRight": "10px",
+                    "textOverflow": "ellipsis",
+                    "whiteSpace": "nowrap"
+                  },
+                  "width": 230
+                },
+                {
+                  "field": "Request",
+                  "header": {
+                    "align": "center",
+                    "justify": "left",
+                    "style": {
+                      "backgroundColor": "#1f2937",
+                      "borderBottom": "1px solid #111827",
+                      "borderRight": "1px solid #374151",
+                      "color": "#ffffff",
+                      "fontSize": "14px",
+                      "fontWeight": "700",
+                      "paddingLeft": "10px",
+                      "paddingRight": "10px"
+                    },
+                    "title": "Request"
+                  },
+                  "sort": "none",
+                  "sortable": false,
+                  "style": {
+                    "borderRight": "1px solid #d7dce5",
+                    "overflow": "hidden",
+                    "paddingLeft": "10px",
+                    "paddingRight": "10px",
+                    "textOverflow": "ellipsis",
+                    "whiteSpace": "nowrap"
+                  },
+                  "width": 180
+                },
+                {
+                  "field": "Response",
+                  "header": {
+                    "align": "center",
+                    "justify": "left",
+                    "style": {
+                      "backgroundColor": "#1f2937",
+                      "borderBottom": "1px solid #111827",
+                      "borderRight": "1px solid #374151",
+                      "color": "#ffffff",
+                      "fontSize": "14px",
+                      "fontWeight": "700",
+                      "paddingLeft": "10px",
+                      "paddingRight": "10px"
+                    },
+                    "title": "Response"
+                  },
+                  "sort": "none",
+                  "sortable": false,
+                  "style": {
+                    "borderRight": "1px solid #d7dce5",
+                    "overflow": "hidden",
+                    "paddingLeft": "10px",
+                    "paddingRight": "10px",
+                    "textOverflow": "ellipsis",
+                    "whiteSpace": "nowrap"
+                  },
+                  "width": 180
+                },
+                {
+                  "field": "Ok",
+                  "header": {
+                    "align": "center",
+                    "justify": "center",
+                    "style": {
+                      "backgroundColor": "#1f2937",
+                      "borderBottom": "1px solid #111827",
+                      "borderRight": "1px solid #374151",
+                      "color": "#ffffff",
+                      "fontSize": "14px",
+                      "fontWeight": "700",
+                      "paddingLeft": "10px",
+                      "paddingRight": "10px"
+                    },
+                    "title": "Ok"
+                  },
+                  "sort": "none",
+                  "sortable": true,
+                  "strictWidth": true,
+                  "style": {
+                    "borderRight": "1px solid #d7dce5",
+                    "paddingLeft": "10px",
+                    "paddingRight": "10px"
+                  },
+                  "width": 70
+                },
+                {
+                  "field": "DurationMs",
+                  "header": {
+                    "align": "center",
+                    "justify": "center",
+                    "style": {
+                      "backgroundColor": "#1f2937",
+                      "borderBottom": "1px solid #111827",
+                      "borderRight": "1px solid #374151",
+                      "color": "#ffffff",
+                      "fontSize": "14px",
+                      "fontWeight": "700",
+                      "paddingLeft": "10px",
+                      "paddingRight": "10px"
+                    },
+                    "title": "Duration ms"
+                  },
+                  "sort": "none",
+                  "sortable": true,
+                  "strictWidth": true,
+                  "style": {
+                    "borderRight": "1px solid #d7dce5",
+                    "paddingLeft": "10px",
+                    "paddingRight": "10px"
+                  },
+                  "width": 110
+                },
+                {
+                  "field": "Error",
+                  "header": {
+                    "align": "center",
+                    "justify": "left",
+                    "style": {
+                      "backgroundColor": "#1f2937",
+                      "borderBottom": "1px solid #111827",
+                      "color": "#ffffff",
+                      "fontSize": "14px",
+                      "fontWeight": "700",
+                      "paddingLeft": "10px",
+                      "paddingRight": "10px"
+                    },
+                    "title": "Error"
+                  },
+                  "sort": "none",
+                  "sortable": false,
+                  "style": {
+                    "overflow": "hidden",
+                    "paddingLeft": "10px",
+                    "paddingRight": "10px",
+                    "textOverflow": "ellipsis",
+                    "whiteSpace": "nowrap"
+                  },
+                  "width": 150
+                }
+              ],
+              "dragOrderable": false,
+              "rows": {
+                "striped": {
+                  "color": {
+                    "even": "#D5D5D5"
+                  }
+                },
+                "style": {
+                  "borderBottom": "1px solid #e3e8ef",
+                  "fontSize": "13px"
+                }
+              },
+              "sortOrder": [
+                "Ts"
+              ],
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #cfd6df",
+                "borderRadius": "6px",
+                "overflow": "hidden"
+              }
+            },
+            "scripts": {
+              "customMethods": [
+                {
+                  "name": "UpdateDataset",
+                  "params": [],
+                  "script": "\tdropdown = self.parent.getChild(\"Toolbar\").getChild(\"DatasetModeDropdown\")\n\tvalue = dropdown.props.value\n\tparts = str(value or \"all\").rsplit(\":\", 1)\n\tmode = parts[-1] if parts else \"all\"\n\tpathByMode = {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\"\n\t}\n\ttagPath = pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue = system.tag.readBlocking([tagPath])[0].value\n\tif self.props.UpdateTable or self.props.data is None:\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue"
+                }
+              ],
+              "extensionFunctions": null,
+              "messageHandlers": []
+            },
+            "type": "ia.display.table"
           }
-        },
-        "props": {
-          "text": "Auto Refresh"
-        },
-        "type": "ia.input.checkbox"
+        ],
+        "type": "ia.container.flex"
       },
       {
         "meta": {
-          "hasDelegate": true,
-          "name": "RequestTitle_0"
+          "name": "DetailPanel"
         },
         "position": {
-          "height": 0,
-          "width": 0,
-          "x": 10.4569,
-          "y": 397.109
+          "position": "bottom"
         },
         "props": {
+          "direction": "column",
           "style": {
-            "color": "#111827",
-            "fontSize": "13px",
-            "fontWeight": "700",
-            "paddingLeft": "4px"
-          },
-          "text": "URL"
+            "padding": "8px"
+          }
         },
-        "type": "ia.display.label"
+        "children": [
+          {
+            "meta": {
+              "hasDelegate": true,
+              "name": "UrlTitle"
+            },
+            "position": {
+              "basis": "24px",
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "color": "#111827",
+                "fontSize": "13px",
+                "fontWeight": "700",
+                "paddingLeft": "4px"
+              },
+              "text": "URL"
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "hasDelegate": true,
+              "name": "UrlValue"
+            },
+            "position": {
+              "basis": "84px",
+              "shrink": 0
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "path": "../../TopPanel/HttpHistoryTable.props.selection.data"
+                  },
+                  "transforms": [
+                    {
+                      "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Url\", \"\")\n\treturn \"\"",
+                      "type": "script"
+                    }
+                  ],
+                  "type": "property"
+                }
+              }
+            },
+            "props": {
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #cfd6df",
+                "borderRadius": "6px",
+                "color": "#111827",
+                "fontFamily": "Consolas, monospace",
+                "fontSize": "12px",
+                "overflow": "auto",
+                "padding": "8px",
+                "whiteSpace": "pre-wrap"
+              },
+              "text": ""
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "name": "RequestResponseRow"
+            },
+            "position": {
+              "basis": "0px",
+              "grow": 1
+            },
+            "props": {
+              "direction": "row",
+              "style": {
+                "gap": "12px",
+                "paddingTop": "8px"
+              }
+            },
+            "children": [
+              {
+                "meta": {
+                  "name": "RequestPanel"
+                },
+                "position": {
+                  "basis": "0px",
+                  "grow": 1
+                },
+                "props": {
+                  "direction": "column"
+                },
+                "children": [
+                  {
+                    "meta": {
+                      "hasDelegate": true,
+                      "name": "RequestTitle"
+                    },
+                    "position": {
+                      "basis": "24px",
+                      "shrink": 0
+                    },
+                    "props": {
+                      "style": {
+                        "color": "#111827",
+                        "fontSize": "13px",
+                        "fontWeight": "700",
+                        "paddingLeft": "4px"
+                      },
+                      "text": "Request Body"
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "hasDelegate": true,
+                      "name": "RequestValue"
+                    },
+                    "position": {
+                      "basis": "0px",
+                      "grow": 1
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "../../../TopPanel/HttpHistoryTable.props.selection.data"
+                          },
+                          "transforms": [
+                            {
+                              "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Request\", \"\")\n\treturn \"\"",
+                              "type": "script"
+                            }
+                          ],
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "props": {
+                      "style": {
+                        "backgroundColor": "#ffffff",
+                        "border": "1px solid #cfd6df",
+                        "borderRadius": "6px",
+                        "color": "#111827",
+                        "fontFamily": "Consolas, monospace",
+                        "fontSize": "12px",
+                        "overflow": "auto",
+                        "padding": "8px",
+                        "whiteSpace": "pre-wrap"
+                      },
+                      "text": ""
+                    },
+                    "type": "ia.display.label"
+                  }
+                ],
+                "type": "ia.container.flex"
+              },
+              {
+                "meta": {
+                  "name": "ResponsePanel"
+                },
+                "position": {
+                  "basis": "0px",
+                  "grow": 1
+                },
+                "props": {
+                  "direction": "column"
+                },
+                "children": [
+                  {
+                    "meta": {
+                      "hasDelegate": true,
+                      "name": "ResponseTitle"
+                    },
+                    "position": {
+                      "basis": "24px",
+                      "shrink": 0
+                    },
+                    "props": {
+                      "style": {
+                        "color": "#111827",
+                        "fontSize": "13px",
+                        "fontWeight": "700",
+                        "paddingLeft": "4px"
+                      },
+                      "text": "Response"
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "hasDelegate": true,
+                      "name": "ResponseValue"
+                    },
+                    "position": {
+                      "basis": "0px",
+                      "grow": 1
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "../../../TopPanel/HttpHistoryTable.props.selection.data"
+                          },
+                          "transforms": [
+                            {
+                              "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Response\", \"\")\n\treturn \"\"",
+                              "type": "script"
+                            }
+                          ],
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "props": {
+                      "style": {
+                        "backgroundColor": "#ffffff",
+                        "border": "1px solid #cfd6df",
+                        "borderRadius": "6px",
+                        "color": "#111827",
+                        "fontFamily": "Consolas, monospace",
+                        "fontSize": "12px",
+                        "overflow": "auto",
+                        "padding": "8px",
+                        "whiteSpace": "pre-wrap"
+                      },
+                      "text": ""
+                    },
+                    "type": "ia.display.label"
+                  }
+                ],
+                "type": "ia.container.flex"
+              }
+            ],
+            "type": "ia.container.flex"
+          }
+        ],
+        "type": "ia.container.flex"
       }
     ],
     "meta": {
       "name": "root"
     },
-    "position": {
-      "x": -63.671875,
-      "y": 7.4375
+    "props": {
+      "orientation": "vertical",
+      "split": {
+        "draggable": true,
+        "position": 410,
+        "size": 6,
+        "visible": true
+      }
     },
-    "type": "ia.container.coord"
+    "type": "ia.container.split"
   }
 }

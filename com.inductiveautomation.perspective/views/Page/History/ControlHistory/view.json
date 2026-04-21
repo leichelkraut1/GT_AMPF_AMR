@@ -14,10 +14,7 @@
           "name": "Table"
         },
         "position": {
-          "height": 658,
-          "width": "98%",
-          "x": 10.8,
-          "y": 7.44
+          "position": "top"
         },
         "propConfig": {
           "props.data": {
@@ -886,72 +883,95 @@
       },
       {
         "meta": {
-          "hasDelegate": true,
-          "name": "RequestTitle_0"
+          "name": "MessagePanel"
         },
         "position": {
-          "height": 0,
-          "width": 0,
-          "x": 14.46,
-          "y": 666.11
+          "position": "bottom"
         },
         "props": {
+          "direction": "column",
           "style": {
-            "color": "#111827",
-            "fontSize": "13px",
-            "fontWeight": "700",
-            "paddingLeft": "4px"
-          },
-          "text": "Message"
+            "padding": "8px"
+          }
         },
-        "type": "ia.display.label"
-      },
-      {
-        "meta": {
-          "hasDelegate": true,
-          "name": "UrlValue"
-        },
-        "position": {
-          "height": 46,
-          "width": "98%",
-          "x": "1%",
-          "y": 686.75
-        },
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "path": "../Table.props.selection.selectedRow"
+        "children": [
+          {
+            "meta": {
+              "hasDelegate": true,
+              "name": "MessageTitle"
+            },
+            "position": {
+              "basis": "24px",
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "color": "#111827",
+                "fontSize": "13px",
+                "fontWeight": "700",
+                "paddingLeft": "4px"
               },
-              "transforms": [
-                {
-                  "code": "\tif value:\n\t\treturn self.getSibling(\"Table\").props.data[value][7]\n\treturn \"\"",
-                  "type": "script"
+              "text": "Message"
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "hasDelegate": true,
+              "name": "MessageValue"
+            },
+            "position": {
+              "basis": "0px",
+              "grow": 1
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "path": "../../Table.props.selection.data"
+                  },
+                  "transforms": [
+                    {
+                      "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Message\", \"\")\n\treturn \"\"",
+                      "type": "script"
+                    }
+                  ],
+                  "type": "property"
                 }
-              ],
-              "type": "property"
-            }
+              }
+            },
+            "props": {
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #cfd6df",
+                "borderRadius": "6px",
+                "color": "#111827",
+                "fontFamily": "Consolas, monospace",
+                "fontSize": "12px",
+                "overflow": "auto",
+                "padding": "8px",
+                "whiteSpace": "pre-wrap"
+              },
+              "text": ""
+            },
+            "type": "ia.display.label"
           }
-        },
-        "props": {
-          "style": {
-            "backgroundColor": "#ffffff",
-            "border": "1px solid #cfd6df",
-            "borderRadius": "6px",
-            "color": "#111827",
-            "fontFamily": "Consolas, monospace",
-            "fontSize": "12px",
-            "overflow": "auto",
-            "padding": "8px",
-            "whiteSpace": "pre-wrap"
-          }
-        },
-        "type": "ia.display.label"
+        ],
+        "type": "ia.container.flex"
       }
     ],
     "meta": {
       "name": "root"
     },
-    "type": "ia.container.coord"
+    "props": {
+      "orientation": "vertical",
+      "split": {
+        "draggable": true,
+        "position": 640,
+        "size": 6,
+        "visible": true
+      }
+    },
+    "type": "ia.container.split"
   }
 }
