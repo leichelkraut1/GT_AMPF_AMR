@@ -248,11 +248,13 @@ def _activeClearPendingMessage(snapshot):
     )
 
 
-def _holdDisabledMessage(snapshot, hasBlockingMismatches):
+def _holdDisabledMessage(snapshot, hasBlockingMismatches=False, hasQueuedMismatches=False):
     if hasBlockingMismatches:
         if _requestCleared(snapshot["selected_workflow_number"]):
             return "Ignition control disabled; active mission clear suppressed"
         return "Ignition control disabled; workflow switch clear suppressed"
+    if hasQueuedMismatches:
+        return "Ignition control disabled; queued mission cleanup suppressed"
     return "Ignition control disabled; create suppressed"
 
 
@@ -384,6 +386,8 @@ def _evaluateActiveMissions(snapshot):
     matching = list(activeSplit["matching"] or [])
     queuedMismatches = list(activeSplit["queued_mismatches"] or [])
     blockingMismatches = list(activeSplit["blocking_mismatches"] or [])
+    hasQueuedMismatches = bool(queuedMismatches)
+    hasBlockingMismatches = bool(blockingMismatches)
 
     def runMissionCommands(missions):
         if not missions:
@@ -407,10 +411,22 @@ def _evaluateActiveMissions(snapshot):
             cancelMissionIds=snapshot["cancel_mission_ids"],
         )
 
+    if (hasQueuedMismatches or hasBlockingMismatches) and currentState.get("disable_ignition_control"):
+        return _activeMissionOutcome(
+            snapshot,
+            "hold_control_disabled",
+            _holdDisabledMessage(
+                snapshot,
+                hasBlockingMismatches=hasBlockingMismatches,
+                hasQueuedMismatches=hasQueuedMismatches,
+            ),
+            level="warn",
+            missionNeedsFinalized=hasBlockingMismatches,
+        )
+
     queuedSummary = runMissionCommands(queuedMismatches)
 
     queuedMessage = str(queuedSummary.get("message") or "")
-    hasBlockingMismatches = bool(blockingMismatches)
 
     def _activeOutcome(action, message, **kwargs):
         missionOps = dict(kwargs.pop("missionOps", {}) or {})
@@ -425,14 +441,6 @@ def _evaluateActiveMissions(snapshot):
         )
 
     if hasBlockingMismatches:
-        if currentState.get("disable_ignition_control"):
-            return _activeOutcome(
-                "hold_control_disabled",
-                _mergeMessages(queuedMessage, _holdDisabledMessage(snapshot, True)),
-                level="warn",
-                missionNeedsFinalized=True,
-            )
-
         if not snapshot["plc_inputs"].get("finalize_ok"):
             return _activeOutcome(
                 "hold_clear_pending",

@@ -72,6 +72,8 @@ def runtimePaths():
         "mission_state_history": RUNTIME_BASE + "/MissionStateHistory",
         "robot_state_history": RUNTIME_BASE + "/RobotStateHistory",
         "http_history": RUNTIME_BASE + "/HttpHistory",
+        "http_get_history": RUNTIME_BASE + "/HttpGetHistory",
+        "http_post_history": RUNTIME_BASE + "/HttpPostHistory",
     }
 
 
@@ -102,6 +104,16 @@ def ensureRuntimeTags():
     )
     ensureMemoryTag(
         paths["http_history"],
+        "DataSet",
+        system.dataset.toDataSet(HTTP_HISTORY_HEADERS, [])
+    )
+    ensureMemoryTag(
+        paths["http_get_history"],
+        "DataSet",
+        system.dataset.toDataSet(HTTP_HISTORY_HEADERS, [])
+    )
+    ensureMemoryTag(
+        paths["http_post_history"],
         "DataSet",
         system.dataset.toDataSet(HTTP_HISTORY_HEADERS, [])
     )
@@ -241,6 +253,16 @@ def _historyText(value, maxLen=4000):
     return text[: maxLen - 3] + "..."
 
 
+def _httpHistoryFieldNames(method):
+    normalizedMethod = str(method or "").upper()
+    fieldNames = ["http_history"]
+    if normalizedMethod == "GET":
+        fieldNames.append("http_get_history")
+    elif normalizedMethod == "POST":
+        fieldNames.append("http_post_history")
+    return fieldNames
+
+
 def appendHttpHistoryRow(
     nowTimestamp,
     method,
@@ -252,18 +274,20 @@ def appendHttpHistoryRow(
     errorText=""
 ):
     """Append one HTTP request/response row to runtime history."""
-    appendRuntimeDatasetRow(
-        "http_history",
-        HTTP_HISTORY_HEADERS,
-        [
-            str(nowTimestamp or ""),
-            str(method or ""),
-            str(url or ""),
-            _historyText(requestText),
-            _historyText(responseText),
-            bool(ok),
-            int(durationMs or 0),
-            _historyText(errorText),
-        ],
-        maxRows=HTTP_HISTORY_MAX_ROWS,
-    )
+    rowValues = [
+        str(nowTimestamp or ""),
+        str(method or ""),
+        str(url or ""),
+        _historyText(requestText),
+        _historyText(responseText),
+        bool(ok),
+        int(durationMs or 0),
+        _historyText(errorText),
+    ]
+    for fieldName in _httpHistoryFieldNames(method):
+        appendRuntimeDatasetRow(
+            fieldName,
+            HTTP_HISTORY_HEADERS,
+            rowValues,
+            maxRows=HTTP_HISTORY_MAX_ROWS,
+        )

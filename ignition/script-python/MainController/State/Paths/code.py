@@ -86,4 +86,6 @@ def runtimePaths():
         "mission_state_history": RUNTIME_BASE + "/MissionStateHistory",
         "robot_state_history": RUNTIME_BASE + "/RobotStateHistory",
         "http_history": RUNTIME_BASE + "/HttpHistory",
+        "http_get_history": RUNTIME_BASE + "/HttpGetHistory",
+        "http_post_history": RUNTIME_BASE + "/HttpPostHistory",
     }

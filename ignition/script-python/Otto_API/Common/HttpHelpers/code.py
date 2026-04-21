@@ -1,7 +1,13 @@
 import time
 
+from Otto_API.Common.HttpLogPolicy import ensureHttpLogConfigTags
+from Otto_API.Common.HttpLogPolicy import normalizedEndpointKey
+from Otto_API.Common.HttpLogPolicy import parseEndpointList
 from Otto_API.Common.RuntimeHistory import appendHttpHistoryRow
 from Otto_API.Common.RuntimeHistory import timestampString
+from Otto_API.Common.TagHelpers import getDisableLogOfMainCycleHttpPath
+from Otto_API.Common.TagHelpers import getMainCycleEndpointsPath
+from Otto_API.Common.TagHelpers import readOptionalTagValue
 
 
 def jsonHeaders(extraHeaders=None):
@@ -13,8 +19,30 @@ def jsonHeaders(extraHeaders=None):
         headers.update(dict(extraHeaders))
     return headers
 
+def _configuredMainCycleEndpoints():
+    ensureHttpLogConfigTags()
+    rawValue = str(readOptionalTagValue(getMainCycleEndpointsPath(), "", allowEmptyString=True) or "")
+    return parseEndpointList(rawValue)
+
+
+def _shouldLogHttpHistory(method, url, ok):
+    ensureHttpLogConfigTags()
+    if not ok:
+        return True
+
+    normalizedMethod = str(method or "").strip().upper()
+    if normalizedMethod != "GET":
+        return True
+
+    if not bool(readOptionalTagValue(getDisableLogOfMainCycleHttpPath(), False)):
+        return True
+
+    return normalizedEndpointKey(method, url) not in _configuredMainCycleEndpoints()
+
 
 def _logHttpHistory(method, url, requestBody, responseBody, ok, startEpochMs, errorText=""):
+    if not _shouldLogHttpHistory(method, url, ok):
+        return
     endEpochMs = int(time.time() * 1000)
     appendHttpHistoryRow(
         timestampString(endEpochMs),
