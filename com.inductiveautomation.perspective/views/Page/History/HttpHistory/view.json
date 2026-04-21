@@ -71,7 +71,7 @@
           "style": {
             "textAlign": "left"
           },
-          "value": "all"
+          "value": "post"
         },
         "type": "ia.input.dropdown"
       },
@@ -358,6 +358,22 @@
               "borderBottom": "1px solid #e3e8ef",
               "fontSize": "13px"
             }
+          },
+          "selection": {
+            "data": [
+              {
+                "DurationMs": "29",
+                "Error": "",
+                "Method": "POST",
+                "Ok": "true",
+                "Request": "{\"method\":\"deleteContainer\",\"id\":1776785471,\"params\":{\"id\":\"abf30c9c-e1d8-4cce-8887-185b4f293316\"},\"jsonrpc\":\"2.0\"}",
+                "Response": "{\"result\":null,\"id\":1776785471,\"jsonrpc\":\"2.0\"}",
+                "Ts": "2026-04-21 08:31:11",
+                "Url": "https://10.137.22.58/api/fleet/v2/operations/"
+              }
+            ],
+            "selectedColumn": "Request",
+            "selectedRow": 1
           },
           "sortOrder": [
             "Ts"

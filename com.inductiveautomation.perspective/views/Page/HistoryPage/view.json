@@ -54,11 +54,12 @@
       "name": "root"
     },
     "props": {
+      "currentTabIndex": 2,
       "tabs": [
-        "",
-        "",
-        "",
-        ""
+        "Missions",
+        "AMR State",
+        "Control",
+        "HTTP"
       ]
     },
     "type": "ia.container.tab"
