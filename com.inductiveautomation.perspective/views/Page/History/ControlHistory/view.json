@@ -860,14 +860,7 @@
             }
           },
           "selection": {
-            "data": [
-              {
-                "Robot": "AMPF_AMR_RV4"
-              }
-            ],
-            "enableColumnSelection": true,
-            "selectedColumn": "Robot",
-            "selectedRow": 98
+            "enableColumnSelection": true
           },
           "sortOrder": [
             "Ts"
@@ -882,18 +875,6 @@
         "type": "ia.display.table"
       },
       {
-        "meta": {
-          "name": "MessagePanel"
-        },
-        "position": {
-          "position": "bottom"
-        },
-        "props": {
-          "direction": "column",
-          "style": {
-            "padding": "8px"
-          }
-        },
         "children": [
           {
             "meta": {
@@ -932,7 +913,7 @@
                   },
                   "transforms": [
                     {
-                      "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Message\", \"\")\n\treturn \"\"",
+                      "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Message\", \"\")\n\treturn \"\"",
                       "type": "script"
                     }
                   ],
@@ -951,12 +932,23 @@
                 "overflow": "auto",
                 "padding": "8px",
                 "whiteSpace": "pre-wrap"
-              },
-              "text": ""
+              }
             },
             "type": "ia.display.label"
           }
         ],
+        "meta": {
+          "name": "MessagePanel"
+        },
+        "position": {
+          "position": "bottom"
+        },
+        "props": {
+          "direction": "column",
+          "style": {
+            "padding": "8px"
+          }
+        },
         "type": "ia.container.flex"
       }
     ],
@@ -966,10 +958,8 @@
     "props": {
       "orientation": "vertical",
       "split": {
-        "draggable": true,
         "position": 640,
-        "size": 6,
-        "visible": true
+        "size": 6
       }
     },
     "type": "ia.container.split"

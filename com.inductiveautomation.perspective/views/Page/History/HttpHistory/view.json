@@ -10,34 +10,8 @@
   "root": {
     "children": [
       {
-        "meta": {
-          "name": "TopPanel"
-        },
-        "position": {
-          "position": "top"
-        },
-        "props": {
-          "direction": "column",
-          "style": {
-            "padding": "8px"
-          }
-        },
         "children": [
           {
-            "meta": {
-              "name": "Toolbar"
-            },
-            "position": {
-              "basis": "42px",
-              "shrink": 0
-            },
-            "props": {
-              "alignItems": "center",
-              "direction": "row",
-              "style": {
-                "gap": "10px"
-              }
-            },
             "children": [
               {
                 "meta": {
@@ -68,10 +42,18 @@
                   "shrink": 0
                 },
                 "propConfig": {
-                  "props.value": {
-                    "onChange": {
-                      "enabled": null,
-                      "script": "\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable = True"
+                  "props.valueLast": {
+                    "binding": {
+                      "config": {
+                        "expression": "now(200)"
+                      },
+                      "transforms": [
+                        {
+                          "code": "\tif(self.props.valueLast !\u003d self.props.value):\n\t\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable \u003d True\n\treturn self.props.value",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "expr"
                     }
                   }
                 },
@@ -118,7 +100,7 @@
                     },
                     "onChange": {
                       "enabled": null,
-                      "script": "\tif self.props.selected:\n\t\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable = True"
+                      "script": "\tif self.props.selected:\n\t\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable \u003d True"
                     }
                   }
                 },
@@ -128,23 +110,23 @@
                 "type": "ia.input.checkbox"
               },
               {
+                "events": {
+                  "dom": {
+                    "onClick": {
+                      "config": {
+                        "script": "\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable \u003d True"
+                      },
+                      "scope": "G",
+                      "type": "script"
+                    }
+                  }
+                },
                 "meta": {
                   "name": "Button"
                 },
                 "position": {
                   "basis": "76px",
                   "shrink": 0
-                },
-                "events": {
-                  "dom": {
-                    "onClick": {
-                      "config": {
-                        "script": "\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable = True"
-                      },
-                      "scope": "G",
-                      "type": "script"
-                    }
-                  }
                 },
                 "props": {
                   "text": "Refresh"
@@ -160,12 +142,22 @@
                   "basis": "0px",
                   "grow": 1
                 },
-                "props": {
-                  "text": ""
-                },
                 "type": "ia.display.label"
               }
             ],
+            "meta": {
+              "name": "Toolbar"
+            },
+            "position": {
+              "basis": "42px",
+              "shrink": 0
+            },
+            "props": {
+              "alignItems": "center",
+              "style": {
+                "gap": "10px"
+              }
+            },
             "type": "ia.container.flex"
           },
           {
@@ -184,7 +176,7 @@
                   },
                   "transforms": [
                     {
-                      "code": "\tdropdown = self.parent.getChild(\"Toolbar\").getChild(\"DatasetModeDropdown\")\n\tvalue = dropdown.props.value\n\tparts = str(value or \"all\").rsplit(\":\", 1)\n\tmode = parts[-1] if parts else \"all\"\n\tpathByMode = {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\"\n\t}\n\ttagPath = pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue = system.tag.readBlocking([tagPath])[0].value\n\tif self.props.UpdateTable or self.props.data is None:\n\t\tself.props.UpdateTable = False\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue\n\treturn self.props.data",
+                      "code": "\tdropdown \u003d self.parent.getChild(\"Toolbar\").getChild(\"DatasetModeDropdown\")\n\tvalue \u003d dropdown.props.value\n\tparts \u003d str(value or \"all\").rsplit(\":\", 1)\n\tmode \u003d parts[-1] if parts else \"all\"\n\tpathByMode \u003d {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\"\n\t}\n\ttagPath \u003d pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue \u003d system.tag.readBlocking([tagPath])[0].value\n\tif self.props.UpdateTable or self.props.data is None:\n\t\tself.props.UpdateTable \u003d False\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue\n\treturn self.props.data",
                       "type": "script"
                     }
                   ],
@@ -450,6 +442,22 @@
                   "fontSize": "13px"
                 }
               },
+              "selection": {
+                "data": [
+                  {
+                    "DurationMs": "16",
+                    "Error": "",
+                    "Method": "POST",
+                    "Ok": "true",
+                    "Request": "{\"method\":\"cancelMission\",\"id\":1776786287,\"params\":{\"id\":\"f1c64f69-c029-4454-bbdb-0f2f927c76dc\"},\"jsonrpc\":\"2.0\"}",
+                    "Response": "{\"result\":null,\"id\":1776786287,\"jsonrpc\":\"2.0\"}",
+                    "Ts": "2026-04-21 08:44:47",
+                    "Url": "https://10.137.22.58/api/fleet/v2/operations/"
+                  }
+                ],
+                "selectedColumn": "Method",
+                "selectedRow": 2
+              },
               "sortOrder": [
                 "Ts"
               ],
@@ -465,7 +473,7 @@
                 {
                   "name": "UpdateDataset",
                   "params": [],
-                  "script": "\tdropdown = self.parent.getChild(\"Toolbar\").getChild(\"DatasetModeDropdown\")\n\tvalue = dropdown.props.value\n\tparts = str(value or \"all\").rsplit(\":\", 1)\n\tmode = parts[-1] if parts else \"all\"\n\tpathByMode = {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\"\n\t}\n\ttagPath = pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue = system.tag.readBlocking([tagPath])[0].value\n\tif self.props.UpdateTable or self.props.data is None:\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue"
+                  "script": "\tdropdown \u003d self.parent.getChild(\"Toolbar\").getChild(\"DatasetModeDropdown\")\n\tvalue \u003d dropdown.props.value\n\tparts \u003d str(value or \"all\").rsplit(\":\", 1)\n\tmode \u003d parts[-1] if parts else \"all\"\n\tpathByMode \u003d {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\"\n\t}\n\ttagPath \u003d pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue \u003d system.tag.readBlocking([tagPath])[0].value\n\tif self.props.UpdateTable or self.props.data is None:\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue"
                 }
               ],
               "extensionFunctions": null,
@@ -474,14 +482,11 @@
             "type": "ia.display.table"
           }
         ],
-        "type": "ia.container.flex"
-      },
-      {
         "meta": {
-          "name": "DetailPanel"
+          "name": "TopPanel"
         },
         "position": {
-          "position": "bottom"
+          "position": "top"
         },
         "props": {
           "direction": "column",
@@ -489,6 +494,9 @@
             "padding": "8px"
           }
         },
+        "type": "ia.container.flex"
+      },
+      {
         "children": [
           {
             "meta": {
@@ -527,7 +535,7 @@
                   },
                   "transforms": [
                     {
-                      "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Url\", \"\")\n\treturn \"\"",
+                      "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Url\", \"\")\n\treturn \"\"",
                       "type": "script"
                     }
                   ],
@@ -546,38 +554,13 @@
                 "overflow": "auto",
                 "padding": "8px",
                 "whiteSpace": "pre-wrap"
-              },
-              "text": ""
+              }
             },
             "type": "ia.display.label"
           },
           {
-            "meta": {
-              "name": "RequestResponseRow"
-            },
-            "position": {
-              "basis": "0px",
-              "grow": 1
-            },
-            "props": {
-              "direction": "row",
-              "style": {
-                "gap": "12px",
-                "paddingTop": "8px"
-              }
-            },
             "children": [
               {
-                "meta": {
-                  "name": "RequestPanel"
-                },
-                "position": {
-                  "basis": "0px",
-                  "grow": 1
-                },
-                "props": {
-                  "direction": "column"
-                },
                 "children": [
                   {
                     "meta": {
@@ -612,11 +595,11 @@
                       "props.text": {
                         "binding": {
                           "config": {
-                            "path": "../../../TopPanel/HttpHistoryTable.props.selection.data"
+                            "path": "...../TopPanel/HttpHistoryTable.props.selection.data"
                           },
                           "transforms": [
                             {
-                              "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Request\", \"\")\n\treturn \"\"",
+                              "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Request\", \"\")\n\treturn \"\"",
                               "type": "script"
                             }
                           ],
@@ -635,17 +618,13 @@
                         "overflow": "auto",
                         "padding": "8px",
                         "whiteSpace": "pre-wrap"
-                      },
-                      "text": ""
+                      }
                     },
                     "type": "ia.display.label"
                   }
                 ],
-                "type": "ia.container.flex"
-              },
-              {
                 "meta": {
-                  "name": "ResponsePanel"
+                  "name": "RequestPanel"
                 },
                 "position": {
                   "basis": "0px",
@@ -654,6 +633,9 @@
                 "props": {
                   "direction": "column"
                 },
+                "type": "ia.container.flex"
+              },
+              {
                 "children": [
                   {
                     "meta": {
@@ -688,11 +670,11 @@
                       "props.text": {
                         "binding": {
                           "config": {
-                            "path": "../../../TopPanel/HttpHistoryTable.props.selection.data"
+                            "path": "...../TopPanel/HttpHistoryTable.props.selection.data"
                           },
                           "transforms": [
                             {
-                              "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Response\", \"\")\n\treturn \"\"",
+                              "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Response\", \"\")\n\treturn \"\"",
                               "type": "script"
                             }
                           ],
@@ -711,18 +693,52 @@
                         "overflow": "auto",
                         "padding": "8px",
                         "whiteSpace": "pre-wrap"
-                      },
-                      "text": ""
+                      }
                     },
                     "type": "ia.display.label"
                   }
                 ],
+                "meta": {
+                  "name": "ResponsePanel"
+                },
+                "position": {
+                  "basis": "0px",
+                  "grow": 1
+                },
+                "props": {
+                  "direction": "column"
+                },
                 "type": "ia.container.flex"
               }
             ],
+            "meta": {
+              "name": "RequestResponseRow"
+            },
+            "position": {
+              "basis": "0px",
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "gap": "12px",
+                "paddingTop": "8px"
+              }
+            },
             "type": "ia.container.flex"
           }
         ],
+        "meta": {
+          "name": "DetailPanel"
+        },
+        "position": {
+          "position": "bottom"
+        },
+        "props": {
+          "direction": "column",
+          "style": {
+            "padding": "8px"
+          }
+        },
         "type": "ia.container.flex"
       }
     ],
@@ -732,10 +748,8 @@
     "props": {
       "orientation": "vertical",
       "split": {
-        "draggable": true,
-        "position": 410,
-        "size": 6,
-        "visible": true
+        "position": 441,
+        "size": 6
       }
     },
     "type": "ia.container.split"

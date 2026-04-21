@@ -10,6 +10,9 @@
     "/charts": {
       "viewPath": "Page/Charts"
     },
+    "/control": {
+      "viewPath": "Page/Control"
+    },
     "/historypage": {
       "viewPath": "Page/HistoryPage"
     },
@@ -24,6 +27,9 @@
     "/robothistory": {
       "title": "",
       "viewPath": "Page/History/RobotHistory"
+    },
+    "/statuspage": {
+      "viewPath": "Page/StatusPage"
     },
     "/vehiclehistory": {
       "title": "Mission Control",
