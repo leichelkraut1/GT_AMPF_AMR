@@ -445,7 +445,7 @@ def updateRobotOperationalState():
             return errorResult
 
         placeResults, errorResult = _fetch_json_results(
-            baseUrl + "/robots/places/",
+            baseUrl + "/robots/places/?fields=%2A&offset=0&limit=100",
             "HTTP GET failed for /robots/places/",
             ottoLogger
         )
