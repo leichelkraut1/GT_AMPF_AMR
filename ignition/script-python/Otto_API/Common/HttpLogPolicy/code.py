@@ -17,6 +17,7 @@ DEFAULT_MAIN_CYCLE_ENDPOINT_ROWS = [
     ["GET", "/robots/states/"],
     ["GET", "/robots/activities/"],
     ["GET", "/robots/batteries/"],
+    ["GET", "/robots/places/"],
     ["GET", "/containers/"],
     ["GET", "/missions/"],
 ]

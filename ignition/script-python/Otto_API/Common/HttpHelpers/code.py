@@ -21,7 +21,7 @@ def jsonHeaders(extraHeaders=None):
 
 def _configuredMainCycleEndpoints():
     ensureHttpLogConfigTags()
-    rawValue = str(readOptionalTagValue(getMainCycleEndpointsPath(), "", allowEmptyString=True) or "")
+    rawValue = readOptionalTagValue(getMainCycleEndpointsPath(), None, allowEmptyString=True)
     return parseEndpointList(rawValue)
 
 

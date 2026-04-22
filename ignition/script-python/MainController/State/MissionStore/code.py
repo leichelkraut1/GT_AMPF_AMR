@@ -30,6 +30,8 @@ def readRobotMirrorInputs(robotName):
         "system_state": str(readOptionalTagValue(robotPath + "/SystemState", "", allowEmptyString=True) or ""),
         "sub_system_state": str(readOptionalTagValue(robotPath + "/SubSystemState", "", allowEmptyString=True) or ""),
         "activity_state": str(readOptionalTagValue(robotPath + "/ActivityState", "", allowEmptyString=True) or ""),
+        "place_id": str(readOptionalTagValue(robotPath + "/PlaceId", "", allowEmptyString=True) or ""),
+        "place_name": str(readOptionalTagValue(robotPath + "/PlaceName", "", allowEmptyString=True) or ""),
         "mission_starved": missionControlFlags["mission_starved"],
         "mission_ready_for_attachment": missionControlFlags["ready_for_attachment"],
     }

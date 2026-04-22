@@ -62,6 +62,8 @@ def plcPaths(robotName):
         "system_state": toPlc + "/SystemState",
         "sub_system_state": toPlc + "/SubSystemState",
         "activity_state": toPlc + "/ActivityState",
+        "place_id": toPlc + "/PlaceId",
+        "place_name": toPlc + "/PlaceName",
         "active_workflow_number": toPlc + "/ActiveWorkflowNumber",
         "mission_starved": toPlc + "/MissionStarved",
         "mission_ready_for_attachment": toPlc + "/MissionReadyforAttachment",
