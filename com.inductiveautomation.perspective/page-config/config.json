@@ -10,6 +10,10 @@
     "/charts": {
       "viewPath": "Page/Charts"
     },
+    "/controlhistory": {
+      "title": "Control History",
+      "viewPath": "Page/History/ControlHistory"
+    },
     "/historypage": {
       "viewPath": "Page/HistoryPage"
     },
