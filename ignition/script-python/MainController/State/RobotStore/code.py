@@ -14,6 +14,7 @@ INTERNAL_STATE_FIELD_NAMES = [
     "state",
     "mission_created",
     "mission_needs_finalized",
+    "pending_create_start_epoch_ms",
     "last_command_ts",
     "last_result",
     "last_command_id",
@@ -57,6 +58,7 @@ def defaultRobotState():
         "state": "idle",
         "mission_created": False,
         "mission_needs_finalized": False,
+        "pending_create_start_epoch_ms": 0,
         "last_command_ts": "",
         "last_result": "",
         "last_command_id": "",
@@ -82,6 +84,7 @@ def normalizeRobotState(rawState):
     state["state"] = _normalizeControllerStateName(rawState.get("state"))
     state["mission_created"] = toBool(rawState.get("mission_created"))
     state["mission_needs_finalized"] = toBool(rawState.get("mission_needs_finalized"))
+    state["pending_create_start_epoch_ms"] = int(rawState.get("pending_create_start_epoch_ms") or 0)
     state["last_command_ts"] = str(rawState.get("last_command_ts") or "")
     state["last_result"] = str(rawState.get("last_result") or "")
     state["last_command_id"] = str(rawState.get("last_command_id") or "")

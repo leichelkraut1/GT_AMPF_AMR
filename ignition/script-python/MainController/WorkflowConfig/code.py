@@ -68,7 +68,7 @@ def _groupWorkflowRows(rows):
             workflowDef = {
                 "workflow_number": workflowNumber,
                 "allowed_robots": [],
-                "place_name": str(row.get("PlaceName") or "").strip(),
+                "mission_label": str(row.get("MissionLabel") or "").strip(),
                 "template_name": str(row.get("TemplateName") or "").strip(),
                 "mission_type": str(row.get("MissionType") or "").strip(),
             }
@@ -157,16 +157,16 @@ def buildMissionName(workflowNumber, robotName):
 
     workflowToken = "WF{}".format(workflowDef["workflow_number"])
     robotToken = _sanitizeMissionNameToken(_shortRobotToken(robotName))
-    placeToken = _sanitizeMissionNameToken(workflowDef["place_name"])
+    missionLabelToken = _sanitizeMissionNameToken(workflowDef["mission_label"])
 
     reservedLength = len(workflowToken) + len(robotToken) + 2
-    maxPlaceLength = max(8, MISSION_NAME_MAX_LENGTH - reservedLength)
-    if len(placeToken) > maxPlaceLength:
-        placeToken = placeToken[:maxPlaceLength].rstrip("_")
+    maxLabelLength = max(8, MISSION_NAME_MAX_LENGTH - reservedLength)
+    if len(missionLabelToken) > maxLabelLength:
+        missionLabelToken = missionLabelToken[:maxLabelLength].rstrip("_")
 
     missionName = "{}_{}_{}".format(
         workflowToken,
-        placeToken,
+        missionLabelToken,
         robotToken
     )
     return missionName[:MISSION_NAME_MAX_LENGTH].rstrip("_")

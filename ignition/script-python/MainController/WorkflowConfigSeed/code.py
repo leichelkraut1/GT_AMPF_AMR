@@ -1,7 +1,7 @@
 WORKFLOW_CONFIG_HEADERS = [
     "WorkflowNumber",
     "RobotName",
-    "PlaceName",
+    "MissionLabel",
     "TemplateName",
     "MissionType",
 ]

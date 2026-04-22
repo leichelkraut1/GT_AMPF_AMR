@@ -31,6 +31,7 @@ def internalStatePaths(robotName):
         "state": basePath + "/State",
         "mission_created": basePath + "/MissionCreated",
         "mission_needs_finalized": basePath + "/MissionNeedsFinalized",
+        "pending_create_start_epoch_ms": basePath + "/PendingCreateStartEpochMs",
         "last_command_ts": basePath + "/LastCommandTs",
         "last_result": basePath + "/LastResult",
         "last_command_id": basePath + "/LastCommandId",

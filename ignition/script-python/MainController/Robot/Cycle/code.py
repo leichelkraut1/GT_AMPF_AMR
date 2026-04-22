@@ -4,6 +4,8 @@ from MainController.Robot.Apply import applyRobotOutcome
 from MainController.Robot.PlcMirror import buildOutputs
 from MainController.Robot.Snapshot import readRobotCycleSnapshot
 from Otto_API.Common.RuntimeHistory import timestampString
+from Otto_API.Common.TagHelpers import getPendingCreateMissionTimeoutMsPath
+from Otto_API.Common.TagHelpers import readOptionalTagValue
 from MainController.State.Paths import RETRY_DELAY_MS
 from MainController.WorkflowConfig import getWorkflowDef
 from MainController.WorkflowConfig import isWorkflowAllowedForRobot
@@ -11,6 +13,11 @@ from MainController.WorkflowConfig import normalizeWorkflowNumber
 
 
 _UNSET = object()
+_DEFAULT_PENDING_CREATE_TIMEOUT_MS = 30000
+
+
+def _log():
+    return system.util.getLogger("MainController.Robot.Cycle")
 
 
 def _requestCleared(workflowNumber):
@@ -51,6 +58,30 @@ def _mergeMessages(*messages):
     return "; ".join(normalized)
 
 
+def _pendingCreateTimeoutMs():
+    rawValue = readOptionalTagValue(
+        getPendingCreateMissionTimeoutMsPath(),
+        _DEFAULT_PENDING_CREATE_TIMEOUT_MS,
+    )
+    try:
+        return max(0, int(rawValue or 0))
+    except Exception:
+        return _DEFAULT_PENDING_CREATE_TIMEOUT_MS
+
+
+def _pendingCreateStartEpochMs(snapshot):
+    currentState = dict(snapshot.get("current_state") or {})
+    startEpochMs = int(currentState.get("pending_create_start_epoch_ms") or 0)
+    return startEpochMs if startEpochMs > 0 else None
+
+
+def _pendingCreateAgeMs(snapshot):
+    startEpochMs = _pendingCreateStartEpochMs(snapshot)
+    if startEpochMs is None:
+        return None
+    return max(0, int(snapshot.get("now_epoch_ms") or 0) - startEpochMs)
+
+
 def _classifyActiveMissions(snapshot):
     selectedWorkflowNumber = normalizeWorkflowNumber(snapshot["selected_workflow_number"]) or 0
     matching = []
@@ -83,8 +114,10 @@ def _stateUpdates(
     requestLatched=_UNSET,
     missionCreated=_UNSET,
     missionNeedsFinalized=_UNSET,
+    pendingCreateStartEpochMs=_UNSET,
     lastResult=_UNSET,
     lastCommandId=_UNSET,
+    lastCommandTs=_UNSET,
     nextActionAllowedEpochMs=_UNSET,
     lastAttemptAction=_UNSET,
     retryCount=_UNSET,
@@ -99,10 +132,14 @@ def _stateUpdates(
         missionCreated = currentState.get("mission_created")
     if missionNeedsFinalized is _UNSET:
         missionNeedsFinalized = currentState.get("mission_needs_finalized")
+    if pendingCreateStartEpochMs is _UNSET:
+        pendingCreateStartEpochMs = currentState.get("pending_create_start_epoch_ms")
     if lastResult is _UNSET:
         lastResult = currentState.get("last_result")
     if lastCommandId is _UNSET:
         lastCommandId = currentState.get("last_command_id")
+    if lastCommandTs is _UNSET:
+        lastCommandTs = timestampString(snapshot["now_epoch_ms"])
     if nextActionAllowedEpochMs is _UNSET:
         nextActionAllowedEpochMs = currentState.get("next_action_allowed_epoch_ms")
     if lastAttemptAction is _UNSET:
@@ -116,7 +153,8 @@ def _stateUpdates(
         "request_latched": bool(requestLatched),
         "mission_created": bool(missionCreated),
         "mission_needs_finalized": bool(missionNeedsFinalized),
-        "last_command_ts": timestampString(snapshot["now_epoch_ms"]),
+        "pending_create_start_epoch_ms": int(pendingCreateStartEpochMs or 0),
+        "last_command_ts": str(lastCommandTs or ""),
         "last_result": str(lastResult or ""),
         "last_command_id": str(lastCommandId or ""),
         "next_action_allowed_epoch_ms": int(nextActionAllowedEpochMs or 0),
@@ -291,6 +329,7 @@ def _activeMissionOutcome(
             "requestLatched": requestLatched,
             "missionCreated": True,
             "missionNeedsFinalized": missionNeedsFinalized,
+            "pendingCreateStartEpochMs": 0,
         },
     )
     return _buildOutcome(
@@ -322,6 +361,7 @@ def _noActiveMissionOutcome(
     requestLatched=False,
     missionCreated=False,
     missionNeedsFinalized=False,
+    pendingCreateStartEpochMs=_UNSET,
     requestSuccess=False,
     requestInvalid=False,
     requestConflict=False,
@@ -330,6 +370,7 @@ def _noActiveMissionOutcome(
     lastAttemptAction=_UNSET,
     retryCount=_UNSET,
     lastCommandId=_UNSET,
+    lastCommandTs=_UNSET,
     lastResult=None,
 ):
     if lastResult is None:
@@ -352,7 +393,9 @@ def _noActiveMissionOutcome(
             "requestLatched": requestLatched,
             "missionCreated": missionCreated,
             "missionNeedsFinalized": missionNeedsFinalized,
+            "pendingCreateStartEpochMs": pendingCreateStartEpochMs,
             "lastCommandId": lastCommandId,
+            "lastCommandTs": lastCommandTs,
             "nextActionAllowedEpochMs": nextActionAllowedEpochMs,
             "lastAttemptAction": lastAttemptAction,
             "retryCount": retryCount,
@@ -507,6 +550,7 @@ def _evaluateNoActiveMissions(snapshot):
         currentState["request_latched"] = False
         currentState["mission_created"] = False
         currentState["mission_needs_finalized"] = False
+        currentState["pending_create_start_epoch_ms"] = 0
         currentState["last_result"] = ""
         currentState["last_command_id"] = ""
         snapshot = dict(snapshot or {})
@@ -534,6 +578,7 @@ def _evaluateNoActiveMissions(snapshot):
             "idle",
             lastResult="",
             lastCommandId="",
+            pendingCreateStartEpochMs=0,
             nextActionAllowedEpochMs=0,
             lastAttemptAction="",
             retryCount=0,
@@ -575,6 +620,48 @@ def _evaluateNoActiveMissions(snapshot):
     snapshot["reserved_workflows"][selectedWorkflowNumber] = snapshot["robot_name"]
 
     if _latchedRequestMatches(snapshot):
+        if currentState.get("mission_created"):
+            pendingCreateAgeMs = _pendingCreateAgeMs(snapshot)
+            pendingCreateTimeoutMs = _pendingCreateTimeoutMs()
+            if pendingCreateAgeMs is None or pendingCreateAgeMs < pendingCreateTimeoutMs:
+                return _requestedOutcome(
+                    "hold_request",
+                    "Robot [{}] waiting for created mission to appear in fleet".format(
+                        snapshot["robot_name"]
+                    ),
+                    requestLatched=True,
+                    missionCreated=True,
+                    requestSuccess=True,
+                    pendingCreateStartEpochMs=currentState.get("pending_create_start_epoch_ms"),
+                    lastCommandTs=currentState.get("last_command_ts"),
+                    lastResult="waiting for created mission to appear in fleet",
+                )
+
+            timeoutMessage = (
+                "created mission did not appear within {} ms; cleared stale request latch"
+            ).format(pendingCreateTimeoutMs)
+            _log().warn(
+                "Robot [{}] {}".format(
+                    snapshot["robot_name"],
+                    timeoutMessage,
+                )
+            )
+            return _requestedOutcome(
+                "hold_request_timeout",
+                "Robot [{}] {}".format(snapshot["robot_name"], timeoutMessage),
+                level="warn",
+                requestLatched=False,
+                missionCreated=False,
+                missionNeedsFinalized=False,
+                pendingCreateStartEpochMs=0,
+                requestSuccess=False,
+                lastResult=timeoutMessage,
+                lastCommandId="",
+                nextActionAllowedEpochMs=0,
+                lastAttemptAction="",
+                retryCount=0,
+            )
+
         return _requestedOutcome(
             "hold_request",
             "Robot [{}] holding requested workflow {}".format(
@@ -616,6 +703,7 @@ def _evaluateNoActiveMissions(snapshot):
                 "requestLatched": createSucceeded,
                 "missionCreated": createSucceeded,
                 "missionNeedsFinalized": False,
+                "pendingCreateStartEpochMs": snapshot["now_epoch_ms"] if createSucceeded else 0,
                 "lastCommandId": commandId,
                 "nextActionAllowedEpochMs": 0 if createSucceeded else snapshot["now_epoch_ms"] + RETRY_DELAY_MS,
                 "lastAttemptAction": "" if createSucceeded else "create",
