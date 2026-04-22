@@ -10,6 +10,51 @@ from MainController.State.MissionStore import buildWorkflowReservedMap
 from MainController.State.Paths import ROBOT_NAMES
 from MainController.State.PlcStore import writePlcHealthOutputs
 from MainController.State.Provisioning import ensureRobotRunnerTags
+from MainController.State.RuntimeStore import writeRuntimeFields
+
+
+def _phaseStatus(result):
+    result = dict(result or {})
+    if result.get("ok"):
+        return "Healthy"
+
+    level = str(result.get("level") or "").lower()
+    if level == "error":
+        return "Error"
+    return "Warn"
+
+
+def _phaseMessage(result):
+    return str(dict(result or {}).get("message") or "")
+
+
+def _controllerRuntimeFields(
+    robotStateResult,
+    containerStateResult,
+    plcContainerMirrorResult,
+    missionSortResult,
+    workflowResult
+):
+    phaseResults = [
+        ("robot_state", "Robot Sync", robotStateResult),
+        ("container_state", "Container Sync", containerStateResult),
+        ("plc_container_mirror", "PLC Container Mirror", plcContainerMirrorResult),
+        ("mission_sorting", "Mission Sorting", missionSortResult),
+        ("workflow_cycles", "Workflow Cycles", workflowResult),
+    ]
+
+    fields = {}
+    unhealthyMessages = []
+    for fieldPrefix, label, result in phaseResults:
+        fields[fieldPrefix + "_status"] = _phaseStatus(result)
+        fields[fieldPrefix + "_message"] = _phaseMessage(result)
+        if not dict(result or {}).get("ok"):
+            unhealthyMessages.append(
+                "{}: {}".format(label, _phaseMessage(result) or "unhealthy")
+            )
+
+    fields["controller_fault_summary"] = "; ".join(unhealthyMessages) or "Healthy"
+    return fields
 
 
 def runAllRobotWorkflowCycles(
@@ -100,6 +145,16 @@ def runMainControllerCycle(
             "Skipped PLC workflow evaluation because robot, container, PLC mirror, or mission state is stale",
             data=None,
         )
+
+    writeRuntimeFields(
+        _controllerRuntimeFields(
+            robotStateResult,
+            containerStateResult,
+            plcContainerMirrorResult,
+            missionSortResult,
+            workflowResult,
+        )
+    )
 
     ok = canEvaluatePlc and workflowResult.get("ok", False)
     if not serverStatusResult.get("ok", False):

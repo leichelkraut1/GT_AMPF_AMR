@@ -123,6 +123,216 @@
           },
           {
             "meta": {
+              "name": "MainPlcCommsCard"
+            },
+            "position": {
+              "basis": "220px"
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #d7dce5",
+                "borderRadius": "8px",
+                "marginBottom": "12px",
+                "marginRight": "12px",
+                "padding": "12px"
+              }
+            },
+            "children": [
+              {
+                "meta": {
+                  "name": "MainPlcCommsTitle"
+                },
+                "position": {
+                  "basis": "22px",
+                  "shrink": 0
+                },
+                "props": {
+                  "style": {
+                    "color": "#475569",
+                    "fontSize": "12px",
+                    "fontWeight": "700",
+                    "textTransform": "uppercase"
+                  },
+                  "text": "Main PLC Comms"
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "MainPlcCommsValue"
+                },
+                "position": {
+                  "basis": "36px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.style.color": {
+                    "binding": {
+                      "config": {
+                        "expression": "now(2000)"
+                      },
+                      "transforms": [
+                        {
+                          "code": "\tresult = system.tag.readBlocking([\"[Otto_FleetManager]PLC/AMPF_AMR_RV1/ToPLC/ControlHealthy\"])[0]\n\tisHealthy = result.quality.isGood() and bool(result.value)\n\treturn \"#166534\" if isHealthy else \"#991b1b\"",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "expr"
+                    }
+                  },
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "expression": "now(2000)"
+                      },
+                      "transforms": [
+                        {
+                          "code": "\tresult = system.tag.readBlocking([\"[Otto_FleetManager]PLC/AMPF_AMR_RV1/ToPLC/ControlHealthy\"])[0]\n\tisHealthy = result.quality.isGood() and bool(result.value)\n\treturn \"Healthy\" if isHealthy else \"Not Healthy\"",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "expr"
+                    }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "fontSize": "24px",
+                    "fontWeight": "700"
+                  }
+                },
+                "type": "ia.display.label"
+              }
+            ],
+            "type": "ia.container.flex"
+          },
+          {
+            "meta": {
+              "name": "ControllerHealthCard"
+            },
+            "position": {
+              "basis": "320px"
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#ffffff",
+                "border": "1px solid #d7dce5",
+                "borderRadius": "8px",
+                "marginBottom": "12px",
+                "marginRight": "12px",
+                "padding": "12px"
+              }
+            },
+            "children": [
+              {
+                "meta": {
+                  "name": "ControllerHealthTitle"
+                },
+                "position": {
+                  "basis": "22px",
+                  "shrink": 0
+                },
+                "props": {
+                  "style": {
+                    "color": "#475569",
+                    "fontSize": "12px",
+                    "fontWeight": "700",
+                    "textTransform": "uppercase"
+                  },
+                  "text": "Controller Health"
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "ControllerHealthValue"
+                },
+                "position": {
+                  "basis": "34px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.style.color": {
+                    "binding": {
+                      "config": {
+                        "expression": "now(2000)"
+                      },
+                      "transforms": [
+                        {
+                          "code": "\tresults = system.tag.readBlocking([\n\t\t\"[Otto_FleetManager]MainControl/Runtime/RobotStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/ContainerStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/PlcContainerMirrorStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/MissionSortingStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/WorkflowCyclesStatus\",\n\t])\n\tstatuses = []\n\tfor result in results:\n\t\tstatuses.append(str(result.value or \"\") if result.quality.isGood() else \"\")\n\tstatuses = [status for status in statuses if status]\n\tif any(status == \"Error\" for status in statuses):\n\t\treturn \"#991b1b\"\n\tif any(status == \"Warn\" for status in statuses):\n\t\treturn \"#b45309\"\n\treturn \"#166534\"",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "expr"
+                    }
+                  },
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "expression": "now(2000)"
+                      },
+                      "transforms": [
+                        {
+                          "code": "\tresults = system.tag.readBlocking([\n\t\t\"[Otto_FleetManager]MainControl/Runtime/RobotStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/ContainerStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/PlcContainerMirrorStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/MissionSortingStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/WorkflowCyclesStatus\",\n\t])\n\tstatuses = []\n\tfor result in results:\n\t\tstatuses.append(str(result.value or \"\") if result.quality.isGood() else \"\")\n\tstatuses = [status for status in statuses if status]\n\tif any(status == \"Error\" for status in statuses):\n\t\treturn \"Attention\"\n\tif any(status == \"Warn\" for status in statuses):\n\t\treturn \"Degraded\"\n\treturn \"Healthy\"",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "expr"
+                    }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "fontSize": "24px",
+                    "fontWeight": "700"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "ControllerHealthDetail"
+                },
+                "position": {
+                  "basis": "64px",
+                  "grow": 1,
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "fallbackDelay": 2.5,
+                        "mode": "direct",
+                        "tagPath": "[Otto_FleetManager]MainControl/Runtime/ControllerFaultSummary"
+                      },
+                      "transforms": [
+                        {
+                          "expression": "if(isNull({value}) || len(toStr({value})) = 0 || toStr({value}) = \"Healthy\", \"Robot sync, container sync, PLC mirror, mission sorting, and workflow cycles are healthy\", toStr({value}))",
+                          "type": "expression"
+                        }
+                      ],
+                      "type": "tag"
+                    }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#374151",
+                    "fontSize": "12px",
+                    "whiteSpace": "normal"
+                  }
+                },
+                "type": "ia.display.label"
+              }
+            ],
+            "type": "ia.container.flex"
+          },
+          {
+            "meta": {
               "name": "RunningCard"
             },
             "position": {
@@ -704,7 +914,7 @@
                   },
                   "transforms": [
                     {
-                      "code": "\tdef _rowseq(path):\n\t\treturn system.tag.browse(path).getResults()\n\n\tdef _rowseq_val(row, key, default=None):\n\t\tif isinstance(row, dict):\n\t\t\treturn row.get(key, default)\n\t\tgetter = getattr(row, \"get\", None)\n\t\tif getter is not None:\n\t\t\ttry:\n\t\t\t\treturn getter(key)\n\t\t\texcept Exception:\n\t\t\t\tpass\n\t\treturn getattr(row, key, default)\n\n\tdef _is_udt(row):\n\t\ttag_type = str(_rowseq_val(row, \"tagType\", \"\") or \"\").lower()\n\t\treturn \"udtinstance\" in tag_type\n\n\tdef _fullpath(row):\n\t\treturn str(_rowseq_val(row, \"fullPath\", \"\") or \"\")\n\n\tdef _matching_place_id(fragment):\n\t\tfor row in _rowseq(\"[Otto_FleetManager]Fleet/Places\"):\n\t\t\tif not _is_udt(row):\n\t\t\t\tcontinue\n\t\t\tname = str(_rowseq_val(row, \"name\", \"\") or \"\")\n\t\t\tif fragment not in name:\n\t\t\t\tcontinue\n\t\t\tpath = _fullpath(row)\n\t\t\tif not path:\n\t\t\t\tcontinue\n\t\t\tresults = system.tag.readBlocking([path + \"/ID\"])\n\t\t\tif results and results[0].quality.isGood():\n\t\t\t\treturn str(results[0].value or \"\")\n\t\treturn \"\"\n\n\treturn [\n\t\t{\"label\": \"Optomec Cart\", \"value\": _matching_place_id(\"EP19_OptomecCart\")},\n\t\t{\"label\": \"Trak Cart\", \"value\": _matching_place_id(\"EP02_TrakCart\")},\n\t]",
+                      "code": "\tdef _rowseq(path):\n\t\treturn system.tag.browse(path).getResults()\n\n\tdef _rowseq_val(row, key, default=None):\n\t\tif isinstance(row, dict):\n\t\t\treturn row.get(key, default)\n\t\tgetter = getattr(row, \"get\", None)\n\t\tif getter is not None:\n\t\t\ttry:\n\t\t\t\treturn getter(key)\n\t\t\texcept Exception:\n\t\t\t\tpass\n\t\treturn getattr(row, key, default)\n\n\tdef _is_udt(row):\n\t\ttag_type = str(_rowseq_val(row, \"tagType\", \"\") or \"\").lower()\n\t\treturn \"udtinstance\" in tag_type\n\n\tdef _fullpath(row):\n\t\treturn str(_rowseq_val(row, \"fullPath\", \"\") or \"\")\n\n\tdef _normalized(value):\n\t\treturn str(value or \"\").strip()\n\n\tdef _valid_ids(base_path):\n\t\tvalid_ids = set()\n\t\tfor row in _rowseq(base_path):\n\t\t\tif not _is_udt(row):\n\t\t\t\tcontinue\n\t\t\tpath = _fullpath(row)\n\t\t\tif not path:\n\t\t\t\tcontinue\n\t\t\tresults = system.tag.readBlocking([path + \"/ID\"])\n\t\t\tif results and results[0].quality.isGood():\n\t\t\t\tvalue = _normalized(results[0].value)\n\t\t\t\tif value:\n\t\t\t\t\tvalid_ids.add(value)\n\t\treturn valid_ids\n\n\tplace_ids = _valid_ids(\"[Otto_FleetManager]Fleet/Places\")\n\trobot_ids = _valid_ids(\"[Otto_FleetManager]Fleet/Robots\")\n\toptions = []\n\tfor row in _rowseq(\"[Otto_FleetManager]PLC/Containers\"):\n\t\tif not _is_udt(row):\n\t\t\tcontinue\n\t\tpath = _fullpath(row)\n\t\tif not path:\n\t\t\tcontinue\n\t\tresults = system.tag.readBlocking([path + \"/LocationID\", path + \"/LocationType\"])\n\t\tlocation_id = _normalized(results[0].value) if len(results) > 0 and results[0].quality.isGood() else \"\"\n\t\tlocation_type = _normalized(results[1].value).lower() if len(results) > 1 and results[1].quality.isGood() else \"\"\n\t\tif not location_id or location_type not in [\"place\", \"robot\"]:\n\t\t\tcontinue\n\t\tif location_type == \"place\" and location_id not in place_ids:\n\t\t\tcontinue\n\t\tif location_type == \"robot\" and location_id not in robot_ids:\n\t\t\tcontinue\n\t\toptions.append({\n\t\t\t\"label\": _normalized(_rowseq_val(row, \"name\", \"\")) or location_id,\n\t\t\t\"value\": path,\n\t\t})\n\treturn options",
                       "type": "script"
                     }
                   ],
@@ -732,7 +942,7 @@
               "dom": {
                 "onClick": {
                   "config": {
-                    "script": "\timport Otto_API.Containers.Post\n\timport Otto_API.Containers.Get\n\tplaceId = str(self.getSibling(\"ContainerCreateDropdown\").props.value or \"\").strip()\n\tif not placeId:\n\t\treturn\n\tOtto_API.Containers.Post.createContainerAtPlace(\n\t\t\"[Otto_FleetManager]Fleet/Containers/Templates/Container1\",\n\t\tplaceId,\n\t)\n\tOtto_API.Containers.Get.updateContainers()"
+                    "script": "\timport Otto_API.Containers.Post\n\timport Otto_API.Containers.Get\n\n\tdef _rowseq(path):\n\t\treturn system.tag.browse(path).getResults()\n\n\tdef _rowseq_val(row, key, default=None):\n\t\tif isinstance(row, dict):\n\t\t\treturn row.get(key, default)\n\t\tgetter = getattr(row, \"get\", None)\n\t\tif getter is not None:\n\t\t\ttry:\n\t\t\t\treturn getter(key)\n\t\t\texcept Exception:\n\t\t\t\tpass\n\t\treturn getattr(row, key, default)\n\n\tdef _is_udt(row):\n\t\ttag_type = str(_rowseq_val(row, \"tagType\", \"\") or \"\").lower()\n\t\treturn \"udtinstance\" in tag_type\n\n\tdef _fullpath(row):\n\t\treturn str(_rowseq_val(row, \"fullPath\", \"\") or \"\")\n\n\tdef _normalized(value):\n\t\treturn str(value or \"\").strip()\n\n\tdef _valid_ids(base_path):\n\t\tvalid_ids = set()\n\t\tfor row in _rowseq(base_path):\n\t\t\tif not _is_udt(row):\n\t\t\t\tcontinue\n\t\t\tpath = _fullpath(row)\n\t\t\tif not path:\n\t\t\t\tcontinue\n\t\t\tresults = system.tag.readBlocking([path + \"/ID\"])\n\t\t\tif results and results[0].quality.isGood():\n\t\t\t\tvalue = _normalized(results[0].value)\n\t\t\t\tif value:\n\t\t\t\t\tvalid_ids.add(value)\n\t\treturn valid_ids\n\n\tlogger = system.util.getLogger(\"FleetStatus.ContainerCreate\")\n\tselected_row_path = _normalized(self.getSibling(\"ContainerCreateDropdown\").props.value)\n\tif not selected_row_path:\n\t\treturn\n\n\tresults = system.tag.readBlocking([\n\t\tselected_row_path + \"/LocationID\",\n\t\tselected_row_path + \"/LocationType\",\n\t])\n\tlocation_id = _normalized(results[0].value) if len(results) > 0 and results[0].quality.isGood() else \"\"\n\tlocation_type = _normalized(results[1].value).lower() if len(results) > 1 and results[1].quality.isGood() else \"\"\n\tif not location_id or location_type not in [\"place\", \"robot\"]:\n\t\tlogger.warn(\"Skipping container create for [{}] because LocationType/LocationID is invalid\".format(selected_row_path))\n\t\treturn\n\n\tif location_type == \"place\":\n\t\tif location_id not in _valid_ids(\"[Otto_FleetManager]Fleet/Places\"):\n\t\t\tlogger.warn(\"Skipping container create for [{}] because place id [{}] no longer resolves\".format(selected_row_path, location_id))\n\t\t\treturn\n\t\tOtto_API.Containers.Post.createContainerAtPlace(\n\t\t\t\"[Otto_FleetManager]Fleet/Containers/Templates/Container1\",\n\t\t\tlocation_id,\n\t\t)\n\telse:\n\t\tif location_id not in _valid_ids(\"[Otto_FleetManager]Fleet/Robots\"):\n\t\t\tlogger.warn(\"Skipping container create for [{}] because robot id [{}] no longer resolves\".format(selected_row_path, location_id))\n\t\t\treturn\n\t\tOtto_API.Containers.Post.createContainerAtRobot(\n\t\t\t\"[Otto_FleetManager]Fleet/Containers/Templates/Container1\",\n\t\t\tlocation_id,\n\t\t)\n\n\tOtto_API.Containers.Get.updateContainers()"
                   },
                   "scope": "G",
                   "type": "script"

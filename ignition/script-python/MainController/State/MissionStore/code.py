@@ -27,6 +27,9 @@ def readRobotMirrorInputs(robotName):
         "available_for_work": toBool(readOptionalTagValue(robotPath + "/AvailableForWork", False)),
         "active_mission_count": int(readOptionalTagValue(robotPath + "/ActiveMissionCount", 0) or 0),
         "charge_level": float(readOptionalTagValue(robotPath + "/ChargeLevel", 0.0) or 0.0),
+        "system_state": str(readOptionalTagValue(robotPath + "/SystemState", "", allowEmptyString=True) or ""),
+        "sub_system_state": str(readOptionalTagValue(robotPath + "/SubSystemState", "", allowEmptyString=True) or ""),
+        "activity_state": str(readOptionalTagValue(robotPath + "/ActivityState", "", allowEmptyString=True) or ""),
         "mission_starved": missionControlFlags["mission_starved"],
         "mission_ready_for_attachment": missionControlFlags["ready_for_attachment"],
     }

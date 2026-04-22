@@ -1,23 +1,16 @@
-from Otto_API.Common.SyncHelpers import compactTagSuffix
 from Otto_API.Common.SyncHelpers import sanitizeTagName
 
 
 def buildPlaceInstanceName(placeRecord):
     """
-    Build a safe unique Ignition instance name for a place record.
+    Build a safe Ignition instance name for a place record.
     """
     placeName = placeRecord.get("name")
-    placeId = placeRecord.get("id")
 
-    if not placeName and not placeId:
+    if not placeName and not placeRecord.get("id"):
         return None
 
-    safeName = sanitizeTagName(placeName or "Place")
-    safeId = compactTagSuffix(placeId)
-
-    if safeId:
-        return "{}_{}".format(safeName, safeId)
-    return safeName
+    return sanitizeTagName(placeName or "Place")
 
 
 def normalizePlaceRecord(placeRecord):

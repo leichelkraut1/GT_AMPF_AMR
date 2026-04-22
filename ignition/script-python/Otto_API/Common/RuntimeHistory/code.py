@@ -68,6 +68,17 @@ def runtimePaths():
         "loop_last_duration_ms": RUNTIME_BASE + "/LoopLastDurationMs",
         "loop_last_result": RUNTIME_BASE + "/LoopLastResult",
         "loop_overlap_count": RUNTIME_BASE + "/LoopOverlapCount",
+        "robot_state_status": RUNTIME_BASE + "/RobotStateStatus",
+        "robot_state_message": RUNTIME_BASE + "/RobotStateMessage",
+        "container_state_status": RUNTIME_BASE + "/ContainerStateStatus",
+        "container_state_message": RUNTIME_BASE + "/ContainerStateMessage",
+        "plc_container_mirror_status": RUNTIME_BASE + "/PlcContainerMirrorStatus",
+        "plc_container_mirror_message": RUNTIME_BASE + "/PlcContainerMirrorMessage",
+        "mission_sorting_status": RUNTIME_BASE + "/MissionSortingStatus",
+        "mission_sorting_message": RUNTIME_BASE + "/MissionSortingMessage",
+        "workflow_cycles_status": RUNTIME_BASE + "/WorkflowCyclesStatus",
+        "workflow_cycles_message": RUNTIME_BASE + "/WorkflowCyclesMessage",
+        "controller_fault_summary": RUNTIME_BASE + "/ControllerFaultSummary",
         "command_history": RUNTIME_BASE + "/CommandHistory",
         "mission_state_history": RUNTIME_BASE + "/MissionStateHistory",
         "robot_state_history": RUNTIME_BASE + "/RobotStateHistory",
@@ -87,6 +98,17 @@ def ensureRuntimeTags():
     ensureMemoryTag(paths["loop_last_duration_ms"], "Int4", 0)
     ensureMemoryTag(paths["loop_last_result"], "String", "")
     ensureMemoryTag(paths["loop_overlap_count"], "Int4", 0)
+    ensureMemoryTag(paths["robot_state_status"], "String", "")
+    ensureMemoryTag(paths["robot_state_message"], "String", "")
+    ensureMemoryTag(paths["container_state_status"], "String", "")
+    ensureMemoryTag(paths["container_state_message"], "String", "")
+    ensureMemoryTag(paths["plc_container_mirror_status"], "String", "")
+    ensureMemoryTag(paths["plc_container_mirror_message"], "String", "")
+    ensureMemoryTag(paths["mission_sorting_status"], "String", "")
+    ensureMemoryTag(paths["mission_sorting_message"], "String", "")
+    ensureMemoryTag(paths["workflow_cycles_status"], "String", "")
+    ensureMemoryTag(paths["workflow_cycles_message"], "String", "")
+    ensureMemoryTag(paths["controller_fault_summary"], "String", "")
     ensureMemoryTag(
         paths["command_history"],
         "DataSet",

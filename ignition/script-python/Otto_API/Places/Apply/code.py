@@ -9,6 +9,22 @@ from Otto_API.Places.Normalize import buildPlaceRecipeWrites
 from Otto_API.Places.Normalize import normalizePlaceRecord
 
 
+def _duplicateInstanceNames(normalizedPlaces):
+    seenNames = set()
+    duplicateNames = []
+
+    for normalizedPlace in list(normalizedPlaces or []):
+        instanceName = str(normalizedPlace.get("instance_name") or "").strip()
+        if not instanceName:
+            continue
+        if instanceName in seenNames and instanceName not in duplicateNames:
+            duplicateNames.append(instanceName)
+            continue
+        seenNames.add(instanceName)
+
+    return duplicateNames
+
+
 def applyPlaceSync(placeRecords, responseText, logger):
     """
     Apply normalized place data to Fleet/Places and remove stale instances.
@@ -16,14 +32,38 @@ def applyPlaceSync(placeRecords, responseText, logger):
     basePath = getFleetPlacesPath()
     writeTagValueAsync(basePath + "/jsonString", responseText)
 
-    apiPlaces = []
-    writes = []
-
+    normalizedPlaces = []
     for place in list(placeRecords or []):
         normalizedPlace = normalizePlaceRecord(place)
         if normalizedPlace is None:
             continue
+        normalizedPlaces.append(normalizedPlace)
 
+    duplicateNames = _duplicateInstanceNames(normalizedPlaces)
+    if duplicateNames:
+        message = "Duplicate sanitized place names returned by OTTO: {}".format(
+            ", ".join(sorted(duplicateNames))
+        )
+        logger.error("Otto API - " + message)
+        cleanupStaleUdtInstances(
+            basePath,
+            [],
+            logger,
+            "Otto API - Removed place tag instance due to duplicate sanitized place names: ",
+        )
+        return buildSyncResult(
+            False,
+            "error",
+            message,
+            records=placeRecords,
+            writes=[],
+            duplicate_instance_names=list(sorted(duplicateNames)),
+        )
+
+    apiPlaces = []
+    writes = []
+
+    for normalizedPlace in normalizedPlaces:
         instanceName = normalizedPlace["instance_name"]
         apiPlaces.append(instanceName)
         instancePath = basePath + "/" + instanceName

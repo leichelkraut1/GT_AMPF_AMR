@@ -34,6 +34,9 @@ def writePlcOutputs(robotName, outputs):
             paths["available_for_work"],
             paths["active_mission_count"],
             paths["charge_level"],
+            paths["system_state"],
+            paths["sub_system_state"],
+            paths["activity_state"],
             paths["active_workflow_number"],
             paths["mission_starved"],
             paths["mission_ready_for_attachment"],
@@ -51,6 +54,9 @@ def writePlcOutputs(robotName, outputs):
             toBool(outputs.get("available_for_work")),
             int(outputs.get("active_mission_count") or 0),
             float(outputs.get("charge_level") or 0.0),
+            str(outputs.get("system_state") or ""),
+            str(outputs.get("sub_system_state") or ""),
+            str(outputs.get("activity_state") or ""),
             normalizeWorkflowNumber(outputs.get("active_workflow_number")) or 0,
             toBool(outputs.get("mission_starved")),
             toBool(outputs.get("mission_ready_for_attachment")),
@@ -64,7 +70,7 @@ def writePlcOutputs(robotName, outputs):
             toBool(outputs.get("request_conflict")),
             toBool(outputs.get("request_invalid")),
         ],
-        labels=["MainController PLC output"] * 15
+        labels=["MainController PLC output"] * 18
     )
 
 

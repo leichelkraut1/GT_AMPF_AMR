@@ -21,6 +21,7 @@ def readRuntimeState():
 
 def writeRuntimeFields(fieldValues):
     """Write a partial set of runtime telemetry fields by logical name."""
+    ensureRuntimeTags()
     paths = runtimePaths()
     writePaths = []
     writeValues = []
