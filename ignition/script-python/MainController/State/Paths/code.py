@@ -13,6 +13,7 @@ FLEET_ROBOTS_BASE = getFleetRobotsPath()
 MAINCONTROL_ROBOTS_BASE = getMainControlRobotsPath()
 MISSIONS_ACTIVE_BASE = getFleetMissionsPath() + "/Active"
 PLC_BASE = getPlcRootPath()
+PLC_CONTAINERS_BASE = PLC_BASE + "/Containers"
 RUNTIME_BASE = getMainControlRuntimePath()
 
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
@@ -71,6 +72,11 @@ def plcPaths(robotName):
         "request_conflict": toPlc + "/RequestConflict",
         "request_invalid": toPlc + "/RequestInvalid",
     }
+
+
+def plcContainersPath():
+    """Return the PLC folder that holds manual container-location mirror rows."""
+    return PLC_CONTAINERS_BASE
 
 
 def runtimePaths():

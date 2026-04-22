@@ -132,8 +132,7 @@ def _buildOutcome(
     level,
     message,
     action,
-    stateName,
-    stateUpdates=None,
+    stateUpdates,
     plcOutputs=None,
     plcHealthOutputs=None,
     activeWorkflowNumber=None,
@@ -184,7 +183,6 @@ def _plcFaultOutcome(snapshot):
         "warn",
         "Robot [{}] PLC inputs are unhealthy; skipping command evaluation".format(snapshot["robot_name"]),
         "plc_comm_fault",
-        "fault",
         stateUpdates=stateUpdates,
         plcHealthOutputs={
             "fleetFault": False,
@@ -249,7 +247,6 @@ def _activeMissionOutcome(
         level,
         message,
         action,
-        stateName,
         stateUpdates=stateUpdates,
         plcOutputs=_plcOutputs(
             snapshot,
@@ -286,7 +283,6 @@ def _noActiveMissionOutcome(
         level,
         message,
         action,
-        stateName,
         stateUpdates=stateUpdates,
         plcOutputs=_plcOutputs(
             snapshot,
@@ -374,19 +370,16 @@ def _evaluateActiveMissions(snapshot):
         )
 
     if (hasQueuedMismatches or hasBlockingMismatches) and currentState.get("disable_ignition_control"):
+        disabledMessage = _holdDisabledMessage(
+            snapshot,
+            hasBlockingMismatches=hasBlockingMismatches,
+            hasQueuedMismatches=hasQueuedMismatches,
+        )
         return _activeOutcome(
             "hold_control_disabled",
-            _holdDisabledMessage(
-                snapshot,
-                hasBlockingMismatches=hasBlockingMismatches,
-                hasQueuedMismatches=hasQueuedMismatches,
-            ),
+            disabledMessage,
             _activeStatePatch(
-                _holdDisabledMessage(
-                    snapshot,
-                    hasBlockingMismatches=hasBlockingMismatches,
-                    hasQueuedMismatches=hasQueuedMismatches,
-                ),
+                disabledMessage,
                 missionNeedsFinalized=hasBlockingMismatches,
             ),
             level="warn",
@@ -397,11 +390,12 @@ def _evaluateActiveMissions(snapshot):
 
     if hasBlockingMismatches:
         if not snapshot["plc_inputs"].get("finalize_ok"):
+            pendingMessage = _mergeMessages(queuedMessage, _activeClearPendingMessage(snapshot))
             return _activeOutcome(
                 "hold_clear_pending",
-                _mergeMessages(queuedMessage, _activeClearPendingMessage(snapshot)),
+                pendingMessage,
                 _activeStatePatch(
-                    _mergeMessages(queuedMessage, _activeClearPendingMessage(snapshot)),
+                    pendingMessage,
                     missionNeedsFinalized=True,
                 ),
             )
@@ -571,14 +565,14 @@ def _evaluateNoActiveMissions(snapshot):
                     "Robot [{}] waiting for created mission to appear in fleet".format(
                         snapshot["robot_name"]
                     ),
-                _requestedStatePatch(
-                    "waiting for created mission to appear in fleet",
-                    requestLatched=True,
-                    missionCreated=True,
-                    pendingCreateStartEpochMs=currentState.get("pending_create_start_epoch_ms"),
-                ),
-                requestSuccess=True,
-            )
+                    _requestedStatePatch(
+                        "waiting for created mission to appear in fleet",
+                        requestLatched=True,
+                        missionCreated=True,
+                        pendingCreateStartEpochMs=currentState.get("pending_create_start_epoch_ms"),
+                    ),
+                    requestSuccess=True,
+                )
 
             timeoutMessage = (
                 "created mission did not appear within {} ms; cleared stale request latch"
@@ -661,7 +655,6 @@ def _evaluateNoActiveMissions(snapshot):
         commandResult.get("level", "info"),
         commandResult.get("message", ""),
         "create" if createSucceeded else "create_failed",
-        "mission_requested" if createSucceeded else "fault",
         stateUpdates=_stateUpdates(
             snapshot,
             "mission_requested" if createSucceeded else "fault",
