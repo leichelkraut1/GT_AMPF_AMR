@@ -325,6 +325,42 @@
       },
       {
         "meta": {
+          "name": "PlaceName"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Robots/AMPF_AMR_RV{1}/PlaceName"
+              },
+              "transforms": [
+                {
+                  "expression": "\"Place Name: \" + if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
           "name": "ActiveMissionCount"
         },
         "position": {
