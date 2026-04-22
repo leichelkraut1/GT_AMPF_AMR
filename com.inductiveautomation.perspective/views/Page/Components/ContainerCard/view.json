@@ -1,0 +1,189 @@
+{
+  "custom": {},
+  "params": {
+    "containerId": "",
+    "containerType": "",
+    "locationLabel": "Location: Unassigned",
+    "state": ""
+  },
+  "propConfig": {
+    "params.containerId": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.containerType": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.locationLabel": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.state": {
+      "paramDirection": "input",
+      "persistent": true
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 170,
+      "width": 260
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "ContainerType"
+        },
+        "position": {
+          "basis": "26px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "if(len(trim(toStr({view.params.containerType}))) = 0, \"Container Type: -\", \"Container Type: \" + toStr({view.params.containerType}))"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "color": "#111827",
+            "fontSize": "15px",
+            "fontWeight": "700"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "State"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"State: \" + if(len(trim(toStr({view.params.state}))) = 0, \"-\", toStr({view.params.state}))"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Location"
+        },
+        "position": {
+          "basis": "40px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "if(len(trim(toStr({view.params.locationLabel}))) = 0, \"Location: Unassigned\", toStr({view.params.locationLabel}))"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ContainerId"
+        },
+        "position": {
+          "basis": "42px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"ID: \" + if(len(trim(toStr({view.params.containerId}))) = 0, \"-\", toStr({view.params.containerId}))"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "color": "#475569",
+            "fontSize": "12px",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "DeleteButton"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "events": {
+          "dom": {
+            "onClick": {
+              "config": {
+                "script": "\tpopupId = \"delete-container-{}\".format(str(self.view.params.containerId or \"unknown\"))\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/ContainerDeletePopup\",\n\t\tparams={\n\t\t\t\"containerId\": self.view.params.containerId,\n\t\t\t\"locationLabel\": self.view.params.locationLabel,\n\t\t\t\"popupId\": popupId,\n\t\t},\n\t\ttitle=\"Delete Container\",\n\t\tmodal=True,\n\t\toverlayDismiss=False,\n\t\tshowCloseIcon=False,\n\t\tdraggable=False,\n\t)\n"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#fef2f2",
+            "borderColor": "#fca5a5",
+            "color": "#b91c1c"
+          },
+          "text": "Delete"
+        },
+        "type": "ia.input.button"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#ffffff",
+        "border": "1px solid #d7dce5",
+        "borderRadius": "8px",
+        "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
+        "marginBottom": "16px",
+        "marginRight": "16px",
+        "padding": "12px"
+      }
+    },
+    "type": "ia.container.flex"
+  }
+}

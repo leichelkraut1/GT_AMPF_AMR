@@ -1,0 +1,142 @@
+{
+  "custom": {},
+  "params": {
+    "containerId": "",
+    "locationLabel": "",
+    "popupId": ""
+  },
+  "propConfig": {
+    "params.containerId": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.locationLabel": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.popupId": {
+      "paramDirection": "input",
+      "persistent": true
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 150,
+      "width": 360
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "Message"
+        },
+        "position": {
+          "basis": "74px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"Delete container \" + if(len(trim(toStr({view.params.containerId}))) = 0, \"-\", toStr({view.params.containerId})) + \"?\\n\" + if(len(trim(toStr({view.params.locationLabel}))) = 0, \"Location: Unassigned\", toStr({view.params.locationLabel}))"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "14px",
+            "whiteSpace": "pre-wrap",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Buttons"
+        },
+        "position": {
+          "basis": "36px",
+          "shrink": 0
+        },
+        "props": {
+          "direction": "row",
+          "justify": "end"
+        },
+        "children": [
+          {
+            "meta": {
+              "name": "CancelButton"
+            },
+            "position": {
+              "basis": "90px",
+              "shrink": 0
+            },
+            "events": {
+              "dom": {
+                "onClick": {
+                  "config": {
+                    "script": "\tsystem.perspective.closePopup(str(self.view.params.popupId or \"\"))"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            },
+            "props": {
+              "style": {
+                "marginRight": "8px"
+              },
+              "text": "Cancel"
+            },
+            "type": "ia.input.button"
+          },
+          {
+            "meta": {
+              "name": "ConfirmDeleteButton"
+            },
+            "position": {
+              "basis": "110px",
+              "shrink": 0
+            },
+            "events": {
+              "dom": {
+                "onClick": {
+                  "config": {
+                    "script": "\timport Otto_API.Containers.Post\n\timport Otto_API.Containers.Get\n\tcontainerId = str(self.view.params.containerId or \"\").strip()\n\tif containerId:\n\t\tOtto_API.Containers.Post.deleteContainerById(containerId)\n\t\tOtto_API.Containers.Get.updateContainers()\n\tsystem.perspective.closePopup(str(self.view.params.popupId or \"\"))"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            },
+            "props": {
+              "style": {
+                "backgroundColor": "#dc2626",
+                "borderColor": "#b91c1c",
+                "color": "#ffffff"
+              },
+              "text": "Delete"
+            },
+            "type": "ia.input.button"
+          }
+        ],
+        "type": "ia.container.flex"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#ffffff",
+        "padding": "16px"
+      }
+    },
+    "type": "ia.container.flex"
+  }
+}

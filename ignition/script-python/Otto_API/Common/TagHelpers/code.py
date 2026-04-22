@@ -31,6 +31,7 @@ MISSION_TRIGGER_LAST_RESPONSE_TAG_PATH = FLEET_MISSIONS_ROOT_TAG_PATH + "/Trigge
 MISSION_MIN_CHARGE_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/MinChargeLevelForMissioning"
 MISSION_MAX_COMPLETED_COUNT_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/MaxCompletedCount"
 ROBOT_CHARGING_DELAY_MS_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/ChargingDelayMs"
+PENDING_CREATE_MISSION_TIMEOUT_MS_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/PendingCreateMissionTimeoutMs"
 DISABLE_MAIN_CYCLE_HTTP_LOGGING_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/DisableLogOfMainCycleHTTP"
 MAIN_CYCLE_ENDPOINTS_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/MainCycleEndpoints"
 WORKFLOW_CONFIG_TAG_PATH = FLEET_CONFIG_ROOT_TAG_PATH + "/WorkflowConfig"
@@ -155,6 +156,10 @@ def getMissionMaxCompletedCountPath():
 
 def getRobotChargingDelayMsPath():
     return ROBOT_CHARGING_DELAY_MS_TAG_PATH
+
+
+def getPendingCreateMissionTimeoutMsPath():
+    return PENDING_CREATE_MISSION_TIMEOUT_MS_TAG_PATH
 
 
 def getDisableLogOfMainCycleHttpPath():
@@ -391,6 +396,7 @@ def ensureFleetConfigTags():
     ensureFolder(getFleetConfigPath())
     ensureMemoryTag(getApiBaseUrlPath(), "String", "")
     ensureMemoryTag(getRobotChargingDelayMsPath(), "Int8", 0)
+    ensureMemoryTag(getPendingCreateMissionTimeoutMsPath(), "Int8", 30000)
     ensureMemoryTag(getMissionMinChargePath(), "Float4", 0.0)
     ensureMemoryTag(getMissionMaxCompletedCountPath(), "Int4", 20)
     ensureMemoryTag(

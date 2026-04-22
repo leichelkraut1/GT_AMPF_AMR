@@ -5,6 +5,7 @@ from Otto_API.Robots import Get as RobotGet
 from Otto_API.System import Get as SystemGet
 
 from MainController.Robot.Cycle import runRobotWorkflowCycle
+from MainController.State.ContainerMirror import mirrorPlcContainerOccupancy
 from MainController.State.MissionStore import buildWorkflowReservedMap
 from MainController.State.Paths import ROBOT_NAMES
 from MainController.State.PlcStore import writePlcHealthOutputs
@@ -58,11 +59,23 @@ def runMainControllerCycle(
     serverStatusResult = SystemGet.readCachedServerStatus()
     robotStateResult = RobotGet.updateRobotOperationalState()
     containerStateResult = ContainerGet.updateContainers()
+    if containerStateResult.get("ok"):
+        plcContainerMirrorResult = mirrorPlcContainerOccupancy()
+    else:
+        plcContainerMirrorResult = buildOperationResult(
+            False,
+            "warn",
+            "Skipped PLC container occupancy mirror because container state is stale",
+            data={"rows": [], "writes": []},
+            rows=[],
+            writes=[],
+        )
     missionSortResult = MissionSorting.run()
 
     canEvaluatePlc = (
         robotStateResult.get("ok")
         and containerStateResult.get("ok")
+        and plcContainerMirrorResult.get("ok")
         and missionSortResult.get("ok")
     )
     if canEvaluatePlc:
@@ -84,7 +97,7 @@ def runMainControllerCycle(
         workflowResult = buildOperationResult(
             False,
             "warn",
-            "Skipped PLC workflow evaluation because robot or mission state is stale",
+            "Skipped PLC workflow evaluation because robot, container, PLC mirror, or mission state is stale",
             data=None,
         )
 
@@ -102,12 +115,14 @@ def runMainControllerCycle(
             "server_status": serverStatusResult,
             "robot_state": robotStateResult,
             "container_state": containerStateResult,
+            "plc_container_mirror": plcContainerMirrorResult,
             "mission_sorting": missionSortResult,
             "workflow_cycles": workflowResult,
         },
         server_status=serverStatusResult,
         robot_state=robotStateResult,
         container_state=containerStateResult,
+        plc_container_mirror=plcContainerMirrorResult,
         mission_sorting=missionSortResult,
         workflow_cycles=workflowResult,
     )
