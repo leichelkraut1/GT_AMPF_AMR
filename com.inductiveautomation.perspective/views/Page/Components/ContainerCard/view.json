@@ -26,8 +26,8 @@
   },
   "props": {
     "defaultSize": {
-      "height": 170,
-      "width": 260
+      "height": 212,
+      "width": 244
     }
   },
   "root": {
@@ -44,7 +44,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if(len(trim(toStr({view.params.containerType}))) = 0, \"Container Type: -\", \"Container Type: \" + toStr({view.params.containerType}))"
+                "expression": "if(len(trim(toStr({view.params.containerType}))) \u003d 0, \"Container Type: -\", \"Container Type: \" + toStr({view.params.containerType}))"
               },
               "type": "expr"
             }
@@ -71,7 +71,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "\"State: \" + if(len(trim(toStr({view.params.state}))) = 0, \"-\", toStr({view.params.state}))"
+                "expression": "\"State: \" + if(len(trim(toStr({view.params.state}))) \u003d 0, \"-\", toStr({view.params.state}))"
               },
               "type": "expr"
             }
@@ -96,7 +96,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if(len(trim(toStr({view.params.locationLabel}))) = 0, \"Location: Unassigned\", toStr({view.params.locationLabel}))"
+                "expression": "if(len(trim(toStr({view.params.locationLabel}))) \u003d 0, \"Location: Unassigned\", toStr({view.params.locationLabel}))"
               },
               "type": "expr"
             }
@@ -123,7 +123,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "\"ID: \" + if(len(trim(toStr({view.params.containerId}))) = 0, \"-\", toStr({view.params.containerId}))"
+                "expression": "\"ID: \" + if(len(trim(toStr({view.params.containerId}))) \u003d 0, \"-\", toStr({view.params.containerId}))"
               },
               "type": "expr"
             }
@@ -140,23 +140,23 @@
         "type": "ia.display.label"
       },
       {
+        "events": {
+          "dom": {
+            "onClick": {
+              "config": {
+                "script": "\tpopupId \u003d \"delete-container-{}\".format(str(self.view.params.containerId or \"unknown\"))\n\tsystem.perspective.openPopup(\n\t\tid\u003dpopupId,\n\t\tview\u003d\"Page/Components/ContainerDeletePopup\",\n\t\tparams\u003d{\n\t\t\t\"containerId\": self.view.params.containerId,\n\t\t\t\"locationLabel\": self.view.params.locationLabel,\n\t\t\t\"popupId\": popupId,\n\t\t},\n\t\ttitle\u003d\"Delete Container\",\n\t\tmodal\u003dTrue,\n\t\toverlayDismiss\u003dFalse,\n\t\tshowCloseIcon\u003dFalse,\n\t\tdraggable\u003dFalse,\n\t)\n"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
         "meta": {
           "name": "DeleteButton"
         },
         "position": {
           "basis": "34px",
           "shrink": 0
-        },
-        "events": {
-          "dom": {
-            "onClick": {
-              "config": {
-                "script": "\tpopupId = \"delete-container-{}\".format(str(self.view.params.containerId or \"unknown\"))\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/ContainerDeletePopup\",\n\t\tparams={\n\t\t\t\"containerId\": self.view.params.containerId,\n\t\t\t\"locationLabel\": self.view.params.locationLabel,\n\t\t\t\"popupId\": popupId,\n\t\t},\n\t\ttitle=\"Delete Container\",\n\t\tmodal=True,\n\t\toverlayDismiss=False,\n\t\tshowCloseIcon=False,\n\t\tdraggable=False,\n\t)\n"
-              },
-              "scope": "G",
-              "type": "script"
-            }
-          }
         },
         "props": {
           "style": {
