@@ -109,6 +109,19 @@ def _robot_keyed_values(records, robotField, valueField, valueTransform=None):
     return valuesByRobot
 
 
+def _robot_places(records):
+    placesByRobot = {}
+    for record in list(records or []):
+        robotId = str(record.get("robot") or "").strip()
+        if not robotId:
+            continue
+        placesByRobot[robotId] = {
+            "place_id": str(record.get("id") or "").strip(),
+            "place_name": str(record.get("name") or "").strip(),
+        }
+    return placesByRobot
+
+
 def _read_current_robot_values(readPlan):
     robotPaths = [row["robot_path"] for row in list(readPlan or [])]
     currentValuePaths = []
@@ -431,6 +444,14 @@ def updateRobotOperationalState():
         if errorResult is not None:
             return errorResult
 
+        placeResults, errorResult = _fetch_json_results(
+            baseUrl + "/robots/places/",
+            "HTTP GET failed for /robots/places/",
+            ottoLogger
+        )
+        if errorResult is not None:
+            return errorResult
+
         statesByRobot = groupRecordsByRobot(systemStateResults, "robot")
         activityByRobot = _robot_keyed_values(activityResults, "robot", "activity")
         chargeByRobot = _robot_keyed_values(
@@ -439,6 +460,7 @@ def updateRobotOperationalState():
             "percentage",
             valueTransform=normalizeChargePercentage
         )
+        placesByRobot = _robot_places(placeResults)
 
         writesByPath = {}
         nowDate = system.date.now()
@@ -464,6 +486,8 @@ def updateRobotOperationalState():
             chargePath = robotPath + "/ChargeLevel"
             activeMissionCountPath = robotPath + "/ActiveMissionCount"
             failedMissionCountPath = robotPath + "/FailedMissionCount"
+            placeIdPath = robotPath + "/PlaceId"
+            placeNamePath = robotPath + "/PlaceName"
             chargingTofPath = robotPath + "/ChargingTOF"
             chargingTsPath = robotPath + "/Charging_TS"
             robotStateLogSignaturePath = robotPath + "/" + ROBOT_STATE_LOG_SIGNATURE_MEMBER
@@ -501,6 +525,12 @@ def updateRobotOperationalState():
                 effectiveCharge = chargeByRobot.get(robotId)
                 writesByPath[chargePath] = effectiveCharge
 
+            placeEntry = placesByRobot.get(robotId, {})
+            effectivePlaceId = str(placeEntry.get("place_id") or "")
+            effectivePlaceName = str(placeEntry.get("place_name") or "")
+            writesByPath[placeIdPath] = effectivePlaceId
+            writesByPath[placeNamePath] = effectivePlaceName
+
             effectiveChargingTof, effectiveChargingTs = _chargingStateUpdate(
                 effectiveActivity,
                 effectiveChargingTof,
@@ -537,6 +567,8 @@ def updateRobotOperationalState():
                 "charge_level": effectiveCharge,
                 "active_mission_count": effectiveActiveMissionCount,
                 "failed_mission_count": effectiveFailedMissionCount,
+                "place_id": effectivePlaceId,
+                "place_name": effectivePlaceName,
                 "charging_tof": effectiveChargingTof,
                 "charging_ts": effectiveChargingTs,
             })
@@ -559,7 +591,7 @@ def updateRobotOperationalState():
 
         appendPendingRobotStateHistoryRows(nowTimestamp, pendingRobotStateHistoryRows)
 
-        allRecords = list(systemStateResults) + list(activityResults) + list(batteryResults)
+        allRecords = list(systemStateResults) + list(activityResults) + list(batteryResults) + list(placeResults)
         writes = list(writesByPath.items())
         return buildRobotSyncResult(
             True,
