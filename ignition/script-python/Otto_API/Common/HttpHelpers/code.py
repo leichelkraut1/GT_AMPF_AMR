@@ -1,13 +1,12 @@
 import time
 
-from Otto_API.Common.HttpLogPolicy import ensureHttpLogConfigTags
 from Otto_API.Common.HttpLogPolicy import normalizedEndpointKey
 from Otto_API.Common.HttpLogPolicy import parseEndpointList
 from Otto_API.Common.RuntimeHistory import appendHttpHistoryRow
 from Otto_API.Common.RuntimeHistory import timestampString
-from Otto_API.Common.TagHelpers import getDisableLogOfMainCycleHttpPath
-from Otto_API.Common.TagHelpers import getMainCycleEndpointsPath
-from Otto_API.Common.TagHelpers import readOptionalTagValues
+from Otto_API.Common.TagIO import readOptionalTagValues
+from Otto_API.Common.TagPaths import getDisableLogOfMainCycleHttpPath
+from Otto_API.Common.TagPaths import getMainCycleEndpointsPath
 
 
 def jsonHeaders(extraHeaders=None):
@@ -20,7 +19,6 @@ def jsonHeaders(extraHeaders=None):
     return headers
 
 def _mainCycleHttpConfig():
-    ensureHttpLogConfigTags()
     disableLogging, rawEndpoints = readOptionalTagValues(
         [
             getDisableLogOfMainCycleHttpPath(),

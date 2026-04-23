@@ -1,7 +1,7 @@
 from java.util import Date
 
-from Otto_API.Common.TagHelpers import deleteTagPath
-from Otto_API.Common.TagHelpers import readTagValues
+from Otto_API.Common.TagIO import deleteTagPath
+from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TimeHelpers import parseIsoTimestampToEpochMillis
 from Otto_API.Missions.Runtime import record_removed_mission_if_needed
 

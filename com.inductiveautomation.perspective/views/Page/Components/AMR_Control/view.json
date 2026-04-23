@@ -1,6 +1,7 @@
 {
   "custom": {
-    "RVTagName": "AMPF_AMR_RV1"
+    "RVTagName": "AMPF_AMR_RV1",
+    "PlcRobotTagName": "AMPF_AMR_RV1"
   },
   "params": {
     "RVNum": 1
@@ -12,6 +13,23 @@
           "expression": "\"AMPF_AMR_RV\"+{view.params.RVNum}"
         },
         "type": "expr"
+      },
+      "persistent": true
+    },
+    "custom.PlcRobotTagName": {
+      "binding": {
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "direct",
+          "tagPath": "[Otto_FleetManager]PLC/FleetMapping/RobotTagNameMapping"
+        },
+        "transforms": [
+          {
+            "code": "\trobotName = \"AMPF_AMR_RV{}\".format(self.view.params.RVNum)\n\tresolved = \"\"\n\tif hasattr(value, \"getRowCount\"):\n\t\tfor rowIndex in range(value.getRowCount()):\n\t\t\tfleetRobotName = str(value.getValueAt(rowIndex, \"FleetRobotName\") or \"\").strip()\n\t\t\tif fleetRobotName != robotName:\n\t\t\t\tcontinue\n\t\t\tresolved = str(value.getValueAt(rowIndex, \"PlcTagName\") or \"\").strip()\n\t\t\tbreak\n\treturn resolved",
+            "type": "script"
+          }
+        ],
+        "type": "tag"
       },
       "persistent": true
     },
@@ -468,9 +486,9 @@
                 "fallbackDelay": 2.5,
                 "mode": "indirect",
                 "references": {
-                  "1": "{view.params.RVNum}"
+                  "1": "{view.custom.PlcRobotTagName}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/FromPLC/FinalizeOk"
+                "tagPath": "[Otto_FleetManager]PLC/Robots/{1}/FromPLC/FinalizeOk"
               },
               "transforms": [
                 {
@@ -504,9 +522,9 @@
                 "fallbackDelay": 2.5,
                 "mode": "indirect",
                 "references": {
-                  "1": "{view.params.RVNum}"
+                  "1": "{view.custom.PlcRobotTagName}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/FromPLC/RequestedWorkflowNumber"
+                "tagPath": "[Otto_FleetManager]PLC/Robots/{1}/FromPLC/RequestedWorkflowNumber"
               },
               "transforms": [
                 {
@@ -540,9 +558,9 @@
                 "fallbackDelay": 2.5,
                 "mode": "indirect",
                 "references": {
-                  "1": "{view.params.RVNum}"
+                  "1": "{view.custom.PlcRobotTagName}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/ToPLC/ActiveWorkflowNumber"
+                "tagPath": "[Otto_FleetManager]PLC/Robots/{1}/ToPLC/ActiveWorkflowNumber"
               },
               "transforms": [
                 {
@@ -576,9 +594,9 @@
                 "fallbackDelay": 2.5,
                 "mode": "indirect",
                 "references": {
-                  "1": "{view.params.RVNum}"
+                  "1": "{view.custom.PlcRobotTagName}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/ToPLC/MissionNeedsFinalized"
+                "tagPath": "[Otto_FleetManager]PLC/Robots/{1}/ToPLC/MissionNeedsFinalized"
               },
               "transforms": [
                 {
@@ -612,9 +630,9 @@
                 "fallbackDelay": 2.5,
                 "mode": "indirect",
                 "references": {
-                  "1": "{view.params.RVNum}"
+                  "1": "{view.custom.PlcRobotTagName}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/ToPLC/MissionReadyforAttachment"
+                "tagPath": "[Otto_FleetManager]PLC/Robots/{1}/ToPLC/MissionReadyforAttachment"
               },
               "transforms": [
                 {
@@ -862,9 +880,9 @@
                 "fallbackDelay": 2.5,
                 "mode": "indirect",
                 "references": {
-                  "1": "{view.params.RVNum}"
+                  "1": "{view.custom.PlcRobotTagName}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/HMI/WF_Manual"
+                "tagPath": "[Otto_FleetManager]PLC/Robots/{1}/HMI/WF_Manual"
               },
               "type": "tag"
             }
@@ -907,9 +925,9 @@
                 "fallbackDelay": 2.5,
                 "mode": "indirect",
                 "references": {
-                  "1": "{view.params.RVNum}"
+                  "1": "{view.custom.PlcRobotTagName}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/HMI/WF_NumManual"
+                "tagPath": "[Otto_FleetManager]PLC/Robots/{1}/HMI/WF_NumManual"
               },
               "type": "tag"
             }
@@ -934,7 +952,7 @@
           "dom": {
             "onClick": {
               "config": {
-                "script": "\tsystem.tag.writeBlocking([\"[Otto_FleetManager]PLC/AMPF_AMR_RV%s/HMI/WF_NumManual\" % self.view.params.RVNum], [0])"
+                "script": "\tplcTagName = str(self.view.custom.PlcRobotTagName or \"\").strip()\n\tif not plcTagName:\n\t\treturn\n\tsystem.tag.writeBlocking([\"[Otto_FleetManager]PLC/Robots/%s/HMI/WF_NumManual\" % plcTagName], [0])"
               },
               "scope": "G",
               "type": "script"
@@ -962,9 +980,9 @@
                 "fallbackDelay": 2.5,
                 "mode": "indirect",
                 "references": {
-                  "1": "{view.params.RVNum}"
+                  "1": "{view.custom.PlcRobotTagName}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/HMI/WF_SendManualNum"
+                "tagPath": "[Otto_FleetManager]PLC/Robots/{1}/HMI/WF_SendManualNum"
               },
               "type": "tag"
             }
@@ -991,9 +1009,9 @@
                 "fallbackDelay": 2.5,
                 "mode": "indirect",
                 "references": {
-                  "1": "{view.params.RVNum}"
+                  "1": "{view.custom.PlcRobotTagName}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/AMPF_AMR_RV{1}/HMI/WF_FinalizeReadyManual"
+                "tagPath": "[Otto_FleetManager]PLC/Robots/{1}/HMI/WF_FinalizeReadyManual"
               },
               "type": "tag"
             }

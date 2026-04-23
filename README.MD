@@ -131,8 +131,8 @@ One important operator override now lives there too:
 
 PLC interface tags live under:
 
-- `PLC/<Robot>/FromPLC/...`
-- `PLC/<Robot>/ToPLC/...`
+- `PLC/Robots/<Robot>/FromPLC/...`
+- `PLC/Robots/<Robot>/ToPLC/...`
 
 The robot cycle uses this pattern:
 
@@ -321,7 +321,7 @@ This keeps the fast loop focused on state that affects control decisions.
 
 Current known-good checkpoint before production validation:
 
-- UDT-backed `MainControl/Robots/<Robot>` and `PLC/<Robot>` structures are in use
+- UDT-backed `MainControl/Robots/<Robot>` and `PLC/Robots/<Robot>` structures are in use
 - workflow-number requests can create missions
 - request reconciliation now cancels mismatched queued sidecars immediately
 - non-queued mismatches wait for `FinalizeOk`, then finalize `STARVED` missions and

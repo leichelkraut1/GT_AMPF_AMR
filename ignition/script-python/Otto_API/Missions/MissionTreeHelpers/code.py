@@ -1,5 +1,5 @@
-from Otto_API.Common.TagHelpers import browseTagResults
-from Otto_API.Common.TagHelpers import readTagValues
+from Otto_API.Common.TagIO import browseTagResults
+from Otto_API.Common.TagIO import readTagValues
 
 
 def _log():

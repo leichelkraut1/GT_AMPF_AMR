@@ -1,15 +1,13 @@
 from Otto_API.AttachmentPhaseHelpers import deriveMissionAttachmentState
 from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Common.TagHelpers import ensureFleetConfigTags
-from Otto_API.Common.TagHelpers import getFleetMissionsPath
-from Otto_API.Common.TagHelpers import getFleetRobotsPath
-from Otto_API.Common.TagHelpers import getMainControlRobotsPath
-from Otto_API.Common.TagHelpers import getMissionLastUpdateSuccessPath
-from Otto_API.Common.TagHelpers import getMissionLastUpdateTsPath
-from Otto_API.Common.TagHelpers import getMissionMaxCompletedCountPath
-from Otto_API.Common.TagHelpers import readRequiredTagValue
-from Otto_API.Common.TagHelpers import readOptionalTagValue
-from Otto_API.Common.TagHelpers import writeRequiredTagValues
+from Otto_API.Common.TagIO import readOptionalTagValue
+from Otto_API.Common.TagIO import readRequiredTagValue
+from Otto_API.Common.TagIO import writeRequiredTagValues
+from Otto_API.Common.TagPaths import getFleetMissionsPath
+from Otto_API.Common.TagPaths import getFleetRobotsPath
+from Otto_API.Common.TagPaths import getMissionLastUpdateSuccessPath
+from Otto_API.Common.TagPaths import getMissionLastUpdateTsPath
+from Otto_API.Common.TagPaths import getMissionMaxCompletedCountPath
 from Otto_API.Missions.Buckets import classify_mission_bucket
 from Otto_API.Missions.Buckets import make_instance_name
 from Otto_API.Missions.Buckets import readRobotFolderMappings
@@ -18,8 +16,6 @@ from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
 from Otto_API.Missions.Get import getMissions
 from Otto_API.Missions.Maintenance import cleanup_stale_bucket
 from Otto_API.Missions.Maintenance import cleanup_terminal_folder
-from Otto_API.Missions.Sync import build_robot_member_writes
-from Otto_API.Missions.Sync import ensure_maincontrol_robot_attachment_tags
 from Otto_API.Missions.Sync import mission_to_tag_values
 from Otto_API.Missions.Sync import sync_mission_into_bucket
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
@@ -31,7 +27,6 @@ COMPLETED_PATH = BASE + "/Completed"
 FAILED_PATH = BASE + "/Failed"
 LAST_UPDATE_TS_PATH = getMissionLastUpdateTsPath()
 LAST_UPDATE_SUCCESS_PATH = getMissionLastUpdateSuccessPath()
-MAINCONTROL_ROBOTS_PATH = getMainControlRobotsPath()
 ROBOTS_PATH = getFleetRobotsPath()
 
 ACTIVE_STATUSES = [
@@ -87,11 +82,12 @@ def _dlog(logger, debug, msg):
         logger.info(msg)
 
 
-def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None, failedWanted=None, removed=None):
+def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None, failedWanted=None, removed=None, robotSummaryByFolder=None):
     activeWanted = sorted(list(activeWanted or []))
     completedWanted = sorted(list(completedWanted or []))
     failedWanted = sorted(list(failedWanted or []))
     removed = list(removed or [])
+    robotSummaryByFolder = dict(robotSummaryByFolder or {})
     return buildOperationResult(
         ok,
         level,
@@ -101,16 +97,17 @@ def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None
             "completed_wanted": completedWanted,
             "failed_wanted": failedWanted,
             "removed": removed,
+            "robot_summary_by_folder": robotSummaryByFolder,
         },
         active_wanted=activeWanted,
         completed_wanted=completedWanted,
         failed_wanted=failedWanted,
         removed=removed,
+        robot_summary_by_folder=robotSummaryByFolder,
     )
 
 
 def _readMaxCompletedCount():
-    ensureFleetConfigTags()
     return int(readRequiredTagValue(
         getMissionMaxCompletedCountPath(),
         "Mission max completed count"
@@ -127,6 +124,36 @@ def _writeMissionUpdateStatus(success, timestampValue, logger=None):
     except Exception as exc:
         if logger is not None:
             logger.error("Failed to write mission update status: {}".format(str(exc)))
+        raise
+
+
+def _writeFleetRobotMissionCounts(robotSummaryByFolder, logger=None):
+    """Mirror mission-count metadata back onto Fleet/Robots without touching MainControl tags."""
+    writePaths = []
+    writeValues = []
+    for robotFolder, summary in sorted(dict(robotSummaryByFolder or {}).items()):
+        basePath = ROBOTS_PATH + "/" + str(robotFolder or "")
+        writePaths.extend([
+            basePath + "/ActiveMissionCount",
+            basePath + "/FailedMissionCount",
+        ])
+        writeValues.extend([
+            int(dict(summary or {}).get("active_mission_count", 0) or 0),
+            int(dict(summary or {}).get("failed_mission_count", 0) or 0),
+        ])
+
+    if not writePaths:
+        return
+
+    try:
+        writeRequiredTagValues(
+            writePaths,
+            writeValues,
+            labels=["Fleet robot mission counts"] * len(writePaths)
+        )
+    except Exception as exc:
+        if logger is not None:
+            logger.error("Failed to write Fleet robot mission counts: {}".format(str(exc)))
         raise
 
 
@@ -225,61 +252,19 @@ def run():
             currentMissionIdByFolder[robotFolder] = str(currentMission.get("id") or "")
             currentMissionStatusByFolder[robotFolder] = str(currentMission.get("mission_status") or "")
 
-        ensure_maincontrol_robot_attachment_tags(robotMappings)
+        robotSummaryByFolder = {}
+        for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
+            robotSummaryByFolder[robotFolder] = {
+                "active_mission_count": int(activeCountsByFolder.get(robotFolder, 0) or 0),
+                "failed_mission_count": int(failedCountsByFolder.get(robotFolder, 0) or 0),
+                "mission_starved": bool(missionStarvedByFolder.get(robotFolder, False)),
+                "mission_ready_for_attachment": bool(attachmentReadyByFolder.get(robotFolder, False)),
+                "current_mission_name": str(attachmentMissionNameByFolder.get(robotFolder, "") or ""),
+                "current_mission_id": str(currentMissionIdByFolder.get(robotFolder, "") or ""),
+                "current_mission_status": str(currentMissionStatusByFolder.get(robotFolder, "") or ""),
+            }
 
-        missionCountWrites = (
-            build_robot_member_writes(
-                robotMappings,
-                activeCountsByFolder,
-                "ActiveMissionCount"
-            ) +
-            build_robot_member_writes(
-                robotMappings,
-                failedCountsByFolder,
-                "FailedMissionCount"
-            ) +
-            build_robot_member_writes(
-                robotMappings,
-                missionStarvedByFolder,
-                "MissionStarved",
-                transform=lambda value: bool(value),
-                basePath=MAINCONTROL_ROBOTS_PATH
-            ) +
-            build_robot_member_writes(
-                robotMappings,
-                attachmentReadyByFolder,
-                "MissionReadyforAttachment",
-                transform=lambda value: bool(value),
-                basePath=MAINCONTROL_ROBOTS_PATH
-            ) +
-            build_robot_member_writes(
-                robotMappings,
-                attachmentMissionNameByFolder,
-                "CurrentMissionName",
-                transform=lambda value: str(value or ""),
-                basePath=MAINCONTROL_ROBOTS_PATH
-            ) +
-            build_robot_member_writes(
-                robotMappings,
-                currentMissionIdByFolder,
-                "CurrentMissionId",
-                transform=lambda value: str(value or ""),
-                basePath=MAINCONTROL_ROBOTS_PATH
-            ) +
-            build_robot_member_writes(
-                robotMappings,
-                currentMissionStatusByFolder,
-                "CurrentMissionStatus",
-                transform=lambda value: str(value or ""),
-                basePath=MAINCONTROL_ROBOTS_PATH
-            )
-        )
-        if missionCountWrites:
-            writeRequiredTagValues(
-                [path for path, _ in missionCountWrites],
-                [value for _, value in missionCountWrites],
-                labels=["MissionSorting MainControl mirror"] * len(missionCountWrites)
-            )
+        _writeFleetRobotMissionCounts(robotSummaryByFolder, logger)
 
         removed.extend(
             cleanup_stale_bucket(
@@ -324,7 +309,8 @@ def run():
             activeWanted=activeWanted,
             completedWanted=completedWanted,
             failedWanted=failedWanted,
-            removed=removed
+            removed=removed,
+            robotSummaryByFolder=robotSummaryByFolder,
         )
 
     except Exception as e:

@@ -1,7 +1,7 @@
 import re
 
 from Otto_API.Common.SyncHelpers import sanitizeTagName
-from Otto_API.Common.TagHelpers import getFleetRobotsPath
+from Otto_API.Common.TagPaths import getFleetRobotsPath
 from Otto_API.Missions.MissionActions import resolveMissionRobotId
 from Otto_API.Robots.SyncHelpers import readRobotInventoryMetadata
 

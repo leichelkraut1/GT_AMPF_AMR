@@ -2,10 +2,10 @@ from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ParseHelpers import parseServerStatus
 from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Common.TagHelpers import getApiBaseUrl
-from Otto_API.Common.TagHelpers import getFleetSystemPath
-from Otto_API.Common.TagHelpers import readOptionalTagValue
-from Otto_API.Common.TagHelpers import writeTagValueAsync
+from Otto_API.Common.TagIO import getApiBaseUrl
+from Otto_API.Common.TagIO import readOptionalTagValue
+from Otto_API.Common.TagIO import writeTagValueAsync
+from Otto_API.Common.TagPaths import getFleetSystemPath
 
 
 SYSTEM_BASE_PATH = getFleetSystemPath()

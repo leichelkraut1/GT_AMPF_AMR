@@ -1,14 +1,21 @@
 import time
 
+from Otto_API.AttachmentPhaseHelpers import buildMissionControlFlags
 from MainController.State.MissionStore import readActiveMissionSummary
 from MainController.State.MissionStore import readRobotMirrorInputs
+from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.PlcStore import readPlcInputs
-from MainController.State.Provisioning import ensureRobotRunnerTags
 from MainController.State.RobotStore import readRobotState
+
+
+def _resolveRobotPlcTagName(robotName, plcMappingState):
+    """Resolve one robot's PLC row name from the already-read mapping state."""
+    return str(dict(plcMappingState.get("robot_name_to_plc_tag") or {}).get(robotName) or "")
 
 
 def readRobotCycleSnapshot(
     robotName,
+    plcMappingState=None,
     reservedWorkflows=None,
     nowEpochMs=None,
     createMission=None,
@@ -20,13 +27,26 @@ def readRobotCycleSnapshot(
         nowEpochMs = int(time.time() * 1000)
     if reservedWorkflows is None:
         reservedWorkflows = {}
+    if plcMappingState is None:
+        plcMappingState = readPlcMappings()
 
-    ensureRobotRunnerTags(robotName)
+    plcTagName = _resolveRobotPlcTagName(robotName, plcMappingState)
+    if not plcTagName:
+        mappingFaultReason = "plc_robot_mapping_missing"
+        if not plcMappingState.get("robot_dataset_ok", True):
+            mappingFaultReason = "plc_robot_mapping_unreadable"
+    else:
+        mappingFaultReason = ""
 
-    plcInputs = readPlcInputs(robotName)
-    mirrorInputs = readRobotMirrorInputs(robotName)
+    plcInputs = readPlcInputs(plcTagName, faultReason=mappingFaultReason)
+    mirrorInputs = dict(readRobotMirrorInputs(robotName) or {})
     currentState = readRobotState(robotName)
     activeSummary = readActiveMissionSummary(robotName)
+    missionFlags = buildMissionControlFlags(
+        str(activeSummary.get("current_mission_status") or "").upper() == "STARVED"
+    )
+    mirrorInputs["mission_starved"] = missionFlags["mission_starved"]
+    mirrorInputs["mission_ready_for_attachment"] = missionFlags["ready_for_attachment"]
     activeWorkflowNumber = activeSummary.get("workflow_number")
     selectedWorkflowNumber = plcInputs["requested_workflow_number"]
     controllerAvailableForWork = (
@@ -36,6 +56,7 @@ def readRobotCycleSnapshot(
 
     return {
         "robot_name": robotName,
+        "plc_tag_name": plcTagName,
         "reserved_workflows": reservedWorkflows,
         "now_epoch_ms": int(nowEpochMs),
         "create_mission": createMission,

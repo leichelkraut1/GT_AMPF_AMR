@@ -1,6 +1,5 @@
-from Otto_API.Common.TagHelpers import browseTagResults
-from Otto_API.Common.TagHelpers import getMainControlRobotsPath
-from Otto_API.Common.TagHelpers import readTagValues
+from Otto_API.Common.TagIO import browseTagResults
+from Otto_API.Common.TagIO import readTagValues
 
 from Otto_API.Common.TimeHelpers import parseIsoTimestampToEpochMillis
 
@@ -194,8 +193,6 @@ def buildInvalidRobotSyncWrites(robotPath):
     """
     Build derived sync field clears for a robot instance whose ID is invalid.
     """
-    robotName = str(robotPath).rsplit("/", 1)[-1]
-    mainControlRobotPath = getMainControlRobotsPath() + "/" + robotName
     paths = [
         robotPath + "/SystemState",
         robotPath + "/SubSystemState",
@@ -205,13 +202,12 @@ def buildInvalidRobotSyncWrites(robotPath):
         robotPath + "/ChargeLevel",
         robotPath + "/ActiveMissionCount",
         robotPath + "/FailedMissionCount",
+        robotPath + "/PlaceId",
+        robotPath + "/PlaceName",
+        robotPath + "/ContainerPresent",
+        robotPath + "/ContainerId",
         robotPath + "/AvailableForWork",
         robotPath + "/NotReadyReason",
-        mainControlRobotPath + "/MissionStarved",
-        mainControlRobotPath + "/MissionReadyforAttachment",
-        mainControlRobotPath + "/CurrentMissionName",
-        mainControlRobotPath + "/CurrentMissionId",
-        mainControlRobotPath + "/CurrentMissionStatus",
     ]
     values = [
         None,
@@ -222,13 +218,12 @@ def buildInvalidRobotSyncWrites(robotPath):
         None,
         0,
         0,
+        None,
+        None,
+        False,
+        "",
         False,
         "invalid_robot_id",
-        False,
-        "",
-        "",
-        "",
-        "",
     ]
     return list(zip(paths, values))
 

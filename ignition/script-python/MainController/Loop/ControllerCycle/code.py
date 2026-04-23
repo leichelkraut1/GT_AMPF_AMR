@@ -6,10 +6,10 @@ from Otto_API.System import Get as SystemGet
 
 from MainController.Robot.Cycle import runRobotWorkflowCycleSnapshot
 from MainController.Robot.Snapshot import readRobotCycleSnapshot
-from MainController.State.ContainerMirror import mirrorPlcContainerOccupancy
+from MainController.State.ContainerMirror import mirrorPlcPlaces
+from MainController.State.MissionMirror import writeMissionSortingRobotMirror
+from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.Paths import ROBOT_NAMES
-from MainController.State.PlcStore import writePlcHealthOutputs
-from MainController.State.Provisioning import ensureRobotRunnerTags
 from MainController.State.RuntimeStore import writeRuntimeFields
 from MainController.WorkflowConfig import normalizeWorkflowNumber
 
@@ -33,7 +33,8 @@ def _controllerRuntimeFields(
     serverStatusResult,
     robotStateResult,
     containerStateResult,
-    plcContainerMirrorResult,
+    plcPlaceSyncResult,
+    plcRobotSyncResult,
     missionSortResult,
     workflowResult
 ):
@@ -41,7 +42,8 @@ def _controllerRuntimeFields(
         ("server_status", "Server Status", serverStatusResult),
         ("robot_state", "Robot Sync", robotStateResult),
         ("container_state", "Container Sync", containerStateResult),
-        ("plc_container_mirror", "PLC Container Mirror", plcContainerMirrorResult),
+        ("plc_robot_fleet_sync", "PLC Robot Fleet Sync", plcRobotSyncResult),
+        ("plc_place_fleet_sync", "PLC Place Fleet Sync", plcPlaceSyncResult),
         ("mission_sorting", "Mission Sorting", missionSortResult),
         ("workflow_cycles", "Workflow Cycles", workflowResult),
     ]
@@ -58,6 +60,10 @@ def _controllerRuntimeFields(
 
     fields["controller_fault_summary"] = "; ".join(unhealthyMessages) or "Healthy"
     return fields
+
+
+def _log():
+    return system.util.getLogger("MainController.Loop.ControllerCycle")
 
 
 def _buildReservedWorkflowsFromSnapshots(snapshots):
@@ -86,8 +92,172 @@ def _buildReservedWorkflowsFromSnapshots(snapshots):
     return reserved
 
 
+def _mergeResults(label, *results):
+    """Merge same-shape phase or sync results into one summary result."""
+    normalizedResults = []
+    for result in list(results or []):
+        if result is None:
+            continue
+        normalizedResults.append(dict(result or {}))
+
+    if not normalizedResults:
+        return buildOperationResult(
+            True,
+            "info",
+            "{} healthy".format(label),
+            data={"results": []},
+            results=[],
+        )
+
+    unhealthy = [result for result in normalizedResults if not result.get("ok", False)]
+    if not unhealthy:
+        return buildOperationResult(
+            True,
+            "info",
+            "{} healthy".format(label),
+            data={"results": normalizedResults},
+            results=normalizedResults,
+        )
+
+    level = "error" if any(str(result.get("level") or "").lower() == "error" for result in unhealthy) else "warn"
+    message = "; ".join([
+        str(result.get("message") or "unhealthy")
+        for result in unhealthy
+    ]) or "{} degraded".format(label)
+    return buildOperationResult(
+        False,
+        level,
+        message,
+        data={"results": normalizedResults},
+        results=normalizedResults,
+    )
+
+
+def _robotCycleExceptionResult(robotName, exc):
+    message = "Robot [{}] workflow cycle failed: {}".format(robotName, str(exc))
+    _log().error(message)
+    return buildOperationResult(
+        False,
+        "error",
+        message,
+        data={
+            "robot_name": robotName,
+            "state": "fault",
+            "action": "robot_cycle_exception",
+        },
+        robot_name=robotName,
+        state="fault",
+        action="robot_cycle_exception",
+    )
+
+
+def _missionMirrorResult(missionSortResult):
+    robotSummaryByFolder = dict(
+        dict(missionSortResult.get("data") or {}).get("robot_summary_by_folder")
+        or missionSortResult.get("robot_summary_by_folder")
+        or {}
+    )
+    try:
+        writeMissionSortingRobotMirror(robotSummaryByFolder)
+        return buildOperationResult(
+            True,
+            "info",
+            "Mission summary mirror healthy",
+            data={"robot_summary_by_folder": robotSummaryByFolder},
+        )
+    except Exception as exc:
+        return buildOperationResult(
+            False,
+            "warn",
+            "Mission summary mirror failed: {}".format(str(exc)),
+            data={"robot_summary_by_folder": robotSummaryByFolder},
+        )
+
+
+def _plcPlaceSyncResult(containerStateResult, plcMappingState):
+    if containerStateResult.get("ok"):
+        return mirrorPlcPlaces(plcMappingState=plcMappingState)
+    return buildOperationResult(
+        False,
+        "warn",
+        "Skipped PLC place sync because container state is stale",
+        data={"rows": [], "writes": []},
+        rows=[],
+        writes=[],
+    )
+
+
+def _workflowCycleResults(
+    plcMappingState,
+    nowEpochMs=None,
+    createMission=None,
+    finalizeMissionId=None,
+    cancelMissionIds=None,
+):
+    """Run robot workflow cycles and normalize the aggregated PLC robot sync result."""
+    workflowResult = runAllRobotWorkflowCycles(
+        plcMappingState=plcMappingState,
+        nowEpochMs=nowEpochMs,
+        createMission=createMission,
+        finalizeMissionId=finalizeMissionId,
+        cancelMissionIds=cancelMissionIds,
+    )
+    plcRobotSyncResult = dict(
+        workflowResult.get("plc_robot_sync")
+        or buildOperationResult(True, "info", "PLC robot sync healthy")
+    )
+    return workflowResult, plcRobotSyncResult
+
+
+def _mainCycleResults(
+    nowEpochMs=None,
+    createMission=None,
+    finalizeMissionId=None,
+    cancelMissionIds=None,
+):
+    """Run the ordered shared phases and return the normalized cycle result bundle."""
+    serverStatusResult = SystemGet.readCachedServerStatus()
+    missionSortResult = MissionSorting.run()
+    missionSummaryResult = _missionMirrorResult(missionSortResult)
+    robotStateResult = RobotGet.updateRobotOperationalState()
+    containerStateResult = ContainerGet.updateContainers()
+    plcMappingState = readPlcMappings()
+    plcPlaceSyncResult = _plcPlaceSyncResult(containerStateResult, plcMappingState)
+    workflowResult, plcRobotSyncResult = _workflowCycleResults(
+        plcMappingState,
+        nowEpochMs=nowEpochMs,
+        createMission=createMission,
+        finalizeMissionId=finalizeMissionId,
+        cancelMissionIds=cancelMissionIds,
+    )
+    return {
+        "server_status": serverStatusResult,
+        "mission_sorting": missionSortResult,
+        "mission_summary_mirror": missionSummaryResult,
+        "robot_state": robotStateResult,
+        "container_state": containerStateResult,
+        "plc_place_sync": plcPlaceSyncResult,
+        "plc_robot_sync": plcRobotSyncResult,
+        "workflow_cycles": workflowResult,
+    }
+
+
+def _mainCycleOk(results):
+    return all([
+        results["server_status"].get("ok", False),
+        results["mission_sorting"].get("ok", False),
+        results["mission_summary_mirror"].get("ok", False),
+        results["robot_state"].get("ok", False),
+        results["container_state"].get("ok", False),
+        results["plc_place_sync"].get("ok", False),
+        results["plc_robot_sync"].get("ok", False),
+        results["workflow_cycles"].get("ok", False),
+    ])
+
+
 def runAllRobotWorkflowCycles(
     robotNames=None,
+    plcMappingState=None,
     nowEpochMs=None,
     createMission=None,
     finalizeMissionId=None,
@@ -97,34 +267,42 @@ def runAllRobotWorkflowCycles(
     if robotNames is None:
         robotNames = ROBOT_NAMES
 
-    snapshots = []
-    for robotName in list(robotNames or []):
-        snapshots.append(
-            readRobotCycleSnapshot(
-                robotName,
-                nowEpochMs=nowEpochMs,
-                createMission=createMission,
-                finalizeMissionId=finalizeMissionId,
-                cancelMissionIds=cancelMissionIds,
-            )
+    snapshots = [
+        readRobotCycleSnapshot(
+            robotName,
+            plcMappingState=plcMappingState,
+            nowEpochMs=nowEpochMs,
+            createMission=createMission,
+            finalizeMissionId=finalizeMissionId,
+            cancelMissionIds=cancelMissionIds,
         )
+        for robotName in list(robotNames or [])
+    ]
 
     reservedWorkflows = _buildReservedWorkflowsFromSnapshots(snapshots)
     results = []
+    plcSyncResults = []
     for snapshot in snapshots:
         snapshot["reserved_workflows"] = reservedWorkflows
-        results.append(
-            runRobotWorkflowCycleSnapshot(snapshot)
-        )
+        try:
+            cycleResult = runRobotWorkflowCycleSnapshot(snapshot)
+        except Exception as exc:
+            cycleResult = _robotCycleExceptionResult(snapshot["robot_name"], exc)
+        results.append(cycleResult)
+        syncResult = dict(dict(cycleResult.get("data") or {}).get("plc_sync_result") or {})
+        if syncResult:
+            plcSyncResults.append(syncResult)
 
     ok = all(result.get("ok", False) or result.get("level") == "warn" for result in results)
     level = "info" if ok else "error"
+    plcRobotSyncResult = _mergeResults("PLC robot sync", *plcSyncResults)
     return buildOperationResult(
         ok,
         level,
         "Processed workflow cycles for {} robot(s)".format(len(results)),
         data={"results": results},
         results=results,
+        plc_robot_sync=plcRobotSyncResult,
     )
 
 
@@ -135,84 +313,37 @@ def runMainControllerCycle(
     cancelMissionIds=None
 ):
     """Run the ordered controller phases for one main-loop cycle."""
-    serverStatusResult = SystemGet.readCachedServerStatus()
-    missionSortResult = MissionSorting.run()
-    robotStateResult = RobotGet.updateRobotOperationalState()
-    containerStateResult = ContainerGet.updateContainers()
-    if containerStateResult.get("ok"):
-        plcContainerMirrorResult = mirrorPlcContainerOccupancy()
-    else:
-        plcContainerMirrorResult = buildOperationResult(
-            False,
-            "warn",
-            "Skipped PLC container occupancy mirror because container state is stale",
-            data={"rows": [], "writes": []},
-            rows=[],
-            writes=[],
-        )
-
-    canEvaluatePlc = (
-        robotStateResult.get("ok")
-        and containerStateResult.get("ok")
-        and plcContainerMirrorResult.get("ok")
-        and missionSortResult.get("ok")
+    results = _mainCycleResults(
+        nowEpochMs=nowEpochMs,
+        createMission=createMission,
+        finalizeMissionId=finalizeMissionId,
+        cancelMissionIds=cancelMissionIds,
     )
-    if canEvaluatePlc:
-        workflowResult = runAllRobotWorkflowCycles(
-            nowEpochMs=nowEpochMs,
-            createMission=createMission,
-            finalizeMissionId=finalizeMissionId,
-            cancelMissionIds=cancelMissionIds,
-        )
-    else:
-        for robotName in ROBOT_NAMES:
-            ensureRobotRunnerTags(robotName)
-            writePlcHealthOutputs(
-                robotName,
-                fleetFault=True,
-                plcCommFault=False,
-                controlHealthy=False,
-            )
-        workflowResult = buildOperationResult(
-            False,
-            "warn",
-            "Skipped PLC workflow evaluation because robot, container, PLC mirror, or mission state is stale",
-            data=None,
-        )
+    missionPhaseResult = _mergeResults(
+        "Mission sorting",
+        results["mission_sorting"],
+        results["mission_summary_mirror"],
+    )
 
     writeRuntimeFields(
         _controllerRuntimeFields(
-            serverStatusResult,
-            robotStateResult,
-            containerStateResult,
-            plcContainerMirrorResult,
-            missionSortResult,
-            workflowResult,
+            results["server_status"],
+            results["robot_state"],
+            results["container_state"],
+            results["plc_place_sync"],
+            results["plc_robot_sync"],
+            missionPhaseResult,
+            results["workflow_cycles"],
         )
     )
 
-    ok = canEvaluatePlc and workflowResult.get("ok", False)
-    if not serverStatusResult.get("ok", False):
-        level = "warn"
-    else:
-        level = "info" if ok else "warn"
+    ok = _mainCycleOk(results)
+    level = "info" if ok else "warn"
 
     return buildOperationResult(
         ok,
         level,
         "MainController cycle completed",
-        data={
-            "server_status": serverStatusResult,
-            "robot_state": robotStateResult,
-            "container_state": containerStateResult,
-            "plc_container_mirror": plcContainerMirrorResult,
-            "mission_sorting": missionSortResult,
-            "workflow_cycles": workflowResult,
-        },
-        server_status=serverStatusResult,
-        robot_state=robotStateResult,
-        container_state=containerStateResult,
-        plc_container_mirror=plcContainerMirrorResult,
-        mission_sorting=missionSortResult,
-        workflow_cycles=workflowResult,
+        data=dict(results),
+        **results
     )

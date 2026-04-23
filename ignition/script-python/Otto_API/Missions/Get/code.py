@@ -1,7 +1,7 @@
 from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ParseHelpers import parseMissionResults
-from Otto_API.Common.TagHelpers import getApiBaseUrl
+from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Missions.QueryHelpers import buildMissionsUrl
 
 

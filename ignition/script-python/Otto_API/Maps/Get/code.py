@@ -1,6 +1,6 @@
 from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
-from Otto_API.Common.TagHelpers import getApiBaseUrl
+from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Common.ParseHelpers import parseJsonResponse
 from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import fetchListResource

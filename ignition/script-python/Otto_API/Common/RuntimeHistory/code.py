@@ -1,10 +1,10 @@
 import time
 
-from Otto_API.Common.TagHelpers import ensureFolder
-from Otto_API.Common.TagHelpers import ensureMemoryTag
-from Otto_API.Common.TagHelpers import getMainControlRuntimePath
-from Otto_API.Common.TagHelpers import readOptionalTagValue
-from Otto_API.Common.TagHelpers import writeTagValues
+from Otto_API.Common.TagIO import readOptionalTagValue
+from Otto_API.Common.TagIO import writeTagValues
+from Otto_API.Common.TagPaths import getMainControlRuntimePath
+from Otto_API.Common.TagProvisioning import ensureFolder
+from Otto_API.Common.TagProvisioning import ensureMemoryTag
 
 
 RUNTIME_BASE = getMainControlRuntimePath()
@@ -74,8 +74,10 @@ def runtimePaths():
         "robot_state_message": RUNTIME_BASE + "/RobotStateMessage",
         "container_state_status": RUNTIME_BASE + "/ContainerStateStatus",
         "container_state_message": RUNTIME_BASE + "/ContainerStateMessage",
-        "plc_container_mirror_status": RUNTIME_BASE + "/PlcContainerMirrorStatus",
-        "plc_container_mirror_message": RUNTIME_BASE + "/PlcContainerMirrorMessage",
+        "plc_robot_fleet_sync_status": RUNTIME_BASE + "/PLCRobotFleetSyncStatus",
+        "plc_robot_fleet_sync_message": RUNTIME_BASE + "/PLCRobotFleetSyncMessage",
+        "plc_place_fleet_sync_status": RUNTIME_BASE + "/PLCPlaceFleetSyncStatus",
+        "plc_place_fleet_sync_message": RUNTIME_BASE + "/PLCPlaceFleetSyncMessage",
         "mission_sorting_status": RUNTIME_BASE + "/MissionSortingStatus",
         "mission_sorting_message": RUNTIME_BASE + "/MissionSortingMessage",
         "workflow_cycles_status": RUNTIME_BASE + "/WorkflowCyclesStatus",
@@ -106,8 +108,10 @@ def ensureRuntimeTags():
     ensureMemoryTag(paths["robot_state_message"], "String", "")
     ensureMemoryTag(paths["container_state_status"], "String", "")
     ensureMemoryTag(paths["container_state_message"], "String", "")
-    ensureMemoryTag(paths["plc_container_mirror_status"], "String", "")
-    ensureMemoryTag(paths["plc_container_mirror_message"], "String", "")
+    ensureMemoryTag(paths["plc_robot_fleet_sync_status"], "String", "")
+    ensureMemoryTag(paths["plc_robot_fleet_sync_message"], "String", "")
+    ensureMemoryTag(paths["plc_place_fleet_sync_status"], "String", "")
+    ensureMemoryTag(paths["plc_place_fleet_sync_message"], "String", "")
     ensureMemoryTag(paths["mission_sorting_status"], "String", "")
     ensureMemoryTag(paths["mission_sorting_message"], "String", "")
     ensureMemoryTag(paths["workflow_cycles_status"], "String", "")
@@ -162,7 +166,6 @@ def appendRuntimeDatasetRow(
     maxRows=500
 ):
     """Append one row to a runtime history dataset and cap it to the most recent rows."""
-    ensureRuntimeTags()
     paths = runtimePaths()
     datasetPath = paths.get(fieldName)
     if not datasetPath:
@@ -191,7 +194,6 @@ def appendRuntimeDatasetRow(
 
 def readRuntimeDataset(fieldName, headers):
     """Read a runtime dataset tag, returning an empty dataset when missing."""
-    ensureRuntimeTags()
     datasetPath = runtimePaths().get(fieldName)
     if not datasetPath:
         return system.dataset.toDataSet(headers, [])

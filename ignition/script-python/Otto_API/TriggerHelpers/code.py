@@ -1,15 +1,8 @@
-from Otto_API.Common.TagHelpers import ensureFolder
-from Otto_API.Common.TagHelpers import ensureMemoryTag
-from Otto_API.Common.TagHelpers import ensureUdtInstancePath
-from Otto_API.Common.TagHelpers import getFleetContainersPath
-from Otto_API.Common.TagHelpers import getFleetTriggersPath
-from Otto_API.Common.TagHelpers import readRequiredTagValue
-from Otto_API.Common.TagHelpers import writeRequiredTagValues
-
-
-CONTAINER1_ID = "SOMEID"
-PLACE1_ID = "b54fab69-eae4-48a2-9e45-470c7da66ed2"
-CONTAINER1_TEMPLATE_PATH = "[Otto_FleetManager]Fleet/Containers/Templates/Container1"
+from Otto_API.Common.TagIO import readRequiredTagValue
+from Otto_API.Common.TagPaths import getFleetContainersPath
+from Otto_API.Common.TagPaths import getFleetTriggersPath
+from Otto_API.Common.TagProvisioning import ensureFolder
+from Otto_API.Common.TagProvisioning import ensureMemoryTag
 
 
 def buildMissionTriggerPath(triggerBase, triggerName):
@@ -50,22 +43,20 @@ def getContainerTriggerConfigPath(tagName):
     return getContainerTriggerBasePath() + "/" + str(tagName)
 
 
-def buildContainerTemplatePath(containerTemplateName):
-    """
-    Build the full template UDT path from the configured template name.
-    """
-    return getFleetContainersPath() + "/Templates/" + str(containerTemplateName or "")
+def buildContainerTemplatePath(templateName):
+    """Resolve a configured container template name into the Fleet/Containers template tag path."""
+    templateName = str(templateName or "").strip()
+    return getFleetContainersPath() + "/Templates/" + templateName
 
 
 def readContainerTriggerTemplatePath():
     """
-    Read the configured container template tag name and return the full template path.
+    Read the configured container template tag name and return its full tag path.
     """
-    templateName = readRequiredTagValue(
+    return buildContainerTemplatePath(readRequiredTagValue(
         getContainerTriggerConfigPath("ContainerTemplate"),
         "Container trigger template name"
-    )
-    return buildContainerTemplatePath(templateName)
+    ))
 
 
 def readContainerTriggerContainerId():
@@ -88,38 +79,6 @@ def readContainerTriggerPlaceId():
     )
 
 
-def ensureContainerTestTemplate():
-    """
-    Ensure the fixed test template container instance exists for container triggers.
-    This template is only used as a source for create calls, so seed only the
-    base fields that createContainer actually reads.
-    """
-    ensureFolder(getFleetContainersPath())
-    ensureFolder(getFleetContainersPath() + "/Templates")
-    ensureUdtInstancePath(CONTAINER1_TEMPLATE_PATH, "api_Container")
-    writeRequiredTagValues(
-        [
-            CONTAINER1_TEMPLATE_PATH + "/ContainerType",
-            CONTAINER1_TEMPLATE_PATH + "/Description",
-            CONTAINER1_TEMPLATE_PATH + "/Empty",
-            CONTAINER1_TEMPLATE_PATH + "/Name",
-        ],
-        [
-            "OTTO100_CART",
-            "",
-            False,
-            "",
-        ],
-        labels=[
-            "Container 1 template type",
-            "Container 1 template description",
-            "Container 1 template empty",
-            "Container 1 template name",
-        ],
-    )
-    return CONTAINER1_TEMPLATE_PATH
-
-
 def ensureContainerTriggerTags():
     """
     Ensure the container trigger folder structure and Boolean memory tags exist.
@@ -132,9 +91,9 @@ def ensureContainerTriggerTags():
 
     createdPaths = []
     for tagName, value in [
-        ("ContainerTemplate", "Container1"),
-        ("ContainerID", CONTAINER1_ID),
-        ("PlaceID", PLACE1_ID),
+        ("ContainerTemplate", ""),
+        ("ContainerID", ""),
+        ("PlaceID", ""),
     ]:
         configPath = getContainerTriggerConfigPath(tagName)
         ensureMemoryTag(configPath, "String", value)
@@ -151,7 +110,6 @@ def ensureContainerTriggerTags():
         ensureMemoryTag(triggerPath, "Boolean", False)
         createdPaths.append(triggerPath)
 
-    ensureContainerTestTemplate()
     return createdPaths
 
 
@@ -195,12 +153,15 @@ def ensureMissionTriggerTags(workflowIds=None, robotIds=None):
     cancelAllPath = buildMissionTriggerPath(cancelBase, "cancelAllActiveMissions")
     cancelAllFailedPath = buildMissionTriggerPath(cancelBase, "cancelAllFailedMissions")
     updateTriggersPath = buildMissionTriggerPath(systemUpdatesBase, "updateTriggers")
+    syncPlcFleetTagsPath = buildMissionTriggerPath(systemUpdatesBase, "UpdateAndCleanPLCTags")
     ensureMemoryTag(cancelAllPath, "Boolean", False)
     ensureMemoryTag(cancelAllFailedPath, "Boolean", False)
     ensureMemoryTag(updateTriggersPath, "Boolean", False)
+    ensureMemoryTag(syncPlcFleetTagsPath, "Boolean", False)
     createdPaths.append(cancelAllPath)
     createdPaths.append(cancelAllFailedPath)
     createdPaths.append(updateTriggersPath)
+    createdPaths.append(syncPlcFleetTagsPath)
 
     createdPaths.extend(ensureContainerTriggerTags())
 

@@ -1,9 +1,6 @@
-from Otto_API.Common.TagHelpers import ensureFolder
-from Otto_API.Common.TagHelpers import ensureUdtInstancePath
-from Otto_API.Common.TagHelpers import getFleetRobotsPath
-from Otto_API.Common.TagHelpers import getMainControlRobotsPath
-from Otto_API.Common.TagHelpers import tagExists
-from Otto_API.Common.TagHelpers import writeRequiredTagValues
+from Otto_API.Common.TagIO import tagExists
+from Otto_API.Common.TagIO import writeRequiredTagValues
+from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
 from Otto_API.Missions.Buckets import build_mission_bucket_paths
 from Otto_API.Missions.Buckets import make_instance_name
 from Otto_API.Missions.Maintenance import remove_instance
@@ -81,37 +78,6 @@ def write_mission_data(instancePath, mission, logger):
         labels=["MissionSorting mission write"] * len(paths)
     )
     return True
-
-
-def build_robot_member_writes(robotMappings, valuesByFolder, memberName, transform=None, basePath=None):
-    """
-    Build robot-member writes for known robot folders.
-    """
-    if basePath is None:
-        basePath = getFleetRobotsPath()
-
-    writes = []
-    for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
-        value = valuesByFolder.get(robotFolder, 0)
-        if transform is not None:
-            value = transform(value)
-        writes.append((
-            basePath + "/" + robotFolder + "/" + memberName,
-            value
-        ))
-    return writes
-
-
-def ensure_maincontrol_robot_attachment_tags(robotMappings):
-    """
-    Ensure MainControl/Robots UDT instances exist for known robots.
-    """
-    mainControlRobotsPath = getMainControlRobotsPath()
-    ensureFolder(mainControlRobotsPath)
-    for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
-        robotPath = mainControlRobotsPath + "/" + robotFolder
-        ensureUdtInstancePath(robotPath, "MainControl_Robot")
-
 
 def sync_mission_into_bucket(
     mission,

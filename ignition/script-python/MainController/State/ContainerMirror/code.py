@@ -1,176 +1,168 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Common.TagHelpers import browseTagResults
-from Otto_API.Common.TagHelpers import getFleetContainersPath
-from Otto_API.Common.TagHelpers import readTagValues
-from Otto_API.Common.TagHelpers import tagExists
-from Otto_API.Common.TagHelpers import writeRequiredTagValues
+from Otto_API.Common.TagIO import isWriteResultGood
+from Otto_API.Common.TagIO import readTagValues
+from Otto_API.Common.TagIO import tagExists
+from Otto_API.Common.TagPaths import getFleetPlacesPath
 
-from MainController.State.Paths import plcContainersPath
+from MainController.State.PlcMappingStore import readPlcMappings
+from MainController.State.Paths import plcPlaceRowPath
+
+
+PLC_PLACE_OUTPUT_SPECS = [
+    ("container_present", "ContainerPresent", bool),
+    ("container_id", "ContainerId", lambda value: str(value or "")),
+]
 
 
 def _log():
     return system.util.getLogger("MainController.State.ContainerMirror")
 
 
-def _normalizedKey(value):
-    return str(value or "").strip()
+def _buildPlaceWritePathsAndValues(basePath, outputs):
+    """Build one PLC place row's writes from the declarative place output spec."""
+    writePaths = []
+    writeValues = []
+    for outputKey, suffix, coercer in list(PLC_PLACE_OUTPUT_SPECS):
+        writePaths.append(basePath + "/" + suffix)
+        writeValues.append(coercer(outputs.get(outputKey)))
+    return writePaths, writeValues
 
 
-def _udtInstanceRows(basePath):
-    rows = []
-    for browseResult in list(browseTagResults(basePath) or []):
-        if str(browseResult.get("tagType") or "") != "UdtInstance":
-            continue
-        rowPath = str(browseResult.get("fullPath") or "").strip()
-        if not rowPath:
-            continue
-        rows.append({
-            "name": str(browseResult.get("name") or ""),
-            "path": rowPath,
-        })
-    return rows
-
-
-def _containerLocationMap():
-    locationMap = {}
-    containersBasePath = getFleetContainersPath()
-    if not tagExists(containersBasePath):
-        return locationMap
-
-    containerRows = _udtInstanceRows(containersBasePath)
+def _fleetPlaceOccupancyByTagName(placeTagNames):
+    """Read the Fleet occupancy fields once for the mapped place tag names."""
+    basePath = getFleetPlacesPath()
     readPaths = []
-    for row in containerRows:
-        containerPath = row["path"]
-        readPaths.extend([
-            containerPath + "/ID",
-            containerPath + "/Place",
-            containerPath + "/Robot",
-        ])
-    readResults = readTagValues(readPaths) if readPaths else []
-
-    for index, row in enumerate(containerRows):
-        containerPath = row["path"]
-        offset = index * 3
-        containerId = _normalizedKey(
-            readResults[offset].value if offset < len(readResults) and readResults[offset].quality.isGood() else ""
-        )
-        if not containerId:
+    orderedNames = []
+    for placeTagName in list(placeTagNames or []):
+        placePath = basePath + "/" + str(placeTagName or "")
+        if not tagExists(placePath):
             continue
+        orderedNames.append(placeTagName)
+        readPaths.extend([
+            placePath + "/ContainerPresent",
+            placePath + "/ContainerId",
+        ])
 
-        seenKeys = set()
-        for valueIndex in [offset + 1, offset + 2]:
-            locationKey = _normalizedKey(
-                readResults[valueIndex].value
-                if valueIndex < len(readResults) and readResults[valueIndex].quality.isGood()
+    readResults = readTagValues(readPaths) if readPaths else []
+    occupancyByTagName = {}
+    for index, placeTagName in enumerate(orderedNames):
+        offset = index * 2
+        occupancyByTagName[placeTagName] = {
+            "container_present": bool(
+                readResults[offset].value
+                if offset < len(readResults) and readResults[offset].quality.isGood()
+                else False
+            ),
+            "container_id": str(
+                readResults[offset + 1].value
+                if offset + 1 < len(readResults) and readResults[offset + 1].quality.isGood()
                 else ""
-            )
-            if not locationKey or locationKey in seenKeys:
-                continue
-            seenKeys.add(locationKey)
-            locationMap.setdefault(locationKey, []).append(containerId)
-
-    return locationMap
+            ) or "",
+        }
+    return occupancyByTagName
 
 
-def mirrorPlcContainerOccupancy():
+def mirrorPlcPlaces(plcMappingState=None):
     """
-    Mirror Fleet/Containers occupancy into manually provisioned PLC/Containers rows.
+    Mirror Fleet place occupancy into mapped PLC/Places rows.
+    Unresolved place mappings are warned and skipped so last-good values remain.
     """
     logger = _log()
-    plcContainersBasePath = plcContainersPath()
+    plcMappingState = dict(plcMappingState or readPlcMappings() or {})
+    placeMappings = dict(plcMappingState.get("place_tag_name_to_plc_tag") or {})
 
-    try:
-        if not tagExists(plcContainersBasePath):
-            return buildOperationResult(
-                True,
-                "info",
-                "No PLC container rows configured",
-                data={"rows": [], "writes": []},
-                rows=[],
-                writes=[],
-            )
+    if not plcMappingState.get("place_dataset_ok", True):
+        return buildOperationResult(
+            False,
+            "warn",
+            "Skipped PLC place sync because PlaceTagNameMapping is unreadable",
+            data={"rows": [], "writes": [], "warnings": list(plcMappingState.get("warnings") or [])},
+            rows=[],
+            writes=[],
+            warnings=list(plcMappingState.get("warnings") or []),
+        )
 
-        plcRows = _udtInstanceRows(plcContainersBasePath)
-        if not plcRows:
-            return buildOperationResult(
-                True,
-                "info",
-                "No PLC container rows configured",
-                data={"rows": [], "writes": []},
-                rows=[],
-                writes=[],
-            )
-
-        locationMap = _containerLocationMap()
-        mirroredRows = []
-        writePaths = []
-        writeValues = []
-        locationReadResults = readTagValues(
-            [row["path"] + "/LocationID" for row in plcRows]
-        ) if plcRows else []
-
-        for index, row in enumerate(plcRows):
-            rowPath = row["path"]
-            locationId = _normalizedKey(
-                locationReadResults[index].value
-                if index < len(locationReadResults) and locationReadResults[index].quality.isGood()
-                else ""
-            )
-            matchedContainerIds = list(locationMap.get(locationId) or []) if locationId else []
-            present = bool(locationId and matchedContainerIds)
-            containerId = matchedContainerIds[0] if present else ""
-
-            if len(matchedContainerIds) > 1:
-                logger.warn(
-                    "PLC container mirror row [{}] matched multiple containers at [{}]: {}".format(
-                        row["name"] or rowPath,
-                        locationId,
-                        ", ".join(matchedContainerIds),
-                    )
-                )
-
-            mirroredRows.append({
-                "row_name": row["name"],
-                "row_path": rowPath,
-                "location_id": locationId,
-                "present": present,
-                "container_id": containerId,
-                "matched_container_ids": matchedContainerIds,
-            })
-            writePaths.extend([
-                rowPath + "/Present",
-                rowPath + "/ContainerID",
-            ])
-            writeValues.extend([
-                present,
-                containerId,
-            ])
-
-        if writePaths:
-            writeRequiredTagValues(
-                writePaths,
-                writeValues,
-                labels=["MainController PLC container mirror"] * len(writePaths),
-            )
-
+    if not placeMappings:
         return buildOperationResult(
             True,
             "info",
-            "Mirrored PLC container occupancy for {} row(s)".format(len(mirroredRows)),
-            data={
-                "rows": mirroredRows,
-                "writes": list(zip(writePaths, writeValues)),
-            },
-            rows=mirroredRows,
-            writes=list(zip(writePaths, writeValues)),
-        )
-    except Exception as e:
-        logger.error("PLC container occupancy mirror failed: {}".format(str(e)))
-        return buildOperationResult(
-            False,
-            "error",
-            "PLC container occupancy mirror failed: {}".format(str(e)),
-            data={"rows": [], "writes": []},
+            "No PLC place rows configured",
+            data={"rows": [], "writes": [], "warnings": []},
             rows=[],
             writes=[],
+            warnings=[],
         )
+
+    fleetOccupancy = _fleetPlaceOccupancyByTagName(placeMappings.keys())
+    warnings = []
+    mirroredRows = []
+    writePaths = []
+    writeValues = []
+
+    for placeTagName in sorted(placeMappings.keys()):
+        plcTagName = str(placeMappings.get(placeTagName) or "")
+        if not plcTagName:
+            warnings.append("PLC place mapping for [{}] is blank".format(placeTagName))
+            continue
+
+        placeOccupancy = fleetOccupancy.get(placeTagName)
+        if placeOccupancy is None:
+            warning = "PLC place mapping [{} -> {}] did not resolve to a live Fleet place; holding last good value".format(
+                placeTagName,
+                plcTagName,
+            )
+            logger.warn(warning)
+            warnings.append(warning)
+            continue
+
+        rowPath = plcPlaceRowPath(plcTagName)
+        outputs = {
+            "container_present": bool(placeOccupancy.get("container_present")),
+            "container_id": str(placeOccupancy.get("container_id") or ""),
+        }
+        rowWritePaths, rowWriteValues = _buildPlaceWritePathsAndValues(rowPath, outputs)
+        writePaths.extend(rowWritePaths)
+        writeValues.extend(rowWriteValues)
+        mirroredRows.append({
+            "place_tag_name": placeTagName,
+            "plc_tag_name": plcTagName,
+            "row_path": rowPath,
+            "container_present": outputs["container_present"],
+            "container_id": outputs["container_id"],
+        })
+
+    failedWritePaths = []
+    if writePaths:
+        writeResults = system.tag.writeBlocking(writePaths, writeValues)
+        for index, writeResult in enumerate(list(writeResults or [])):
+            if isWriteResultGood(writeResult):
+                continue
+            failedWritePaths.append(writePaths[index])
+            warning = "PLC place sync write failed for {}: {}".format(
+                writePaths[index],
+                writeResult,
+            )
+            logger.warn(warning)
+            warnings.append(warning)
+
+    ok = not warnings
+    level = "info" if ok else "warn"
+    message = "Synced PLC place occupancy for {} row(s)".format(len(mirroredRows))
+    if warnings:
+        message = "{} with {} warning(s)".format(message, len(warnings))
+
+    return buildOperationResult(
+        ok,
+        level,
+        message,
+        data={
+            "rows": mirroredRows,
+            "writes": list(zip(writePaths, writeValues)),
+            "warnings": warnings,
+            "failed_write_paths": failedWritePaths,
+        },
+        rows=mirroredRows,
+        writes=list(zip(writePaths, writeValues)),
+        warnings=warnings,
+        failed_write_paths=failedWritePaths,
+    )

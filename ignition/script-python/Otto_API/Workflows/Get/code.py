@@ -1,10 +1,10 @@
-from Otto_API.Common.TagHelpers import getApiBaseUrl
-from Otto_API.Common.TagHelpers import getFleetMapsPath
-from Otto_API.Common.TagHelpers import getSystemLastResponsePath
-from Otto_API.Common.TagHelpers import readRequiredTagValue
+from Otto_API.Common.TagIO import getApiBaseUrl
+from Otto_API.Common.TagIO import readRequiredTagValue
+from Otto_API.Common.TagIO import writeTagValueAsync
+from Otto_API.Common.TagPaths import getFleetMapsPath
+from Otto_API.Common.TagPaths import getSystemLastResponsePath
 from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import fetchListResource
-from Otto_API.Common.TagHelpers import writeTagValueAsync
 from Otto_API.Workflows.Apply import applyWorkflowSync
 
 

@@ -1,5 +1,5 @@
-from Otto_API.Common.TagHelpers import readTagValues
-from Otto_API.Common.TagHelpers import writeRequiredTagValues
+from Otto_API.Common.TagIO import readTagValues
+from Otto_API.Common.TagIO import writeRequiredTagValues
 
 from MainController.State.Coerce import toBool
 from MainController.State.Paths import internalStatePaths
@@ -93,13 +93,13 @@ def readRobotState(robotName):
     return normalizeRobotState(rawState)
 
 
-def writeRobotState(robotName, state):
+def writeRobotState(robotName, state, currentState=None):
     """Persist only the provided robot-state fields after normalizing against the current state."""
     incomingState = dict(state or {})
     if not incomingState:
         return
 
-    mergedState = dict(readRobotState(robotName) or {})
+    mergedState = dict(currentState or readRobotState(robotName) or {})
     mergedState.update(incomingState)
     normalizedState = normalizeRobotState(mergedState)
     paths = internalStatePaths(robotName)

@@ -1,10 +1,9 @@
 import re
 
-from Otto_API.Common.TagHelpers import getFleetRobotsPath
-from Otto_API.Common.TagHelpers import getWorkflowConfigPath
-from Otto_API.Common.TagHelpers import getFleetWorkflowsPath
-from Otto_API.Common.TagHelpers import readOptionalTagValue
-from Otto_API.Common.TagHelpers import ensureFleetConfigTags
+from Otto_API.Common.TagIO import readOptionalTagValue
+from Otto_API.Common.TagPaths import getFleetRobotsPath
+from Otto_API.Common.TagPaths import getFleetWorkflowsPath
+from Otto_API.Common.TagPaths import getWorkflowConfigPath
 from MainController.WorkflowConfigSeed import getWorkflowConfigHeaders
 from MainController.WorkflowConfigSeed import getWorkflowConfigRows
 
@@ -88,6 +87,7 @@ def _readWorkflowDatasetValue():
     if hasattr(datasetValue, "getRowCount"):
         return datasetValue
 
+    from MainController.State.Provisioning import ensureFleetConfigTags
     ensureFleetConfigTags()
     datasetValue = readOptionalTagValue(getWorkflowConfigPath(), None)
     if hasattr(datasetValue, "getRowCount"):

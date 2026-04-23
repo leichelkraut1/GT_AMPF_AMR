@@ -1,12 +1,10 @@
-from Otto_API.AttachmentPhaseHelpers import buildMissionControlFlags
-from Otto_API.Common.TagHelpers import readTagValues
+from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
 from Otto_API.Missions.MissionActions import sortActiveMissionRecords
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
 
 from MainController.State.Coerce import toBool
 from MainController.State.Paths import FLEET_ROBOTS_BASE
-from MainController.State.Paths import MAINCONTROL_ROBOTS_BASE
 from MainController.State.Paths import MISSIONS_ACTIVE_BASE
 from MainController.State.Paths import WORKFLOW_NAME_RE
 from MainController.WorkflowConfig import normalizeWorkflowNumber
@@ -15,7 +13,6 @@ from MainController.WorkflowConfig import normalizeWorkflowNumber
 def readRobotMirrorInputs(robotName):
     """Read the fleet/main-control signals that feed PLC output mirroring and dispatch gating."""
     robotPath = FLEET_ROBOTS_BASE + "/" + robotName
-    mainControlRobotPath = MAINCONTROL_ROBOTS_BASE + "/" + robotName
     readResults = readTagValues([
         robotPath + "/AvailableForWork",
         robotPath + "/ActiveMissionCount",
@@ -25,7 +22,8 @@ def readRobotMirrorInputs(robotName):
         robotPath + "/ActivityState",
         robotPath + "/PlaceId",
         robotPath + "/PlaceName",
-        mainControlRobotPath + "/MissionStarved",
+        robotPath + "/ContainerPresent",
+        robotPath + "/ContainerId",
     ])
 
     def _value(index, defaultValue=None, allowEmptyString=False):
@@ -45,8 +43,6 @@ def readRobotMirrorInputs(robotName):
                 pass
         return value
 
-    missionStarved = toBool(_value(8, False))
-    missionControlFlags = buildMissionControlFlags(missionStarved)
     return {
         "available_for_work": toBool(_value(0, False)),
         "active_mission_count": int(_value(1, 0) or 0),
@@ -56,8 +52,10 @@ def readRobotMirrorInputs(robotName):
         "activity_state": str(_value(5, "", allowEmptyString=True) or ""),
         "place_id": str(_value(6, "", allowEmptyString=True) or ""),
         "place_name": str(_value(7, "", allowEmptyString=True) or ""),
-        "mission_starved": missionControlFlags["mission_starved"],
-        "mission_ready_for_attachment": missionControlFlags["ready_for_attachment"],
+        "container_present": toBool(_value(8, False)),
+        "container_id": str(_value(9, "", allowEmptyString=True) or ""),
+        "mission_starved": False,
+        "mission_ready_for_attachment": False,
     }
 
 

@@ -1,9 +1,8 @@
-from Otto_API.Common.TagHelpers import readTagValues
-from Otto_API.Common.TagHelpers import writeRequiredTagValues
+from Otto_API.Common.TagIO import readTagValues
+from Otto_API.Common.TagIO import writeRequiredTagValues
 
 from MainController.State.Coerce import toBool
 from MainController.State.Paths import runtimePaths
-from MainController.State.Provisioning import ensureRuntimeTags
 
 
 def readRuntimeState():
@@ -21,7 +20,6 @@ def readRuntimeState():
 
 def writeRuntimeFields(fieldValues):
     """Write a partial set of runtime telemetry fields by logical name."""
-    ensureRuntimeTags()
     paths = runtimePaths()
     writePaths = []
     writeValues = []

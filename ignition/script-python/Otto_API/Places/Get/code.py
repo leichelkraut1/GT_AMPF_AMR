@@ -1,5 +1,5 @@
-from Otto_API.Common.TagHelpers import getApiBaseUrl
-from Otto_API.Common.TagHelpers import writeLastSystemResponse
+from Otto_API.Common.TagIO import getApiBaseUrl
+from Otto_API.Common.TagIO import writeLastSystemResponse
 from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import fetchListResource
 from Otto_API.Places.Apply import applyPlaceSync

@@ -1,5 +1,5 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Common.TagHelpers import writeObservedTagValues
+from Otto_API.Common.TagIO import writeObservedTagValues
 
 
 def buildRobotSyncResult(ok, level, message, records=None, writes=None, data=None):

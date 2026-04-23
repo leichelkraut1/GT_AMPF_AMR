@@ -2,9 +2,9 @@ from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ParseHelpers import parseListPayload
 from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Common.TagHelpers import browseTagResults
-from Otto_API.Common.TagHelpers import deleteTagPath
-from Otto_API.Common.TagHelpers import writeObservedTagValues
+from Otto_API.Common.TagIO import browseTagResults
+from Otto_API.Common.TagIO import deleteTagPath
+from Otto_API.Common.TagIO import writeObservedTagValues
 
 
 def buildSyncResult(ok, level, message, records=None, writes=None, value=None, **extra):

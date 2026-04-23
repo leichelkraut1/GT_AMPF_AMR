@@ -1,15 +1,16 @@
 import uuid
 
 from Otto_API.Common.HttpHelpers import httpPost
-from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Common.TagHelpers import browseTagResults
-from Otto_API.Common.TagHelpers import getFleetContainersPath
-from Otto_API.Common.TagHelpers import getFleetContainersVerboseCleanupLoggingPath
-from Otto_API.Common.TagHelpers import getOttoOperationsUrl
-from Otto_API.Common.TagHelpers import readOptionalTagValue
-from Otto_API.Common.TagHelpers import readRequiredTagValues
-from Otto_API.Common.TagHelpers import writeLastSystemResponse
-from Otto_API.Common.TagHelpers import writeLastTriggerResponse
+from Otto_API.Common.OperationHelpers import buildDataResult
+from Otto_API.Common.OperationHelpers import logAndWriteOperationResult
+from Otto_API.Common.TagIO import browseTagResults
+from Otto_API.Common.TagIO import getOttoOperationsUrl
+from Otto_API.Common.TagIO import readOptionalTagValue
+from Otto_API.Common.TagIO import readRequiredTagValues
+from Otto_API.Common.TagIO import writeLastSystemResponse
+from Otto_API.Common.TagIO import writeLastTriggerResponse
+from Otto_API.Common.TagPaths import getFleetContainersPath
+from Otto_API.Common.TagPaths import getFleetContainersVerboseCleanupLoggingPath
 from Otto_API.Containers.Actions import buildCreateContainerPayload
 from Otto_API.Containers.Actions import buildDeleteContainerPayload
 from Otto_API.Containers.Actions import buildUpdateContainerPlacePayload
@@ -35,7 +36,6 @@ def _buildResult(
     payload=None,
     extraData=None,
 ):
-    extraData = dict(extraData or {})
     data = {
         "container_id": containerId,
         "place_id": placeId,
@@ -43,20 +43,8 @@ def _buildResult(
         "response_text": responseText,
         "payload": payload,
     }
-    data.update(extraData)
-
-    return buildOperationResult(
-        ok,
-        level,
-        message,
-        data=data,
-        container_id=containerId,
-        place_id=placeId,
-        robot_id=robotId,
-        response_text=responseText,
-        payload=payload,
-        **extraData
-    )
+    data.update(dict(extraData or {}))
+    return buildDataResult(ok, level, message, **data)
 
 
 def _resultWithDefaults(defaultFields=None, defaultExtraData=None):
@@ -95,18 +83,7 @@ def _resultWithDefaults(defaultFields=None, defaultExtraData=None):
 
 
 def _writeResponseAndLogResult(result, logger):
-    if result["response_text"] is not None:
-        writeLastSystemResponse(result["response_text"], asyncWrite=True)
-
-    if result["level"] == "info":
-        logger.info(result["message"])
-    elif result["level"] == "warn":
-        logger.warn(result["message"])
-    else:
-        logger.error(result["message"])
-
-    writeLastTriggerResponse(result["message"], asyncWrite=True)
-    return result
+    return logAndWriteOperationResult(result, logger)
 
 
 def _runCreateFromTagPath(containerTagPath, targetLabel, targetId, createFunc):
@@ -656,13 +633,14 @@ def cleanupContainersWithoutLocation():
 
     result = deleteContainersWithoutLocationFromInputs(fleetManagerURL, httpPost)
 
-    if result["response_text"] is not None:
-        writeLastSystemResponse(result["response_text"], asyncWrite=True)
+    resultData = dict(result.get("data") or {})
+    if resultData.get("response_text") is not None:
+        writeLastSystemResponse(resultData.get("response_text"), asyncWrite=True)
 
-    if result["ok"] and result.get("deleted_container_ids"):
+    if result["ok"] and resultData.get("deleted_container_ids"):
         ottoLogger.info(result["message"])
     elif not result["ok"] and result["level"] == "warn":
-        if verboseLogging or result.get("matched_container_ids"):
+        if verboseLogging or resultData.get("matched_container_ids"):
             ottoLogger.warn(result["message"])
     elif result["level"] == "error":
         ottoLogger.error(result["message"])

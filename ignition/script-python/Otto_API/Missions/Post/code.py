@@ -1,10 +1,10 @@
 from Otto_API.Common.HttpHelpers import httpPost
-from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Common.TagHelpers import getOttoOperationsUrl
-from Otto_API.Common.TagHelpers import getFleetMissionsPath
-from Otto_API.Common.TagHelpers import readRequiredTagValue
-from Otto_API.Common.TagHelpers import writeLastSystemResponse
-from Otto_API.Common.TagHelpers import writeLastTriggerResponse
+from Otto_API.Common.OperationHelpers import buildDataResult
+from Otto_API.Common.OperationHelpers import logAndWriteOperationResult
+from Otto_API.Common.TagIO import getOttoOperationsUrl
+from Otto_API.Common.TagIO import readRequiredTagValue
+from Otto_API.Common.TagIO import writeLastTriggerResponse
+from Otto_API.Common.TagPaths import getFleetMissionsPath
 from Otto_API.Missions.MissionActions import buildCancelMissionPayload
 from Otto_API.Missions.MissionActions import buildCreateMissionPayload
 from Otto_API.Missions.MissionActions import buildFinalizeMissionPayload
@@ -28,15 +28,10 @@ def _buildResult(ok, level, message, missionId=None, responseText=None, payload=
 	"""
 	Builds a structured result object for wrapper and helper callers.
 	"""
-	return buildOperationResult(
+	return buildDataResult(
 		ok,
 		level,
 		message,
-		data={
-			"mission_id": missionId,
-			"response_text": responseText,
-			"payload": payload,
-		},
 		mission_id=missionId,
 		response_text=responseText,
 		payload=payload,
@@ -51,15 +46,10 @@ def _buildCancelBatchResult(ok, level, message, missionIds=None, responseTexts=N
 	responseTexts = list(responseTexts or [])
 	payloads = list(payloads or [])
 	firstMissionId = missionIds[0] if missionIds else None
-	return buildOperationResult(
+	return buildDataResult(
 		ok,
 		level,
 		message,
-		data={
-			"mission_ids": missionIds,
-			"response_texts": responseTexts,
-			"payloads": payloads,
-		},
 		mission_ids=missionIds,
 		response_texts=responseTexts,
 		payloads=payloads,
@@ -71,22 +61,7 @@ def _writeAndLogMissionResult(result, logger):
 	"""
 	Write response/message side effects and log one structured mission result.
 	"""
-	responseText = result.get("response_text")
-	if responseText is None and result.get("response_texts"):
-		responseText = result["response_texts"][-1]
-
-	if responseText is not None:
-		writeLastSystemResponse(responseText, asyncWrite=True)
-
-	if result["level"] == "info":
-		logger.info(result["message"])
-	elif result["level"] == "warn":
-		logger.warn(result["message"])
-	else:
-		logger.error(result["message"])
-
-	writeLastTriggerResponse(result["message"], asyncWrite=True)
-	return result
+	return logAndWriteOperationResult(result, logger)
 
 
 def _runMissionCommandFromInputs(actionName, missionId, fleetManagerURL, postFunc):
@@ -182,18 +157,20 @@ def _cancelMissionIdsFromInputs(
 				postFunc,
 			)
 			if not result.get("ok"):
+				resultData = dict(result.get("data") or {})
 				return _cancelBatchResult(
 					False,
 					result.get("level", "warn"),
 					result.get("message", ""),
 					missionIds=canceledMissionIds,
-					responseTexts=responseTexts + [result.get("response_text")],
-					payloads=payloads + [result.get("payload")]
+					responseTexts=responseTexts + [resultData.get("response_text")],
+					payloads=payloads + [resultData.get("payload")]
 				)
 
 			canceledMissionIds.append(missionId)
-			responseTexts.append(result.get("response_text"))
-			payloads.append(result.get("payload"))
+			resultData = dict(result.get("data") or {})
+			responseTexts.append(resultData.get("response_text"))
+			payloads.append(resultData.get("payload"))
 
 		return _cancelBatchResult(
 			True,

@@ -25,6 +25,8 @@ def buildOutputs(
         "activity_state": str(mirrorInputs.get("activity_state") or ""),
         "place_id": str(mirrorInputs.get("place_id") or ""),
         "place_name": str(mirrorInputs.get("place_name") or ""),
+        "container_present": bool(mirrorInputs.get("container_present")),
+        "container_id": str(mirrorInputs.get("container_id") or ""),
         "active_workflow_number": normalizeWorkflowNumber(activeWorkflowNumber) or 0,
         "mission_starved": bool(mirrorInputs.get("mission_starved")),
         "mission_ready_for_attachment": bool(mirrorInputs.get("mission_ready_for_attachment")),

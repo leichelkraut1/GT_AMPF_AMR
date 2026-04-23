@@ -2,7 +2,6 @@ import time
 
 from MainController.Loop import ControllerCycle
 from Otto_API.Common.RuntimeHistory import timestampString
-from MainController.State.Provisioning import ensureRuntimeTags
 from MainController.State.RuntimeStore import readRuntimeState
 from MainController.State.RuntimeStore import writeRuntimeFields
 
@@ -22,7 +21,6 @@ def runMainControllerCycle(
     if nowEpochMs is None:
         nowEpochMs = int(time.time() * 1000)
 
-    ensureRuntimeTags()
     runtimeState = readRuntimeState()
     if runtimeState["loop_is_running"]:
         overlapCount = runtimeState["loop_overlap_count"] + 1

@@ -10,6 +10,14 @@ from MainController.State.RobotStore import writeRobotState
 from MainController.WorkflowConfig import normalizeWorkflowNumber
 
 
+def _plcSyncResult(ok, level="info", message="PLC robot sync healthy"):
+    return {
+        "ok": bool(ok),
+        "level": str(level or "info"),
+        "message": str(message or ""),
+    }
+
+
 def _buildCommandLogSignature(
     robotName,
     requestedWorkflowNumber,
@@ -28,7 +36,7 @@ def _buildCommandLogSignature(
     ])
 
 
-def _recordCommandHistory(snapshot, outcome):
+def _recordCommandHistory(snapshot, outcome, currentState=None):
     """Log non-idle controller decisions to the runtime history dataset."""
     action = str(outcome.get("action") or "")
     if action == "idle":
@@ -52,14 +60,15 @@ def _recordCommandHistory(snapshot, outcome):
         level,
         stateName,
     )
-    currentState = readRobotState(robotName)
+    currentState = dict(currentState or readRobotState(robotName) or {})
     if currentState.get("last_logged_signature") == signature:
         writeRobotState(
             robotName,
             {
                 "last_computed_log_signature": signature,
                 "last_log_decision": "skip_duplicate",
-            }
+            },
+            currentState=currentState,
         )
         return
 
@@ -84,7 +93,8 @@ def _recordCommandHistory(snapshot, outcome):
             "last_logged_signature": signature,
             "last_computed_log_signature": signature,
             "last_log_decision": "append",
-        }
+        },
+        currentState=currentState,
     )
 
 
@@ -95,35 +105,63 @@ def applyRobotOutcome(snapshot, outcome):
     action = str(outcome.get("action") or "")
 
     if stateUpdates:
-        writeRobotState(robotName, stateUpdates)
+        writeRobotState(robotName, stateUpdates, currentState=snapshot.get("current_state"))
+    currentState = dict(snapshot.get("current_state") or {})
+    currentState.update(stateUpdates)
 
+    syncResult = _plcSyncResult(True)
     if outcome.get("plc_health_outputs") is not None:
         plcHealth = dict(outcome.get("plc_health_outputs") or {})
-        writePlcHealthOutputs(
-            robotName,
-            fleetFault=plcHealth.get("fleetFault", False),
-            plcCommFault=plcHealth.get("plcCommFault", False),
-            controlHealthy=plcHealth.get("controlHealthy", True),
-        )
+        try:
+            writePlcHealthOutputs(
+                snapshot.get("plc_tag_name"),
+                fleetFault=plcHealth.get("fleetFault", False),
+                plcCommFault=plcHealth.get("plcCommFault", False),
+                controlHealthy=plcHealth.get("controlHealthy", True),
+            )
+        except Exception as exc:
+            syncResult = _plcSyncResult(
+                False,
+                "warn",
+                "Robot [{}] PLC health sync failed: {}".format(robotName, str(exc)),
+            )
     elif outcome.get("plc_outputs") is not None:
-        writePlcOutputs(robotName, outcome.get("plc_outputs"))
+        try:
+            writePlcOutputs(snapshot.get("plc_tag_name"), outcome.get("plc_outputs"))
+        except Exception as exc:
+            syncResult = _plcSyncResult(
+                False,
+                "warn",
+                "Robot [{}] PLC sync failed: {}".format(robotName, str(exc)),
+            )
 
     payload = dict(outcome.get("data") or {})
     if outcome.get("command_result") is not None:
         payload["command_result"] = outcome.get("command_result")
     if outcome.get("mission_ops") is not None:
         payload["mission_ops"] = outcome.get("mission_ops")
+    payload["plc_sync_result"] = syncResult
     payload["requested_workflow_number"] = outcome.get("selected_workflow_number")
     payload["active_workflow_number"] = outcome.get("active_workflow_number")
 
+    resultOk = bool(outcome.get("ok", False))
+    resultLevel = str(outcome.get("level", "info") or "info")
+    resultMessage = str(outcome.get("message", "") or "")
+    if not syncResult["ok"]:
+        resultOk = False
+        if resultLevel == "info":
+            resultLevel = "warn"
+        if syncResult["message"]:
+            resultMessage = "{}; {}".format(resultMessage, syncResult["message"]) if resultMessage else syncResult["message"]
+
     result = buildCycleResult(
-        outcome.get("ok", False),
-        outcome.get("level", "info"),
-        outcome.get("message", ""),
+        resultOk,
+        resultLevel,
+        resultMessage,
         robotName=robotName,
         state=str(outcome.get("state") or ""),
         action=action,
         data=payload,
     )
-    _recordCommandHistory(snapshot, outcome)
+    _recordCommandHistory(snapshot, outcome, currentState=currentState)
     return result

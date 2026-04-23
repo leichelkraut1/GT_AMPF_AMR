@@ -1,11 +1,12 @@
-from Otto_API.Common.TagHelpers import ensureFolder
-from Otto_API.Common.TagHelpers import ensureUdtInstancePath
-from Otto_API.Common.TagHelpers import getFleetContainersPath
-from Otto_API.Common.TagHelpers import tagExists
+from Otto_API.Common.TagIO import tagExists
+from Otto_API.Common.TagPaths import getFleetContainersPath
+from Otto_API.Common.TagProvisioning import ensureFolder
+from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
 from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import cleanupStaleUdtInstances
 from Otto_API.Common.SyncHelpers import writeObservedTagDict
 from Otto_API.Containers.Normalize import normalizeContainerRecord
+from Otto_API.Containers.Occupancy import recomputeFleetOccupancy
 
 
 def applyContainerSync(containerRecords, logger):
@@ -46,10 +47,18 @@ def applyContainerSync(containerRecords, logger):
         cleanupWarnPrefix="Otto API - Container cleanup skipped due to error: ",
     )
 
+    occupancyResult = recomputeFleetOccupancy(logger)
+    finalOk = bool(occupancyResult.get("ok", False))
+    finalLevel = "info" if finalOk else str(occupancyResult.get("level") or "warn")
+    finalMessage = "Containers updated for {} instance(s)".format(len(apiContainers))
+    if not finalOk:
+        finalMessage = "{}; {}".format(finalMessage, occupancyResult.get("message") or "occupancy degraded")
+
     return buildSyncResult(
-        True,
-        "info",
-        "Containers updated for {} instance(s)".format(len(apiContainers)),
+        finalOk,
+        finalLevel,
+        finalMessage,
         records=containerRecords,
-        writes=writes
+        writes=writes + list(occupancyResult.get("writes") or []),
+        occupancy=occupancyResult,
     )

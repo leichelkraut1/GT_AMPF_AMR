@@ -1,10 +1,10 @@
 import re
 
-from Otto_API.Common.TagHelpers import getFleetMissionsPath
-from Otto_API.Common.TagHelpers import getFleetRobotsPath
-from Otto_API.Common.TagHelpers import getMainControlRobotsPath
-from Otto_API.Common.TagHelpers import getMainControlRuntimePath
-from Otto_API.Common.TagHelpers import getPlcRootPath
+from Otto_API.Common.TagPaths import getFleetMissionsPath
+from Otto_API.Common.TagPaths import getFleetRobotsPath
+from Otto_API.Common.TagPaths import getMainControlRobotsPath
+from Otto_API.Common.TagPaths import getMainControlRuntimePath
+from Otto_API.Common.TagPaths import getPlcRootPath
 
 from MainController.WorkflowConfig import ROBOT_NAMES
 
@@ -13,7 +13,9 @@ FLEET_ROBOTS_BASE = getFleetRobotsPath()
 MAINCONTROL_ROBOTS_BASE = getMainControlRobotsPath()
 MISSIONS_ACTIVE_BASE = getFleetMissionsPath() + "/Active"
 PLC_BASE = getPlcRootPath()
-PLC_CONTAINERS_BASE = PLC_BASE + "/Containers"
+PLC_ROBOTS_BASE = PLC_BASE + "/Robots"
+PLC_PLACES_BASE = PLC_BASE + "/Places"
+PLC_FLEET_MAPPING_BASE = PLC_BASE + "/FleetMapping"
 RUNTIME_BASE = getMainControlRuntimePath()
 
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
@@ -45,9 +47,13 @@ def internalStatePaths(robotName):
     }
 
 
-def plcPaths(robotName):
-    """Return the PLC-facing input/output contract for a robot."""
-    basePath = PLC_BASE + "/" + robotName
+def plcRobotRowPath(plcTagName):
+    return PLC_ROBOTS_BASE + "/" + str(plcTagName or "")
+
+
+def plcRobotPaths(plcTagName):
+    """Return the PLC-facing input/output contract for a mapped PLC robot row."""
+    basePath = plcRobotRowPath(plcTagName)
     fromPlc = basePath + "/FromPLC"
     toPlc = basePath + "/ToPLC"
     return {
@@ -64,6 +70,8 @@ def plcPaths(robotName):
         "activity_state": toPlc + "/ActivityState",
         "place_id": toPlc + "/PlaceId",
         "place_name": toPlc + "/PlaceName",
+        "container_present": toPlc + "/ContainerPresent",
+        "container_id": toPlc + "/ContainerId",
         "active_workflow_number": toPlc + "/ActiveWorkflowNumber",
         "mission_starved": toPlc + "/MissionStarved",
         "mission_ready_for_attachment": toPlc + "/MissionReadyforAttachment",
@@ -79,9 +87,30 @@ def plcPaths(robotName):
     }
 
 
-def plcContainersPath():
-    """Return the PLC folder that holds manual container-location mirror rows."""
-    return PLC_CONTAINERS_BASE
+def plcPaths(plcTagName):
+    """Legacy alias that now expects an already-resolved PLC robot tag name."""
+    return plcRobotPaths(plcTagName)
+
+
+def plcPlacesPath():
+    """Return the PLC folder that holds mapped place sync rows."""
+    return PLC_PLACES_BASE
+
+
+def plcPlaceRowPath(plcTagName):
+    return PLC_PLACES_BASE + "/" + str(plcTagName or "")
+
+
+def plcFleetMappingPath():
+    return PLC_FLEET_MAPPING_BASE
+
+
+def plcRobotTagNameMappingPath():
+    return PLC_FLEET_MAPPING_BASE + "/RobotTagNameMapping"
+
+
+def plcPlaceTagNameMappingPath():
+    return PLC_FLEET_MAPPING_BASE + "/PlaceTagNameMapping"
 
 
 def runtimePaths():
@@ -100,8 +129,10 @@ def runtimePaths():
         "robot_state_message": RUNTIME_BASE + "/RobotStateMessage",
         "container_state_status": RUNTIME_BASE + "/ContainerStateStatus",
         "container_state_message": RUNTIME_BASE + "/ContainerStateMessage",
-        "plc_container_mirror_status": RUNTIME_BASE + "/PlcContainerMirrorStatus",
-        "plc_container_mirror_message": RUNTIME_BASE + "/PlcContainerMirrorMessage",
+        "plc_robot_fleet_sync_status": RUNTIME_BASE + "/PLCRobotFleetSyncStatus",
+        "plc_robot_fleet_sync_message": RUNTIME_BASE + "/PLCRobotFleetSyncMessage",
+        "plc_place_fleet_sync_status": RUNTIME_BASE + "/PLCPlaceFleetSyncStatus",
+        "plc_place_fleet_sync_message": RUNTIME_BASE + "/PLCPlaceFleetSyncMessage",
         "mission_sorting_status": RUNTIME_BASE + "/MissionSortingStatus",
         "mission_sorting_message": RUNTIME_BASE + "/MissionSortingMessage",
         "workflow_cycles_status": RUNTIME_BASE + "/WorkflowCyclesStatus",
