@@ -68,6 +68,8 @@ def runtimePaths():
         "loop_last_duration_ms": RUNTIME_BASE + "/LoopLastDurationMs",
         "loop_last_result": RUNTIME_BASE + "/LoopLastResult",
         "loop_overlap_count": RUNTIME_BASE + "/LoopOverlapCount",
+        "server_status_status": RUNTIME_BASE + "/ServerStatusStatus",
+        "server_status_message": RUNTIME_BASE + "/ServerStatusMessage",
         "robot_state_status": RUNTIME_BASE + "/RobotStateStatus",
         "robot_state_message": RUNTIME_BASE + "/RobotStateMessage",
         "container_state_status": RUNTIME_BASE + "/ContainerStateStatus",
@@ -98,6 +100,8 @@ def ensureRuntimeTags():
     ensureMemoryTag(paths["loop_last_duration_ms"], "Int4", 0)
     ensureMemoryTag(paths["loop_last_result"], "String", "")
     ensureMemoryTag(paths["loop_overlap_count"], "Int4", 0)
+    ensureMemoryTag(paths["server_status_status"], "String", "")
+    ensureMemoryTag(paths["server_status_message"], "String", "")
     ensureMemoryTag(paths["robot_state_status"], "String", "")
     ensureMemoryTag(paths["robot_state_message"], "String", "")
     ensureMemoryTag(paths["container_state_status"], "String", "")

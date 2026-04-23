@@ -233,7 +233,7 @@
                       },
                       "transforms": [
                         {
-                          "code": "\tresults \u003d system.tag.readBlocking([\n\t\t\"[Otto_FleetManager]MainControl/Runtime/RobotStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/ContainerStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/PlcContainerMirrorStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/MissionSortingStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/WorkflowCyclesStatus\",\n\t])\n\tstatuses \u003d []\n\tfor result in results:\n\t\tstatuses.append(str(result.value or \"\") if result.quality.isGood() else \"\")\n\tstatuses \u003d [status for status in statuses if status]\n\tif any(status \u003d\u003d \"Error\" for status in statuses):\n\t\treturn \"#991b1b\"\n\tif any(status \u003d\u003d \"Warn\" for status in statuses):\n\t\treturn \"#b45309\"\n\treturn \"#166534\"",
+                          "code": "\tresults \u003d system.tag.readBlocking([\n\t\t\"[Otto_FleetManager]MainControl/Runtime/ServerStatusStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/RobotStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/ContainerStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/PlcContainerMirrorStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/MissionSortingStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/WorkflowCyclesStatus\",\n\t])\n\tstatuses \u003d []\n\tfor result in results:\n\t\tstatuses.append(str(result.value or \"\") if result.quality.isGood() else \"\")\n\tstatuses \u003d [status for status in statuses if status]\n\tif any(status \u003d\u003d \"Error\" for status in statuses):\n\t\treturn \"#991b1b\"\n\tif any(status \u003d\u003d \"Warn\" for status in statuses):\n\t\treturn \"#b45309\"\n\treturn \"#166534\"",
                           "type": "script"
                         }
                       ],
@@ -247,7 +247,7 @@
                       },
                       "transforms": [
                         {
-                          "code": "\tresults \u003d system.tag.readBlocking([\n\t\t\"[Otto_FleetManager]MainControl/Runtime/RobotStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/ContainerStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/PlcContainerMirrorStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/MissionSortingStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/WorkflowCyclesStatus\",\n\t])\n\tstatuses \u003d []\n\tfor result in results:\n\t\tstatuses.append(str(result.value or \"\") if result.quality.isGood() else \"\")\n\tstatuses \u003d [status for status in statuses if status]\n\tif any(status \u003d\u003d \"Error\" for status in statuses):\n\t\treturn \"Attention\"\n\tif any(status \u003d\u003d \"Warn\" for status in statuses):\n\t\treturn \"Degraded\"\n\treturn \"Healthy\"",
+                          "code": "\tresults \u003d system.tag.readBlocking([\n\t\t\"[Otto_FleetManager]MainControl/Runtime/ServerStatusStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/RobotStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/ContainerStateStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/PlcContainerMirrorStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/MissionSortingStatus\",\n\t\t\"[Otto_FleetManager]MainControl/Runtime/WorkflowCyclesStatus\",\n\t])\n\tstatuses \u003d []\n\tfor result in results:\n\t\tstatuses.append(str(result.value or \"\") if result.quality.isGood() else \"\")\n\tstatuses \u003d [status for status in statuses if status]\n\tif any(status \u003d\u003d \"Error\" for status in statuses):\n\t\treturn \"Attention\"\n\tif any(status \u003d\u003d \"Warn\" for status in statuses):\n\t\treturn \"Degraded\"\n\treturn \"Healthy\"",
                           "type": "script"
                         }
                       ],
@@ -282,7 +282,7 @@
                       },
                       "transforms": [
                         {
-                          "expression": "if(isNull({value}) || len(toStr({value})) \u003d 0 || toStr({value}) \u003d \"Healthy\", \"Robot sync, container sync, PLC mirror, mission sorting, and workflow cycles are healthy\", toStr({value}))",
+                          "expression": "if(isNull({value}) || len(toStr({value})) \u003d 0 || toStr({value}) \u003d \"Healthy\", \"Server status, robot sync, container sync, PLC mirror, mission sorting, and workflow cycles are healthy\", toStr({value}))",
                           "type": "expression"
                         }
                       ],

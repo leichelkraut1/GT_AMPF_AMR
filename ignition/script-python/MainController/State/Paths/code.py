@@ -94,6 +94,8 @@ def runtimePaths():
         "loop_last_duration_ms": RUNTIME_BASE + "/LoopLastDurationMs",
         "loop_last_result": RUNTIME_BASE + "/LoopLastResult",
         "loop_overlap_count": RUNTIME_BASE + "/LoopOverlapCount",
+        "server_status_status": RUNTIME_BASE + "/ServerStatusStatus",
+        "server_status_message": RUNTIME_BASE + "/ServerStatusMessage",
         "robot_state_status": RUNTIME_BASE + "/RobotStateStatus",
         "robot_state_message": RUNTIME_BASE + "/RobotStateMessage",
         "container_state_status": RUNTIME_BASE + "/ContainerStateStatus",

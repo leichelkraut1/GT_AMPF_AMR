@@ -4,13 +4,14 @@ from Otto_API.Missions import MissionSorting
 from Otto_API.Robots import Get as RobotGet
 from Otto_API.System import Get as SystemGet
 
-from MainController.Robot.Cycle import runRobotWorkflowCycle
+from MainController.Robot.Cycle import runRobotWorkflowCycleSnapshot
+from MainController.Robot.Snapshot import readRobotCycleSnapshot
 from MainController.State.ContainerMirror import mirrorPlcContainerOccupancy
-from MainController.State.MissionStore import buildWorkflowReservedMap
 from MainController.State.Paths import ROBOT_NAMES
 from MainController.State.PlcStore import writePlcHealthOutputs
 from MainController.State.Provisioning import ensureRobotRunnerTags
 from MainController.State.RuntimeStore import writeRuntimeFields
+from MainController.WorkflowConfig import normalizeWorkflowNumber
 
 
 def _phaseStatus(result):
@@ -29,6 +30,7 @@ def _phaseMessage(result):
 
 
 def _controllerRuntimeFields(
+    serverStatusResult,
     robotStateResult,
     containerStateResult,
     plcContainerMirrorResult,
@@ -36,6 +38,7 @@ def _controllerRuntimeFields(
     workflowResult
 ):
     phaseResults = [
+        ("server_status", "Server Status", serverStatusResult),
         ("robot_state", "Robot Sync", robotStateResult),
         ("container_state", "Container Sync", containerStateResult),
         ("plc_container_mirror", "PLC Container Mirror", plcContainerMirrorResult),
@@ -57,6 +60,32 @@ def _controllerRuntimeFields(
     return fields
 
 
+def _buildReservedWorkflowsFromSnapshots(snapshots):
+    reserved = {}
+    for snapshot in list(snapshots or []):
+        activeWorkflowNumber = normalizeWorkflowNumber(
+            dict(snapshot.get("active_summary") or {}).get("workflow_number")
+        )
+        if activeWorkflowNumber:
+            reserved[activeWorkflowNumber] = snapshot["robot_name"]
+            continue
+
+        currentState = dict(snapshot.get("current_state") or {})
+        selectedWorkflowNumber = normalizeWorkflowNumber(
+            currentState.get("selected_workflow_number")
+        )
+        if not selectedWorkflowNumber:
+            continue
+
+        if (
+            currentState.get("request_latched")
+            or currentState.get("mission_needs_finalized")
+            or currentState.get("mission_created")
+        ):
+            reserved[selectedWorkflowNumber] = snapshot["robot_name"]
+    return reserved
+
+
 def runAllRobotWorkflowCycles(
     robotNames=None,
     nowEpochMs=None,
@@ -68,19 +97,24 @@ def runAllRobotWorkflowCycles(
     if robotNames is None:
         robotNames = ROBOT_NAMES
 
-    reservedWorkflows = buildWorkflowReservedMap(robotNames)
-    results = []
-
+    snapshots = []
     for robotName in list(robotNames or []):
-        results.append(
-            runRobotWorkflowCycle(
+        snapshots.append(
+            readRobotCycleSnapshot(
                 robotName,
-                reservedWorkflows=reservedWorkflows,
                 nowEpochMs=nowEpochMs,
                 createMission=createMission,
                 finalizeMissionId=finalizeMissionId,
                 cancelMissionIds=cancelMissionIds,
             )
+        )
+
+    reservedWorkflows = _buildReservedWorkflowsFromSnapshots(snapshots)
+    results = []
+    for snapshot in snapshots:
+        snapshot["reserved_workflows"] = reservedWorkflows
+        results.append(
+            runRobotWorkflowCycleSnapshot(snapshot)
         )
 
     ok = all(result.get("ok", False) or result.get("level") == "warn" for result in results)
@@ -102,6 +136,7 @@ def runMainControllerCycle(
 ):
     """Run the ordered controller phases for one main-loop cycle."""
     serverStatusResult = SystemGet.readCachedServerStatus()
+    missionSortResult = MissionSorting.run()
     robotStateResult = RobotGet.updateRobotOperationalState()
     containerStateResult = ContainerGet.updateContainers()
     if containerStateResult.get("ok"):
@@ -115,7 +150,6 @@ def runMainControllerCycle(
             rows=[],
             writes=[],
         )
-    missionSortResult = MissionSorting.run()
 
     canEvaluatePlc = (
         robotStateResult.get("ok")
@@ -148,6 +182,7 @@ def runMainControllerCycle(
 
     writeRuntimeFields(
         _controllerRuntimeFields(
+            serverStatusResult,
             robotStateResult,
             containerStateResult,
             plcContainerMirrorResult,

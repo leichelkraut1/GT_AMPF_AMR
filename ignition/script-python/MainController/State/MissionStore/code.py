@@ -1,5 +1,4 @@
 from Otto_API.AttachmentPhaseHelpers import buildMissionControlFlags
-from Otto_API.Common.TagHelpers import readOptionalTagValue
 from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
 from Otto_API.Missions.MissionActions import sortActiveMissionRecords
@@ -10,8 +9,6 @@ from MainController.State.Paths import FLEET_ROBOTS_BASE
 from MainController.State.Paths import MAINCONTROL_ROBOTS_BASE
 from MainController.State.Paths import MISSIONS_ACTIVE_BASE
 from MainController.State.Paths import WORKFLOW_NAME_RE
-from MainController.State.RobotStore import readRobotState
-from MainController.WorkflowConfig import ROBOT_NAMES
 from MainController.WorkflowConfig import normalizeWorkflowNumber
 
 
@@ -19,19 +16,46 @@ def readRobotMirrorInputs(robotName):
     """Read the fleet/main-control signals that feed PLC output mirroring and dispatch gating."""
     robotPath = FLEET_ROBOTS_BASE + "/" + robotName
     mainControlRobotPath = MAINCONTROL_ROBOTS_BASE + "/" + robotName
-    missionStarved = toBool(
-        readOptionalTagValue(mainControlRobotPath + "/MissionStarved", False)
-    )
+    readResults = readTagValues([
+        robotPath + "/AvailableForWork",
+        robotPath + "/ActiveMissionCount",
+        robotPath + "/ChargeLevel",
+        robotPath + "/SystemState",
+        robotPath + "/SubSystemState",
+        robotPath + "/ActivityState",
+        robotPath + "/PlaceId",
+        robotPath + "/PlaceName",
+        mainControlRobotPath + "/MissionStarved",
+    ])
+
+    def _value(index, defaultValue=None, allowEmptyString=False):
+        if index >= len(readResults):
+            return defaultValue
+        qualifiedValue = readResults[index]
+        if not qualifiedValue.quality.isGood():
+            return defaultValue
+        value = qualifiedValue.value
+        if value is None:
+            return defaultValue
+        if not allowEmptyString:
+            try:
+                if str(value).strip() == "":
+                    return defaultValue
+            except Exception:
+                pass
+        return value
+
+    missionStarved = toBool(_value(8, False))
     missionControlFlags = buildMissionControlFlags(missionStarved)
     return {
-        "available_for_work": toBool(readOptionalTagValue(robotPath + "/AvailableForWork", False)),
-        "active_mission_count": int(readOptionalTagValue(robotPath + "/ActiveMissionCount", 0) or 0),
-        "charge_level": float(readOptionalTagValue(robotPath + "/ChargeLevel", 0.0) or 0.0),
-        "system_state": str(readOptionalTagValue(robotPath + "/SystemState", "", allowEmptyString=True) or ""),
-        "sub_system_state": str(readOptionalTagValue(robotPath + "/SubSystemState", "", allowEmptyString=True) or ""),
-        "activity_state": str(readOptionalTagValue(robotPath + "/ActivityState", "", allowEmptyString=True) or ""),
-        "place_id": str(readOptionalTagValue(robotPath + "/PlaceId", "", allowEmptyString=True) or ""),
-        "place_name": str(readOptionalTagValue(robotPath + "/PlaceName", "", allowEmptyString=True) or ""),
+        "available_for_work": toBool(_value(0, False)),
+        "active_mission_count": int(_value(1, 0) or 0),
+        "charge_level": float(_value(2, 0.0) or 0.0),
+        "system_state": str(_value(3, "", allowEmptyString=True) or ""),
+        "sub_system_state": str(_value(4, "", allowEmptyString=True) or ""),
+        "activity_state": str(_value(5, "", allowEmptyString=True) or ""),
+        "place_id": str(_value(6, "", allowEmptyString=True) or ""),
+        "place_name": str(_value(7, "", allowEmptyString=True) or ""),
         "mission_starved": missionControlFlags["mission_starved"],
         "mission_ready_for_attachment": missionControlFlags["ready_for_attachment"],
     }
@@ -133,24 +157,3 @@ def readActiveMissionSummary(robotName):
         "mission_name": missionName,
         "workflow_number": workflowNumber,
     }
-
-
-def buildWorkflowReservedMap(robotNames):
-    """Build a workflow ownership map from both active missions and controller state."""
-    reserved = {}
-    for robotName in list(robotNames or ROBOT_NAMES):
-        activeSummary = readActiveMissionSummary(robotName)
-        workflowNumber = activeSummary.get("workflow_number")
-        if workflowNumber is not None:
-            reserved[workflowNumber] = robotName
-            continue
-
-        state = readRobotState(robotName)
-        selectedWorkflow = normalizeWorkflowNumber(
-            state.get("selected_workflow_number")
-        )
-        if not selectedWorkflow:
-            continue
-        if state.get("request_latched") or state.get("mission_needs_finalized") or state.get("mission_created"):
-            reserved[selectedWorkflow] = robotName
-    return reserved

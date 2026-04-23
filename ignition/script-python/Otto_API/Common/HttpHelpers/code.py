@@ -7,7 +7,7 @@ from Otto_API.Common.RuntimeHistory import appendHttpHistoryRow
 from Otto_API.Common.RuntimeHistory import timestampString
 from Otto_API.Common.TagHelpers import getDisableLogOfMainCycleHttpPath
 from Otto_API.Common.TagHelpers import getMainCycleEndpointsPath
-from Otto_API.Common.TagHelpers import readOptionalTagValue
+from Otto_API.Common.TagHelpers import readOptionalTagValues
 
 
 def jsonHeaders(extraHeaders=None):
@@ -19,14 +19,23 @@ def jsonHeaders(extraHeaders=None):
         headers.update(dict(extraHeaders))
     return headers
 
-def _configuredMainCycleEndpoints():
+def _mainCycleHttpConfig():
     ensureHttpLogConfigTags()
-    rawValue = readOptionalTagValue(getMainCycleEndpointsPath(), None, allowEmptyString=True)
-    return parseEndpointList(rawValue)
+    disableLogging, rawEndpoints = readOptionalTagValues(
+        [
+            getDisableLogOfMainCycleHttpPath(),
+            getMainCycleEndpointsPath(),
+        ],
+        [False, None],
+        allowEmptyString=True,
+    )
+    return {
+        "disable_main_cycle_http_logging": bool(disableLogging),
+        "main_cycle_endpoints": parseEndpointList(rawEndpoints),
+    }
 
 
 def _shouldLogHttpHistory(method, url, ok):
-    ensureHttpLogConfigTags()
     if not ok:
         return True
 
@@ -34,10 +43,11 @@ def _shouldLogHttpHistory(method, url, ok):
     if normalizedMethod != "GET":
         return True
 
-    if not bool(readOptionalTagValue(getDisableLogOfMainCycleHttpPath(), False)):
+    config = _mainCycleHttpConfig()
+    if not config["disable_main_cycle_http_logging"]:
         return True
 
-    return normalizedEndpointKey(method, url) not in _configuredMainCycleEndpoints()
+    return normalizedEndpointKey(method, url) not in config["main_cycle_endpoints"]
 
 
 def _logHttpHistory(method, url, requestBody, responseBody, ok, startEpochMs, errorText=""):

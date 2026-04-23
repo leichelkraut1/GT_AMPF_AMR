@@ -670,6 +670,22 @@ def _evaluateNoActiveMissions(snapshot):
     )
 
 
+def runRobotWorkflowCycleSnapshot(snapshot):
+    """Evaluate and apply one already-read robot snapshot."""
+    snapshot = dict(snapshot or {})
+    if snapshot["active_workflow_number"]:
+        snapshot["reserved_workflows"][snapshot["active_workflow_number"]] = snapshot["robot_name"]
+
+    if not snapshot["plc_healthy"]:
+        outcome = _plcFaultOutcome(snapshot)
+    elif list(snapshot["active_summary"].get("missions") or []):
+        outcome = _evaluateActiveMissions(snapshot)
+    else:
+        outcome = _evaluateNoActiveMissions(snapshot)
+
+    return applyRobotOutcome(snapshot, outcome)
+
+
 def runRobotWorkflowCycle(
     robotName,
     reservedWorkflows=None,
@@ -687,14 +703,4 @@ def runRobotWorkflowCycle(
         finalizeMissionId=finalizeMissionId,
         cancelMissionIds=cancelMissionIds,
     )
-    if snapshot["active_workflow_number"]:
-        snapshot["reserved_workflows"][snapshot["active_workflow_number"]] = snapshot["robot_name"]
-
-    if not snapshot["plc_healthy"]:
-        outcome = _plcFaultOutcome(snapshot)
-    elif list(snapshot["active_summary"].get("missions") or []):
-        outcome = _evaluateActiveMissions(snapshot)
-    else:
-        outcome = _evaluateNoActiveMissions(snapshot)
-
-    return applyRobotOutcome(snapshot, outcome)
+    return runRobotWorkflowCycleSnapshot(snapshot)

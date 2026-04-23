@@ -1,7 +1,7 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagHelpers import browseTagResults
 from Otto_API.Common.TagHelpers import getFleetContainersPath
-from Otto_API.Common.TagHelpers import readOptionalTagValue
+from Otto_API.Common.TagHelpers import readTagValues
 from Otto_API.Common.TagHelpers import tagExists
 from Otto_API.Common.TagHelpers import writeRequiredTagValues
 
@@ -37,18 +37,32 @@ def _containerLocationMap():
     if not tagExists(containersBasePath):
         return locationMap
 
-    for row in _udtInstanceRows(containersBasePath):
+    containerRows = _udtInstanceRows(containersBasePath)
+    readPaths = []
+    for row in containerRows:
         containerPath = row["path"]
+        readPaths.extend([
+            containerPath + "/ID",
+            containerPath + "/Place",
+            containerPath + "/Robot",
+        ])
+    readResults = readTagValues(readPaths) if readPaths else []
+
+    for index, row in enumerate(containerRows):
+        containerPath = row["path"]
+        offset = index * 3
         containerId = _normalizedKey(
-            readOptionalTagValue(containerPath + "/ID", "", allowEmptyString=True)
+            readResults[offset].value if offset < len(readResults) and readResults[offset].quality.isGood() else ""
         )
         if not containerId:
             continue
 
         seenKeys = set()
-        for suffix in ["/Place", "/Robot"]:
+        for valueIndex in [offset + 1, offset + 2]:
             locationKey = _normalizedKey(
-                readOptionalTagValue(containerPath + suffix, "", allowEmptyString=True)
+                readResults[valueIndex].value
+                if valueIndex < len(readResults) and readResults[valueIndex].quality.isGood()
+                else ""
             )
             if not locationKey or locationKey in seenKeys:
                 continue
@@ -91,11 +105,16 @@ def mirrorPlcContainerOccupancy():
         mirroredRows = []
         writePaths = []
         writeValues = []
+        locationReadResults = readTagValues(
+            [row["path"] + "/LocationID" for row in plcRows]
+        ) if plcRows else []
 
-        for row in plcRows:
+        for index, row in enumerate(plcRows):
             rowPath = row["path"]
             locationId = _normalizedKey(
-                readOptionalTagValue(rowPath + "/LocationID", "", allowEmptyString=True)
+                locationReadResults[index].value
+                if index < len(locationReadResults) and locationReadResults[index].quality.isGood()
+                else ""
             )
             matchedContainerIds = list(locationMap.get(locationId) or []) if locationId else []
             present = bool(locationId and matchedContainerIds)
