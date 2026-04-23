@@ -943,7 +943,7 @@
               },
               "transforms": [
                 {
-                  "code": "\ttheme = str(value or \"\").lower()\n\tif \"dark\" in theme:\n\t\treturn \"#253041\"\n\treturn \"#e5e7eb\"",
+                  "code": "\ttheme \u003d str(value or \"\").lower()\n\tif \"dark\" in theme:\n\t\treturn \"#253041\"\n\treturn \"#e5e7eb\"",
                   "type": "script"
                 }
               ],
@@ -990,8 +990,8 @@
                 "align": "center",
                 "justify": "left",
                 "style": {
-                  "classes": "Page/Table/Theme/Header",
                   "borderRight": "1px solid var(--neutral-60)",
+                  "classes": "Page/Table/Theme/Header",
                   "fontSize": "14px",
                   "fontWeight": "700",
                   "paddingLeft": "10px",
@@ -1089,8 +1089,8 @@
                 "align": "center",
                 "justify": "center",
                 "style": {
-                  "classes": "Page/Table/Theme/Header",
                   "borderRight": "1px solid var(--neutral-60)",
+                  "classes": "Page/Table/Theme/Header",
                   "fontSize": "14px",
                   "fontWeight": "700",
                   "paddingLeft": "10px",
@@ -1256,9 +1256,7 @@
           },
           "rows": {
             "striped": {
-              "color": {
-                "even": "#e5e7eb"
-              }
+              "color": {}
             },
             "style": {
               "classes": "Page/Table/Theme/Row"
