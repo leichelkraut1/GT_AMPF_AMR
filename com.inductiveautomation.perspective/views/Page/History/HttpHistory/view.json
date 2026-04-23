@@ -42,18 +42,10 @@
                   "shrink": 0
                 },
                 "propConfig": {
-                  "props.valueLast": {
-                    "binding": {
-                      "config": {
-                        "expression": "now(200)"
-                      },
-                      "transforms": [
-                        {
-                          "code": "\tif(self.props.valueLast !\u003d self.props.value):\n\t\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable \u003d True\n\treturn self.props.value",
-                          "type": "script"
-                        }
-                      ],
-                      "type": "expr"
+                  "props.value": {
+                    "onChange": {
+                      "enabled": null,
+                      "script": "\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable \u003d True"
                     }
                   }
                 },
