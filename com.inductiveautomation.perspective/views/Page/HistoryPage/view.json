@@ -48,6 +48,18 @@
           "path": "Page/History/HttpHistory"
         },
         "type": "ia.display.view"
+      },
+      {
+        "meta": {
+          "name": "RobotTrends"
+        },
+        "position": {
+          "tabIndex": 4
+        },
+        "props": {
+          "path": "Page/History/RobotTrends"
+        },
+        "type": "ia.display.view"
       }
     ],
     "meta": {
@@ -59,7 +71,8 @@
         "Missions",
         "AMR State",
         "Control",
-        "HTTP"
+        "HTTP",
+        "Robot Trends"
       ]
     },
     "type": "ia.container.tab"
