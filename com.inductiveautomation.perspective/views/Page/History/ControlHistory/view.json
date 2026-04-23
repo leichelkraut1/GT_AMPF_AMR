@@ -860,7 +860,20 @@
             }
           },
           "selection": {
-            "enableColumnSelection": true
+            "data": [
+              {
+                "Action": "waiting_available",
+                "ActiveWorkflowNumber": "0",
+                "Level": "warn",
+                "Message": "Robot [AMPF_AMR_RV3] is not available for workflow 1300",
+                "RequestedWorkflowNumber": "1300",
+                "Robot": "AMPF_AMR_RV3",
+                "State": "fault",
+                "Ts": "2026-04-22 13:25:43"
+              }
+            ],
+            "selectedColumn": "Robot",
+            "selectedRow": 95
           },
           "sortOrder": [
             "Ts"
@@ -909,7 +922,7 @@
               "props.text": {
                 "binding": {
                   "config": {
-                    "path": "../../Table.props.selection.data"
+                    "path": ".../Table.props.selection.data"
                   },
                   "transforms": [
                     {
