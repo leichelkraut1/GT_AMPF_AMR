@@ -1,0 +1,214 @@
+{
+  "custom": {
+    "selectedRobot": "AMPF_AMR_RV1",
+    "robotOptions": []
+  },
+  "params": {},
+  "propConfig": {
+    "custom.robotOptions": {
+      "binding": {
+        "config": {
+          "path": "view.custom.selectedRobot"
+        },
+        "transforms": [
+          {
+            "code": "\tfrom MainController.WorkflowConfig import ROBOT_NAMES\n\treturn [{\"label\": str(name), \"value\": str(name)} for name in list(ROBOT_NAMES or [])]",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 820,
+      "width": 1200
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "Title"
+        },
+        "position": {
+          "basis": "56px",
+          "shrink": 0
+        },
+        "props": {
+          "params": {
+            "icon": "show_chart",
+            "text": "Robot Trends"
+          },
+          "path": "Page/Embedded/Title"
+        },
+        "type": "ia.display.view"
+      },
+      {
+        "meta": {
+          "name": "ControlRow"
+        },
+        "position": {
+          "basis": "52px",
+          "shrink": 0
+        },
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "gap": "10px",
+            "paddingBottom": "8px",
+            "paddingLeft": "12px",
+            "paddingRight": "12px",
+            "paddingTop": "4px"
+          }
+        },
+        "type": "ia.container.flex",
+        "children": [
+          {
+            "meta": {
+              "name": "RobotLabel"
+            },
+            "position": {
+              "basis": "44px",
+              "shrink": 0
+            },
+            "props": {
+              "text": "Robot"
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "name": "RobotDropdown"
+            },
+            "position": {
+              "basis": "220px",
+              "shrink": 0
+            },
+            "propConfig": {
+              "props.options": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.robotOptions"
+                  },
+                  "type": "property"
+                }
+              },
+              "props.value": {
+                "binding": {
+                  "config": {
+                    "bidirectional": true,
+                    "path": "view.custom.selectedRobot"
+                  },
+                  "type": "property"
+                }
+              }
+            },
+            "props": {
+              "search": {
+                "enabled": false
+              },
+              "style": {
+                "textAlign": "left"
+              }
+            },
+            "type": "ia.input.dropdown"
+          }
+        ]
+      },
+      {
+        "meta": {
+          "name": "RobotTrendChart"
+        },
+        "position": {
+          "basis": "680px",
+          "grow": 1
+        },
+        "propConfig": {
+          "props.pens": {
+            "binding": {
+              "config": {
+                "path": "view.custom.selectedRobot"
+              },
+              "transforms": [
+                {
+                  "code": "\trobotName = str(value or \"AMPF_AMR_RV1\").strip() or \"AMPF_AMR_RV1\"\n\tfleetBase = \"[Otto_FleetManager]Fleet/Robots/{}/\".format(robotName)\n\treturn [\n\t\t{\n\t\t\t\"name\": \"Activity State\",\n\t\t\t\"visible\": True,\n\t\t\t\"enabled\": True,\n\t\t\t\"selectable\": True,\n\t\t\t\"axis\": \"state\",\n\t\t\t\"plot\": 0,\n\t\t\t\"display\": {\n\t\t\t\t\"type\": \"line\",\n\t\t\t\t\"interpolation\": \"curveStepAfter\",\n\t\t\t\t\"breakLine\": False\n\t\t\t},\n\t\t\t\"data\": {\n\t\t\t\t\"source\": \"histprov:CoreHistorian:/tag:\" + fleetBase + \"Expression/ActivityState_Numberized\",\n\t\t\t\t\"aggregateMode\": \"LastValue\"\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"name\": \"System State\",\n\t\t\t\"visible\": True,\n\t\t\t\"enabled\": True,\n\t\t\t\"selectable\": True,\n\t\t\t\"axis\": \"state\",\n\t\t\t\"plot\": 0,\n\t\t\t\"display\": {\n\t\t\t\t\"type\": \"line\",\n\t\t\t\t\"interpolation\": \"curveStepAfter\",\n\t\t\t\t\"breakLine\": False\n\t\t\t},\n\t\t\t\"data\": {\n\t\t\t\t\"source\": \"histprov:CoreHistorian:/tag:\" + fleetBase + \"Expression/SystemState_Numberized\",\n\t\t\t\t\"aggregateMode\": \"LastValue\"\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"name\": \"Subsystem State\",\n\t\t\t\"visible\": True,\n\t\t\t\"enabled\": True,\n\t\t\t\"selectable\": True,\n\t\t\t\"axis\": \"state\",\n\t\t\t\"plot\": 0,\n\t\t\t\"display\": {\n\t\t\t\t\"type\": \"line\",\n\t\t\t\t\"interpolation\": \"curveStepAfter\",\n\t\t\t\t\"breakLine\": False\n\t\t\t},\n\t\t\t\"data\": {\n\t\t\t\t\"source\": \"histprov:CoreHistorian:/tag:\" + fleetBase + \"Expression/SubSystemState_Numberized\",\n\t\t\t\t\"aggregateMode\": \"LastValue\"\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"name\": \"Charge Level\",\n\t\t\t\"visible\": True,\n\t\t\t\"enabled\": True,\n\t\t\t\"selectable\": True,\n\t\t\t\"axis\": \"metrics\",\n\t\t\t\"plot\": 0,\n\t\t\t\"display\": {\n\t\t\t\t\"type\": \"line\",\n\t\t\t\t\"interpolation\": \"curveLinear\",\n\t\t\t\t\"breakLine\": False\n\t\t\t},\n\t\t\t\"data\": {\n\t\t\t\t\"source\": \"histprov:CoreHistorian:/tag:\" + fleetBase + \"ChargeLevel\",\n\t\t\t\t\"aggregateMode\": \"LastValue\"\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"name\": \"Active Robot Count\",\n\t\t\t\"visible\": True,\n\t\t\t\"enabled\": True,\n\t\t\t\"selectable\": True,\n\t\t\t\"axis\": \"metrics\",\n\t\t\t\"plot\": 0,\n\t\t\t\"display\": {\n\t\t\t\t\"type\": \"line\",\n\t\t\t\t\"interpolation\": \"curveStepAfter\",\n\t\t\t\t\"breakLine\": False\n\t\t\t},\n\t\t\t\"data\": {\n\t\t\t\t\"source\": \"histprov:CoreHistorian:/tag:[Otto_FleetManager]Fleet/Robot/{}/ActiveRobotCount\".format(robotName),\n\t\t\t\t\"aggregateMode\": \"LastValue\"\n\t\t\t}\n\t\t}\n\t]",
+                  "type": "script"
+                }
+              ],
+              "type": "property"
+            },
+            "persistent": false
+          }
+        },
+        "props": {
+          "axes": [
+            {
+              "color": "#2563eb",
+              "dataFormat": "0",
+              "label": {
+                "text": "State Code"
+              },
+              "name": "state",
+              "position": "left",
+              "range": {
+                "auto": true
+              },
+              "width": 64
+            },
+            {
+              "color": "#059669",
+              "dataFormat": "0.[0]",
+              "label": {
+                "text": "Metrics"
+              },
+              "name": "metrics",
+              "position": "right",
+              "range": {
+                "auto": true
+              },
+              "width": 64
+            }
+          ],
+          "config": {
+            "measureOfTime": "hours",
+            "mode": "realtime",
+            "pointCount": -1,
+            "refreshRate": 10000,
+            "responsiveDesignWidth": 750,
+            "unitOfTime": 24,
+            "visibility": {
+              "showDateRangeSelector": true,
+              "showPenControlDisplay": true,
+              "showTagBrowser": false
+            }
+          },
+          "plots": [
+            {
+              "relativeWeight": 1
+            }
+          ],
+          "style": {
+            "marginLeft": "12px",
+            "marginRight": "12px",
+            "marginBottom": "12px"
+          }
+        },
+        "type": "ia.chart.powerchart"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "classes": "Page/Page"
+      }
+    },
+    "type": "ia.container.flex"
+  }
+}
