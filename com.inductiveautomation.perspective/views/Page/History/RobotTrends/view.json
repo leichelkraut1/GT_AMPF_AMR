@@ -187,9 +187,7 @@
                 },
                 "offset": 0,
                 "style": {
-                  "classes": "",
-                  "textAnchor": "middle",
-                  "transform": "translate(0px, 45%)"
+                  "classes": ""
                 },
                 "text": "States"
               },
@@ -241,9 +239,7 @@
                 },
                 "offset": 0,
                 "style": {
-                  "classes": "",
-                  "textAnchor": "middle",
-                  "transform": "translate(0px, 45%)"
+                  "classes": ""
                 },
                 "text": "Battery"
               },
