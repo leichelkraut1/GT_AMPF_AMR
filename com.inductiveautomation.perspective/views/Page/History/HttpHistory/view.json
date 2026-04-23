@@ -70,7 +70,7 @@
                   "style": {
                     "textAlign": "left"
                   },
-                  "value": "post"
+                  "value": "all"
                 },
                 "type": "ia.input.dropdown"
               },
@@ -97,6 +97,7 @@
                   }
                 },
                 "props": {
+                  "selected": true,
                   "text": "Auto Refresh"
                 },
                 "type": "ia.input.checkbox"
@@ -164,7 +165,7 @@
               "props.data": {
                 "binding": {
                   "config": {
-                    "expression": "toStr(now(5000)+{this.props.UpdateTable})"
+                    "expression": "toStr(now(1000)+{this.props.UpdateTable})"
                   },
                   "transforms": [
                     {
@@ -185,8 +186,8 @@
                     "align": "center",
                     "justify": "center",
                     "style": {
-                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
+                      "classes": "Page/Table/Fixed/Header",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -230,8 +231,8 @@
                     "align": "center",
                     "justify": "center",
                     "style": {
-                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
+                      "classes": "Page/Table/Fixed/Header",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -255,8 +256,8 @@
                     "align": "center",
                     "justify": "left",
                     "style": {
-                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
+                      "classes": "Page/Table/Fixed/Header",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -282,8 +283,8 @@
                     "align": "center",
                     "justify": "left",
                     "style": {
-                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
+                      "classes": "Page/Table/Fixed/Header",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -309,8 +310,8 @@
                     "align": "center",
                     "justify": "left",
                     "style": {
-                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
+                      "classes": "Page/Table/Fixed/Header",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -336,8 +337,8 @@
                     "align": "center",
                     "justify": "center",
                     "style": {
-                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
+                      "classes": "Page/Table/Fixed/Header",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -361,8 +362,8 @@
                     "align": "center",
                     "justify": "center",
                     "style": {
-                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
+                      "classes": "Page/Table/Fixed/Header",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -416,22 +417,6 @@
                 "style": {
                   "classes": "Page/Table/Fixed/Row"
                 }
-              },
-              "selection": {
-                "data": [
-                  {
-                    "DurationMs": "16",
-                    "Error": "",
-                    "Method": "POST",
-                    "Ok": "true",
-                    "Request": "{\"method\":\"cancelMission\",\"id\":1776786287,\"params\":{\"id\":\"f1c64f69-c029-4454-bbdb-0f2f927c76dc\"},\"jsonrpc\":\"2.0\"}",
-                    "Response": "{\"result\":null,\"id\":1776786287,\"jsonrpc\":\"2.0\"}",
-                    "Ts": "2026-04-21 08:44:47",
-                    "Url": "https://10.137.22.58/api/fleet/v2/operations/"
-                  }
-                ],
-                "selectedColumn": "Method",
-                "selectedRow": 2
               },
               "sortOrder": [
                 "Ts"
