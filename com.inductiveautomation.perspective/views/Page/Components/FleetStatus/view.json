@@ -20,7 +20,7 @@
         },
         "props": {
           "style": {
-            "color": "#111827",
+            "color": "var(--neutral-90)",
             "fontSize": "20px",
             "fontWeight": "700",
             "paddingLeft": "4px",
@@ -45,7 +45,7 @@
                 },
                 "props": {
                   "style": {
-                    "color": "#475569",
+                    "color": "var(--neutral-70)",
                     "fontSize": "12px",
                     "fontWeight": "700",
                     "textTransform": "uppercase"
@@ -99,8 +99,8 @@
             "props": {
               "direction": "column",
               "style": {
-                "backgroundColor": "#ffffff",
-                "border": "1px solid #d7dce5",
+                "backgroundColor": "var(--neutral-10)",
+                "border": "1px solid var(--neutral-30)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -121,7 +121,7 @@
                 },
                 "props": {
                   "style": {
-                    "color": "#475569",
+                    "color": "var(--neutral-70)",
                     "fontSize": "12px",
                     "fontWeight": "700",
                     "textTransform": "uppercase"
@@ -186,8 +186,8 @@
             "props": {
               "direction": "column",
               "style": {
-                "backgroundColor": "#ffffff",
-                "border": "1px solid #d7dce5",
+                "backgroundColor": "var(--neutral-10)",
+                "border": "1px solid var(--neutral-30)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -208,7 +208,7 @@
                 },
                 "props": {
                   "style": {
-                    "color": "#475569",
+                    "color": "var(--neutral-70)",
                     "fontSize": "12px",
                     "fontWeight": "700",
                     "textTransform": "uppercase"
@@ -268,34 +268,25 @@
                   "name": "ControllerHealthDetail"
                 },
                 "position": {
-                  "basis": "64px",
-                  "grow": 1,
-                  "shrink": 0
+                  "basis": "0px",
+                  "grow": 0,
+                  "shrink": 1
                 },
                 "propConfig": {
                   "props.text": {
                     "binding": {
                       "config": {
-                        "fallbackDelay": 2.5,
-                        "mode": "direct",
-                        "tagPath": "[Otto_FleetManager]MainControl/Runtime/ControllerFaultSummary"
+                        "expression": "\"\""
                       },
-                      "transforms": [
-                        {
-                          "expression": "if(isNull({value}) || len(toStr({value})) \u003d 0 || toStr({value}) \u003d \"Healthy\", \"Server status, robot sync, container sync, PLC mirror, mission sorting, and workflow cycles are healthy\", toStr({value}))",
-                          "type": "expression"
-                        }
-                      ],
-                      "type": "tag"
+                      "type": "expr"
                     }
                   }
                 },
                 "props": {
                   "style": {
-                    "color": "#374151",
-                    "fontSize": "12px",
-                    "whiteSpace": "normal"
-                  }
+                    "display": "none"
+                  },
+                  "text": ""
                 },
                 "type": "ia.display.label"
               }
@@ -309,8 +300,8 @@
             "props": {
               "direction": "column",
               "style": {
-                "backgroundColor": "#ffffff",
-                "border": "1px solid #d7dce5",
+                "backgroundColor": "var(--neutral-10)",
+                "border": "1px solid var(--neutral-30)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -332,7 +323,7 @@
                 },
                 "props": {
                   "style": {
-                    "color": "#475569",
+                    "color": "var(--neutral-70)",
                     "fontSize": "12px",
                     "fontWeight": "700",
                     "textTransform": "uppercase"
@@ -397,8 +388,8 @@
             "props": {
               "direction": "column",
               "style": {
-                "backgroundColor": "#ffffff",
-                "border": "1px solid #d7dce5",
+                "backgroundColor": "var(--neutral-10)",
+                "border": "1px solid var(--neutral-30)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -420,7 +411,7 @@
                 },
                 "props": {
                   "style": {
-                    "color": "#475569",
+                    "color": "var(--neutral-70)",
                     "fontSize": "12px",
                     "fontWeight": "700",
                     "textTransform": "uppercase"
@@ -473,8 +464,8 @@
             "props": {
               "direction": "column",
               "style": {
-                "backgroundColor": "#ffffff",
-                "border": "1px solid #d7dce5",
+                "backgroundColor": "var(--neutral-10)",
+                "border": "1px solid var(--neutral-30)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -496,7 +487,7 @@
                 },
                 "props": {
                   "style": {
-                    "color": "#475569",
+                    "color": "var(--neutral-70)",
                     "fontSize": "12px",
                     "fontWeight": "700",
                     "textTransform": "uppercase"
@@ -550,8 +541,8 @@
             "props": {
               "direction": "column",
               "style": {
-                "backgroundColor": "#ffffff",
-                "border": "1px solid #d7dce5",
+                "backgroundColor": "var(--neutral-10)",
+                "border": "1px solid var(--neutral-30)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -573,7 +564,7 @@
                 },
                 "props": {
                   "style": {
-                    "color": "#475569",
+                    "color": "var(--neutral-70)",
                     "fontSize": "12px",
                     "fontWeight": "700",
                     "textTransform": "uppercase"
@@ -627,8 +618,8 @@
             "props": {
               "direction": "column",
               "style": {
-                "backgroundColor": "#ffffff",
-                "border": "1px solid #d7dce5",
+                "backgroundColor": "var(--neutral-10)",
+                "border": "1px solid var(--neutral-30)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -650,7 +641,7 @@
                 },
                 "props": {
                   "style": {
-                    "color": "#475569",
+                    "color": "var(--neutral-70)",
                     "fontSize": "12px",
                     "fontWeight": "700",
                     "textTransform": "uppercase"
@@ -704,8 +695,8 @@
             "props": {
               "direction": "column",
               "style": {
-                "backgroundColor": "#ffffff",
-                "border": "1px solid #d7dce5",
+                "backgroundColor": "var(--neutral-10)",
+                "border": "1px solid var(--neutral-30)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -727,7 +718,7 @@
                 },
                 "props": {
                   "style": {
-                    "color": "#475569",
+                    "color": "var(--neutral-70)",
                     "fontSize": "12px",
                     "fontWeight": "700",
                     "textTransform": "uppercase"
@@ -804,8 +795,8 @@
             "props": {
               "direction": "column",
               "style": {
-                "backgroundColor": "#ffffff",
-                "border": "1px solid #d7dce5",
+                "backgroundColor": "var(--neutral-10)",
+                "border": "1px solid var(--neutral-30)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -841,7 +832,7 @@
             },
             "props": {
               "style": {
-                "color": "#475569",
+                "color": "var(--neutral-70)",
                 "fontSize": "12px",
                 "fontWeight": "700",
                 "textTransform": "uppercase"
@@ -878,7 +869,7 @@
             },
             "props": {
               "style": {
-                "color": "#111827",
+                "color": "var(--neutral-90)",
                 "fontSize": "14px",
                 "whiteSpace": "normal"
               }
@@ -896,8 +887,8 @@
         "props": {
           "direction": "column",
           "style": {
-            "backgroundColor": "#f8fafc",
-            "border": "1px solid #d7dce5",
+            "backgroundColor": "var(--neutral-20)",
+            "border": "1px solid var(--neutral-30)",
             "borderRadius": "8px",
             "marginBottom": "12px",
             "padding": "12px"
@@ -915,7 +906,7 @@
         },
         "props": {
           "style": {
-            "color": "#111827",
+            "color": "var(--neutral-90)",
             "fontSize": "16px",
             "fontWeight": "700",
             "paddingLeft": "4px",
@@ -988,10 +979,10 @@
                 "align": "center",
                 "justify": "left",
                 "style": {
-                  "backgroundColor": "#1f2937",
-                  "borderBottom": "1px solid #111827",
-                  "borderRight": "1px solid #374151",
-                  "color": "#ffffff",
+                  "backgroundColor": "var(--neutral-80)",
+                  "borderBottom": "1px solid var(--neutral-90)",
+                  "borderRight": "1px solid var(--neutral-60)",
+                  "color": "var(--neutral-10)",
                   "fontSize": "14px",
                   "fontWeight": "700",
                   "paddingLeft": "10px",
@@ -1037,7 +1028,7 @@
               "sortable": false,
               "strictWidth": true,
               "style": {
-                "borderRight": "1px solid #d7dce5",
+                "borderRight": "1px solid var(--neutral-30)",
                 "paddingLeft": "10px",
                 "paddingRight": "10px"
               },
@@ -1089,10 +1080,10 @@
                 "align": "center",
                 "justify": "center",
                 "style": {
-                  "backgroundColor": "#1f2937",
-                  "borderBottom": "1px solid #111827",
-                  "borderRight": "1px solid #374151",
-                  "color": "#ffffff",
+                  "backgroundColor": "var(--neutral-80)",
+                  "borderBottom": "1px solid var(--neutral-90)",
+                  "borderRight": "1px solid var(--neutral-60)",
+                  "color": "var(--neutral-10)",
                   "fontSize": "14px",
                   "fontWeight": "700",
                   "paddingLeft": "10px",
@@ -1138,7 +1129,7 @@
               "sortable": false,
               "strictWidth": true,
               "style": {
-                "borderRight": "1px solid #d7dce5",
+                "borderRight": "1px solid var(--neutral-30)",
                 "fontWeight": "700",
                 "paddingLeft": "10px",
                 "paddingRight": "10px"
@@ -1191,9 +1182,9 @@
                 "align": "center",
                 "justify": "left",
                 "style": {
-                  "backgroundColor": "#1f2937",
-                  "borderBottom": "1px solid #111827",
-                  "color": "#ffffff",
+                  "backgroundColor": "var(--neutral-80)",
+                  "borderBottom": "1px solid var(--neutral-90)",
+                  "color": "var(--neutral-10)",
                   "fontSize": "14px",
                   "fontWeight": "700",
                   "paddingLeft": "10px",
@@ -1261,11 +1252,11 @@
           "rows": {
             "striped": {
               "color": {
-                "even": "#f8fafc"
+                "even": "var(--neutral-20)"
               }
             },
             "style": {
-              "borderBottom": "1px solid #e3e8ef",
+              "borderBottom": "1px solid var(--neutral-30)",
               "fontSize": "13px"
             }
           },
@@ -1273,13 +1264,53 @@
             "enableColumnSelection": false
           },
           "style": {
-            "backgroundColor": "#ffffff",
-            "border": "1px solid #cfd6df",
+            "backgroundColor": "var(--neutral-10)",
+            "border": "1px solid var(--neutral-30)",
             "borderRadius": "6px",
             "overflow": "hidden"
           }
         },
         "type": "ia.display.table"
+      },
+      {
+        "meta": {
+          "name": "PhaseHealthCopyText"
+        },
+        "position": {
+          "basis": "120px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "now(2000)"
+              },
+              "transforms": [
+                {
+                  "code": "\timport MainController.State.FleetStatusStore\n\treturn MainController.State.FleetStatusStore.phaseHealthText()",
+                  "type": "script"
+                }
+              ],
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "var(--neutral-20)",
+            "border": "1px solid var(--neutral-30)",
+            "borderRadius": "6px",
+            "color": "var(--neutral-90)",
+            "fontFamily": "Consolas, monospace",
+            "fontSize": "12px",
+            "marginTop": "8px",
+            "padding": "10px",
+            "userSelect": "text",
+            "whiteSpace": "pre-wrap"
+          }
+        },
+        "type": "ia.display.label"
       },
       {
         "meta": {
@@ -1292,7 +1323,7 @@
         },
         "props": {
           "style": {
-            "color": "#111827",
+            "color": "var(--neutral-90)",
             "fontSize": "20px",
             "fontWeight": "700",
             "paddingLeft": "4px",
@@ -1324,7 +1355,7 @@
         },
         "props": {
           "style": {
-            "color": "#111827",
+            "color": "var(--neutral-90)",
             "fontSize": "20px",
             "fontWeight": "700",
             "paddingLeft": "4px",
@@ -1363,6 +1394,12 @@
             "props": {
               "placeholder": {
                 "text": "Select create destination"
+              },
+              "style": {
+                "backgroundColor": "transparent",
+                "border": "1px solid var(--neutral-30)",
+                "borderRadius": "6px",
+                "color": "var(--neutral-90)"
               }
             },
             "type": "ia.input.dropdown"

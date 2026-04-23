@@ -140,3 +140,18 @@ def phaseHealthRows(robotName="AMPF_AMR_RV1"):
     })
     rows.append(dict(model.get("loop_row") or {}))
     return rows
+
+
+def phaseHealthText(robotName="AMPF_AMR_RV1"):
+    """Build a copy-friendly plain-text summary of subsystem health rows."""
+    rows = list(phaseHealthRows(robotName) or [])
+    if not rows:
+        return ""
+    return "\n".join([
+        "{subsystem}\t{status}\t{message}".format(
+            subsystem=str(row.get("Subsystem") or ""),
+            status=str(row.get("Status") or ""),
+            message=str(row.get("Message") or ""),
+        )
+        for row in rows
+    ])
