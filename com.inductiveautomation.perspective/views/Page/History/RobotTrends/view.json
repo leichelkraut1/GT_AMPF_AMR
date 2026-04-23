@@ -1,7 +1,6 @@
 {
   "custom": {
-    "selectedRobot": "AMPF_AMR_RV1",
-    "robotOptions": []
+    "selectedRobot": "AMPF_AMR_RV1"
   },
   "params": {},
   "propConfig": {
@@ -47,25 +46,6 @@
         "type": "ia.display.view"
       },
       {
-        "meta": {
-          "name": "ControlRow"
-        },
-        "position": {
-          "basis": "52px",
-          "shrink": 0
-        },
-        "props": {
-          "direction": "row",
-          "style": {
-            "alignItems": "center",
-            "gap": "10px",
-            "paddingBottom": "8px",
-            "paddingLeft": "12px",
-            "paddingRight": "12px",
-            "paddingTop": "4px"
-          }
-        },
-        "type": "ia.container.flex",
         "children": [
           {
             "meta": {
@@ -117,87 +97,572 @@
             },
             "type": "ia.input.dropdown"
           }
-        ]
+        ],
+        "meta": {
+          "name": "ControlRow"
+        },
+        "position": {
+          "basis": "52px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "alignItems": "center",
+            "gap": "10px",
+            "paddingBottom": "8px",
+            "paddingLeft": "12px",
+            "paddingRight": "12px",
+            "paddingTop": "4px"
+          }
+        },
+        "type": "ia.container.flex"
       },
       {
         "meta": {
-          "name": "RobotTrendChart"
+          "name": "PowerChart"
         },
         "position": {
-          "basis": "680px",
-          "grow": 1
+          "basis": "712px"
         },
         "propConfig": {
-          "props.pens": {
+          "props.pens[0].data.source": {
             "binding": {
               "config": {
-                "path": "view.custom.selectedRobot"
+                "expression": "\"histprov:CoreHistory:/sys:Ignition-VisionTesting:/prov:Otto_FleetManager:/tag:Fleet/Robots/\"+{../ControlRow/RobotDropdown.props.value}+\"/Expression/ActivityState_Numberized\""
               },
-              "transforms": [
-                {
-                  "code": "\trobotName = str(value or \"AMPF_AMR_RV1\").strip() or \"AMPF_AMR_RV1\"\n\tfleetBase = \"[Otto_FleetManager]Fleet/Robots/{}/\".format(robotName)\n\treturn [\n\t\t{\n\t\t\t\"name\": \"Activity State\",\n\t\t\t\"visible\": True,\n\t\t\t\"enabled\": True,\n\t\t\t\"selectable\": True,\n\t\t\t\"axis\": \"state\",\n\t\t\t\"plot\": 0,\n\t\t\t\"display\": {\n\t\t\t\t\"type\": \"line\",\n\t\t\t\t\"interpolation\": \"curveStepAfter\",\n\t\t\t\t\"breakLine\": False\n\t\t\t},\n\t\t\t\"data\": {\n\t\t\t\t\"source\": fleetBase + \"Expression/ActivityState_Numberized\",\n\t\t\t\t\"aggregateMode\": \"LastValue\"\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"name\": \"System State\",\n\t\t\t\"visible\": True,\n\t\t\t\"enabled\": True,\n\t\t\t\"selectable\": True,\n\t\t\t\"axis\": \"state\",\n\t\t\t\"plot\": 0,\n\t\t\t\"display\": {\n\t\t\t\t\"type\": \"line\",\n\t\t\t\t\"interpolation\": \"curveStepAfter\",\n\t\t\t\t\"breakLine\": False\n\t\t\t},\n\t\t\t\"data\": {\n\t\t\t\t\"source\": fleetBase + \"Expression/SystemState_Numberized\",\n\t\t\t\t\"aggregateMode\": \"LastValue\"\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"name\": \"Subsystem State\",\n\t\t\t\"visible\": True,\n\t\t\t\"enabled\": True,\n\t\t\t\"selectable\": True,\n\t\t\t\"axis\": \"state\",\n\t\t\t\"plot\": 0,\n\t\t\t\"display\": {\n\t\t\t\t\"type\": \"line\",\n\t\t\t\t\"interpolation\": \"curveStepAfter\",\n\t\t\t\t\"breakLine\": False\n\t\t\t},\n\t\t\t\"data\": {\n\t\t\t\t\"source\": fleetBase + \"Expression/SubSystemState_Numberized\",\n\t\t\t\t\"aggregateMode\": \"LastValue\"\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"name\": \"Charge Level\",\n\t\t\t\"visible\": True,\n\t\t\t\"enabled\": True,\n\t\t\t\"selectable\": True,\n\t\t\t\"axis\": \"metrics\",\n\t\t\t\"plot\": 0,\n\t\t\t\"display\": {\n\t\t\t\t\"type\": \"line\",\n\t\t\t\t\"interpolation\": \"curveLinear\",\n\t\t\t\t\"breakLine\": False\n\t\t\t},\n\t\t\t\"data\": {\n\t\t\t\t\"source\": fleetBase + \"ChargeLevel\",\n\t\t\t\t\"aggregateMode\": \"LastValue\"\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"name\": \"Active Robot Count\",\n\t\t\t\"visible\": True,\n\t\t\t\"enabled\": True,\n\t\t\t\"selectable\": True,\n\t\t\t\"axis\": \"metrics\",\n\t\t\t\"plot\": 0,\n\t\t\t\"display\": {\n\t\t\t\t\"type\": \"line\",\n\t\t\t\t\"interpolation\": \"curveStepAfter\",\n\t\t\t\t\"breakLine\": False\n\t\t\t},\n\t\t\t\"data\": {\n\t\t\t\t\"source\": \"[Otto_FleetManager]Fleet/Robot/{}/ActiveRobotCount\".format(robotName),\n\t\t\t\t\"aggregateMode\": \"LastValue\"\n\t\t\t}\n\t\t}\n\t]",
-                  "type": "script"
-                }
-              ],
-              "type": "property"
-            },
-            "persistent": false
+              "type": "expr"
+            }
+          },
+          "props.pens[1].data.source": {
+            "binding": {
+              "config": {
+                "expression": "\"histprov:CoreHistory:/sys:Ignition-VisionTesting:/prov:Otto_FleetManager:/tag:Fleet/Robots/\"+{../ControlRow/RobotDropdown.props.value}+\"/Expression/SystemState_Numberized\""
+              },
+              "type": "expr"
+            }
+          },
+          "props.pens[2].data.source": {
+            "binding": {
+              "config": {
+                "expression": "\"histprov:CoreHistory:/sys:Ignition-VisionTesting:/prov:Otto_FleetManager:/tag:Fleet/Robots/\"+{../ControlRow/RobotDropdown.props.value}+\"/Expression/SubSystemState_Numberized\""
+              },
+              "type": "expr"
+            }
+          },
+          "props.pens[3].data.source": {
+            "binding": {
+              "config": {
+                "expression": "\"histprov:CoreHistory:/sys:Ignition-VisionTesting:/prov:Otto_FleetManager:/tag:Fleet/Robots/\"+{../ControlRow/RobotDropdown.props.value}+\"/ChargeLevel\""
+              },
+              "type": "expr"
+            }
+          },
+          "props.pens[4].data.source": {
+            "binding": {
+              "config": {
+                "expression": "\"histprov:CoreHistory:/sys:Ignition-VisionTesting:/prov:Otto_FleetManager:/tag:Fleet/Robots/\"+{../ControlRow/RobotDropdown.props.value}+\"/ActiveMissionCount\""
+              },
+              "type": "expr"
+            }
           }
         },
         "props": {
           "axes": [
             {
-              "color": "#2563eb",
-              "dataFormat": "0",
+              "color": "#757A7F",
+              "dataFormat": "0,0.##",
+              "grid": {
+                "color": "",
+                "dashArray": 0,
+                "opacity": 0.9,
+                "style": {
+                  "classes": ""
+                },
+                "visible": false
+              },
               "label": {
-                "text": "State Code"
+                "font": {
+                  "color": "#757A7F",
+                  "size": 10
+                },
+                "offset": 0,
+                "style": {
+                  "classes": ""
+                },
+                "text": "States"
               },
-              "name": "state",
-              "position": "left",
-              "range": {
-                "auto": true
-              },
-              "width": 64
-            },
-            {
-              "color": "#059669",
-              "dataFormat": "0.[0]",
-              "label": {
-                "text": "Metrics"
-              },
-              "name": "metrics",
+              "name": "States",
               "position": "right",
               "range": {
-                "auto": true
+                "auto": false,
+                "max": 30,
+                "min": -1
               },
-              "width": 64
+              "style": {
+                "classes": ""
+              },
+              "tick": {
+                "color": "#757A7F",
+                "count": "Auto",
+                "label": {
+                  "font": {
+                    "color": "#757A7F",
+                    "size": 10
+                  },
+                  "format": "Auto",
+                  "style": {
+                    "classes": ""
+                  }
+                },
+                "style": {
+                  "classes": ""
+                }
+              },
+              "width": 60
+            },
+            {
+              "color": "#757A7F",
+              "dataFormat": "0,0.##",
+              "grid": {
+                "color": "",
+                "dashArray": 0,
+                "opacity": 0.9,
+                "style": {
+                  "classes": ""
+                },
+                "visible": false
+              },
+              "label": {
+                "font": {
+                  "color": "#757A7F",
+                  "size": 10
+                },
+                "offset": 0,
+                "style": {
+                  "classes": ""
+                },
+                "text": "Battery"
+              },
+              "name": "Battery",
+              "position": "left",
+              "range": {
+                "auto": false,
+                "max": 100,
+                "min": 0
+              },
+              "style": {
+                "classes": "",
+                "marginBottom": 50,
+                "marginTop": 50
+              },
+              "tick": {
+                "color": "#757A7F",
+                "count": "Auto",
+                "label": {
+                  "font": {
+                    "color": "#757A7F",
+                    "size": 10
+                  },
+                  "format": "Auto",
+                  "style": {
+                    "classes": ""
+                  }
+                },
+                "style": {
+                  "classes": ""
+                }
+              },
+              "width": 60
             }
           ],
           "config": {
-            "endDate": "now()",
-            "startDate": "dateArithmetic(now(), -24, \"hr\")",
-            "measureOfTime": "hours",
-            "mode": "historical",
-            "pointCount": -1,
-            "refreshRate": 10000,
-            "responsiveDesignWidth": 750,
-            "unitOfTime": 24,
+            "endDate": {
+              "$": [
+                "ts",
+                0,
+                1776980113820
+              ],
+              "$ts": 1776980109861
+            },
+            "rangeEndDate": {
+              "$": [
+                "ts",
+                0,
+                1776981362107
+              ],
+              "$ts": 1776981352485
+            },
+            "rangeSelectorPen": "histprov:CoreHistory:/sys:Ignition-VisionTesting:/prov:Otto_FleetManager:/tag:Fleet/Robots/AMPF_AMR_RV1/Expression/ActivityState_Numberized",
+            "rangeStartDate": {
+              "$": [
+                "ts",
+                0,
+                1776981362107
+              ],
+              "$ts": 1776977764485
+            },
+            "startDate": {
+              "$": [
+                "ts",
+                0,
+                1776980113820
+              ],
+              "$ts": 1776951309861
+            },
+            "unitOfTime": 1,
             "visibility": {
-              "showDateRangeSelector": true,
-              "showPenControlDisplay": true,
-              "showTagBrowser": false
+              "buttons": {
+                "showPanZoomButton": false,
+                "showTagBrowserButton": false
+              },
+              "showPenControlDisplay": false
             }
           },
-          "plots": [
+          "interaction": {
+            "chartZoomLevel": 1,
+            "mode": "xTrace",
+            "rangeZoomLevel": 1
+          },
+          "legend": {
+            "visible": true
+          },
+          "pens": [
             {
-              "relativeWeight": 1
+              "axis": "States",
+              "data": {
+                "aggregateMode": "default"
+              },
+              "display": {
+                "breakLine": true,
+                "interpolation": "curveLinear",
+                "radius": 3,
+                "styles": {
+                  "highlighted": {
+                    "fill": {
+                      "color": "#63BEA2",
+                      "opacity": 1
+                    },
+                    "stroke": {
+                      "color": "#63BEA2",
+                      "dashArray": 0,
+                      "opacity": 1,
+                      "width": 1
+                    }
+                  },
+                  "muted": {
+                    "fill": {
+                      "color": "#63BEA2",
+                      "opacity": 0.4
+                    },
+                    "stroke": {
+                      "color": "#63BEA2",
+                      "dashArray": 0,
+                      "opacity": 0.4,
+                      "width": 1
+                    }
+                  },
+                  "normal": {
+                    "fill": {
+                      "color": "#63BEA2",
+                      "opacity": 0.8
+                    },
+                    "stroke": {
+                      "color": "#63BEA2",
+                      "dashArray": 0,
+                      "opacity": 0.8,
+                      "width": 1
+                    }
+                  },
+                  "selected": {
+                    "fill": {
+                      "color": "#63BEA2",
+                      "opacity": 1
+                    },
+                    "stroke": {
+                      "color": "#63BEA2",
+                      "dashArray": 0,
+                      "opacity": 1,
+                      "width": 1
+                    }
+                  }
+                },
+                "type": "line"
+              },
+              "enabled": true,
+              "name": "Activity State",
+              "plot": 0,
+              "selectable": true,
+              "visible": true
+            },
+            {
+              "axis": "States",
+              "data": {
+                "aggregateMode": "default"
+              },
+              "display": {
+                "breakLine": true,
+                "interpolation": "curveLinear",
+                "radius": 3,
+                "styles": {
+                  "highlighted": {
+                    "fill": {
+                      "color": "#FC8D62",
+                      "opacity": 1
+                    },
+                    "stroke": {
+                      "color": "#FC8D62",
+                      "dashArray": 0,
+                      "opacity": 1,
+                      "width": 1
+                    }
+                  },
+                  "muted": {
+                    "fill": {
+                      "color": "#FC8D62",
+                      "opacity": 0.4
+                    },
+                    "stroke": {
+                      "color": "#FC8D62",
+                      "dashArray": 0,
+                      "opacity": 0.4,
+                      "width": 1
+                    }
+                  },
+                  "normal": {
+                    "fill": {
+                      "color": "#FC8D62",
+                      "opacity": 0.8
+                    },
+                    "stroke": {
+                      "color": "#FC8D62",
+                      "dashArray": 0,
+                      "opacity": 0.8,
+                      "width": 1
+                    }
+                  },
+                  "selected": {
+                    "fill": {
+                      "color": "#FC8D62",
+                      "opacity": 1
+                    },
+                    "stroke": {
+                      "color": "#FC8D62",
+                      "dashArray": 0,
+                      "opacity": 1,
+                      "width": 1
+                    }
+                  }
+                },
+                "type": "line"
+              },
+              "enabled": true,
+              "name": "System State",
+              "plot": 0,
+              "selectable": true,
+              "visible": true
+            },
+            {
+              "axis": "States",
+              "data": {
+                "aggregateMode": "default"
+              },
+              "display": {
+                "breakLine": true,
+                "interpolation": "curveLinear",
+                "radius": 3,
+                "styles": {
+                  "highlighted": {
+                    "fill": {
+                      "color": "#8DA0CB",
+                      "opacity": 1
+                    },
+                    "stroke": {
+                      "color": "#8DA0CB",
+                      "dashArray": 0,
+                      "opacity": 1,
+                      "width": 1
+                    }
+                  },
+                  "muted": {
+                    "fill": {
+                      "color": "#8DA0CB",
+                      "opacity": 0.4
+                    },
+                    "stroke": {
+                      "color": "#8DA0CB",
+                      "dashArray": 0,
+                      "opacity": 0.4,
+                      "width": 1
+                    }
+                  },
+                  "normal": {
+                    "fill": {
+                      "color": "#8DA0CB",
+                      "opacity": 0.8
+                    },
+                    "stroke": {
+                      "color": "#8DA0CB",
+                      "dashArray": 0,
+                      "opacity": 0.8,
+                      "width": 1
+                    }
+                  },
+                  "selected": {
+                    "fill": {
+                      "color": "#8DA0CB",
+                      "opacity": 1
+                    },
+                    "stroke": {
+                      "color": "#8DA0CB",
+                      "dashArray": 0,
+                      "opacity": 1,
+                      "width": 1
+                    }
+                  }
+                },
+                "type": "line"
+              },
+              "enabled": true,
+              "name": "SubSystem State",
+              "plot": 0,
+              "selectable": true,
+              "visible": true
+            },
+            {
+              "axis": "Battery",
+              "data": {
+                "aggregateMode": "default"
+              },
+              "display": {
+                "breakLine": true,
+                "interpolation": "curveLinear",
+                "radius": 3,
+                "styles": {
+                  "highlighted": {
+                    "fill": {
+                      "color": "#E78AC3",
+                      "opacity": 1
+                    },
+                    "stroke": {
+                      "color": "#E78AC3",
+                      "dashArray": 0,
+                      "opacity": 1,
+                      "width": 1
+                    }
+                  },
+                  "muted": {
+                    "fill": {
+                      "color": "#E78AC3",
+                      "opacity": 0.4
+                    },
+                    "stroke": {
+                      "color": "#E78AC3",
+                      "dashArray": 0,
+                      "opacity": 0.4,
+                      "width": 1
+                    }
+                  },
+                  "normal": {
+                    "fill": {
+                      "color": "#E78AC3",
+                      "opacity": 0.8
+                    },
+                    "stroke": {
+                      "color": "#E78AC3",
+                      "dashArray": 0,
+                      "opacity": 0.8,
+                      "width": 1
+                    }
+                  },
+                  "selected": {
+                    "fill": {
+                      "color": "#E78AC3",
+                      "opacity": 1
+                    },
+                    "stroke": {
+                      "color": "#E78AC3",
+                      "dashArray": 0,
+                      "opacity": 1,
+                      "width": 1
+                    }
+                  }
+                },
+                "type": "line"
+              },
+              "enabled": true,
+              "name": "Charge Level",
+              "plot": 0,
+              "selectable": true,
+              "visible": true
+            },
+            {
+              "axis": "States",
+              "data": {
+                "aggregateMode": "default"
+              },
+              "display": {
+                "breakLine": true,
+                "interpolation": "curveLinear",
+                "radius": 3,
+                "styles": {
+                  "highlighted": {
+                    "fill": {
+                      "color": "#E78AC3",
+                      "opacity": 1
+                    },
+                    "stroke": {
+                      "color": "#E78AC3",
+                      "dashArray": 0,
+                      "opacity": 1,
+                      "width": 1
+                    }
+                  },
+                  "muted": {
+                    "fill": {
+                      "color": "#E78AC3",
+                      "opacity": 0.4
+                    },
+                    "stroke": {
+                      "color": "#E78AC3",
+                      "dashArray": 0,
+                      "opacity": 0.4,
+                      "width": 1
+                    }
+                  },
+                  "normal": {
+                    "fill": {
+                      "color": "#E78AC3",
+                      "opacity": 0.8
+                    },
+                    "stroke": {
+                      "color": "#E78AC3",
+                      "dashArray": 0,
+                      "opacity": 0.8,
+                      "width": 1
+                    }
+                  },
+                  "selected": {
+                    "fill": {
+                      "color": "#E78AC3",
+                      "opacity": 1
+                    },
+                    "stroke": {
+                      "color": "#E78AC3",
+                      "dashArray": 0,
+                      "opacity": 1,
+                      "width": 1
+                    }
+                  }
+                },
+                "type": "line"
+              },
+              "enabled": true,
+              "name": "MissionCount",
+              "plot": 0,
+              "selectable": true,
+              "visible": true
             }
-          ],
-          "style": {
-            "marginLeft": "12px",
-            "marginRight": "12px",
-            "marginBottom": "12px"
-          }
+          ]
         },
         "type": "ia.chart.powerchart"
       }
