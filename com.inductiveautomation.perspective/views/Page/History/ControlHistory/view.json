@@ -880,10 +880,7 @@
             },
             "props": {
               "style": {
-                "color": "var(--neutral-90)",
-                "fontSize": "13px",
-                "fontWeight": "700",
-                "paddingLeft": "4px"
+                "classes": "Page/Display/PanelTitle"
               },
               "text": "Message"
             },
@@ -916,15 +913,7 @@
             },
             "props": {
               "style": {
-                "backgroundColor": "var(--neutral-10)",
-                "border": "1px solid var(--neutral-40)",
-                "borderRadius": "6px",
-                "color": "var(--neutral-90)",
-                "fontFamily": "Consolas, monospace",
-                "fontSize": "12px",
-                "overflow": "auto",
-                "padding": "8px",
-                "whiteSpace": "pre-wrap"
+                "classes": "Page/Display/CodeBox"
               }
             },
             "type": "ia.display.label"

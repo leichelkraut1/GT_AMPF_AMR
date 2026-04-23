@@ -344,24 +344,8 @@
               "value": "light"
             },
             {
-              "label": "light-cool",
-              "value": "light-cool"
-            },
-            {
-              "label": "light-warm",
-              "value": "light-warm"
-            },
-            {
               "label": "dark",
               "value": "dark"
-            },
-            {
-              "label": "dark-cool",
-              "value": "dark-cool"
-            },
-            {
-              "label": "dark-warm",
-              "value": "dark-warm"
             }
           ],
           "search": {
@@ -618,14 +602,14 @@
       "name": "root"
     },
     "propConfig": {
-      "props.style.backgroundColor": {
+      "props.style.classes": {
         "binding": {
           "config": {
             "path": "session.props.theme"
           },
           "transforms": [
             {
-              "code": "\tif \"dark\" in value:\n\t\treturn \"var(--neutral-10)\"\n\telse:\n\t\treturn \"\"",
+              "code": "\tif \"dark\" in value:\n\t\treturn \"Header/Header Header/DarkBackground\"\n\treturn \"Header/Header\"",
               "type": "script"
             }
           ],
