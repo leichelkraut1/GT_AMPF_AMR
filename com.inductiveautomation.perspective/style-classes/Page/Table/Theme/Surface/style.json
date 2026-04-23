@@ -1,0 +1,10 @@
+{
+  "base": {
+    "style": {
+      "backgroundColor": "var(--neutral-10)",
+      "border": "1px solid var(--neutral-40)",
+      "borderRadius": "6px",
+      "overflow": "hidden"
+    }
+  }
+}

@@ -935,6 +935,20 @@
               ],
               "type": "expr"
             }
+          },
+          "props.rows.striped.color.even": {
+            "binding": {
+              "config": {
+                "path": "session.props.theme"
+              },
+              "transforms": [
+                {
+                  "code": "\ttheme = str(value or \"\").lower()\n\tif \"dark\" in theme:\n\t\treturn \"#253041\"\n\treturn \"#e5e7eb\"",
+                  "type": "script"
+                }
+              ],
+              "type": "property"
+            }
           }
         },
         "props": {
@@ -976,10 +990,8 @@
                 "align": "center",
                 "justify": "left",
                 "style": {
-                  "backgroundColor": "var(--neutral-80)",
-                  "borderBottom": "1px solid var(--neutral-90)",
+                  "classes": "Page/Table/Theme/Header",
                   "borderRight": "1px solid var(--neutral-60)",
-                  "color": "var(--neutral-10)",
                   "fontSize": "14px",
                   "fontWeight": "700",
                   "paddingLeft": "10px",
@@ -1025,7 +1037,7 @@
               "sortable": false,
               "strictWidth": true,
               "style": {
-                "borderRight": "1px solid var(--neutral-30)",
+                "classes": "Page/Table/Theme/Cell",
                 "paddingLeft": "10px",
                 "paddingRight": "10px"
               },
@@ -1077,10 +1089,8 @@
                 "align": "center",
                 "justify": "center",
                 "style": {
-                  "backgroundColor": "var(--neutral-80)",
-                  "borderBottom": "1px solid var(--neutral-90)",
+                  "classes": "Page/Table/Theme/Header",
                   "borderRight": "1px solid var(--neutral-60)",
-                  "color": "var(--neutral-10)",
                   "fontSize": "14px",
                   "fontWeight": "700",
                   "paddingLeft": "10px",
@@ -1126,7 +1136,7 @@
               "sortable": false,
               "strictWidth": true,
               "style": {
-                "borderRight": "1px solid var(--neutral-30)",
+                "classes": "Page/Table/Theme/Cell",
                 "fontWeight": "700",
                 "paddingLeft": "10px",
                 "paddingRight": "10px"
@@ -1179,9 +1189,7 @@
                 "align": "center",
                 "justify": "left",
                 "style": {
-                  "backgroundColor": "var(--neutral-80)",
-                  "borderBottom": "1px solid var(--neutral-90)",
-                  "color": "var(--neutral-10)",
+                  "classes": "Page/Table/Theme/Header",
                   "fontSize": "14px",
                   "fontWeight": "700",
                   "paddingLeft": "10px",
@@ -1249,19 +1257,15 @@
           "rows": {
             "striped": {
               "color": {
-                "even": "var(--neutral-20)"
+                "even": "#e5e7eb"
               }
             },
             "style": {
-              "borderBottom": "1px solid var(--neutral-30)",
-              "fontSize": "13px"
+              "classes": "Page/Table/Theme/Row"
             }
           },
           "style": {
-            "backgroundColor": "var(--neutral-10)",
-            "border": "1px solid var(--neutral-40)",
-            "borderRadius": "6px",
-            "overflow": "hidden"
+            "classes": "Page/Table/Theme/Surface"
           }
         },
         "type": "ia.display.table"

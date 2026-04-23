@@ -1,0 +1,9 @@
+{
+  "base": {
+    "style": {
+      "backgroundColor": "var(--neutral-80)",
+      "borderBottom": "1px solid var(--neutral-90)",
+      "color": "var(--neutral-10)"
+    }
+  }
+}

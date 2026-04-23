@@ -193,10 +193,8 @@
                     "align": "center",
                     "justify": "center",
                     "style": {
-                      "backgroundColor": "#1f2937",
-                      "borderBottom": "1px solid #111827",
+                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
-                      "color": "#ffffff",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -208,7 +206,7 @@
                   "sortable": true,
                   "strictWidth": true,
                   "style": {
-                    "borderRight": "1px solid #d7dce5",
+                    "classes": "Page/Table/Fixed/Cell",
                     "paddingLeft": "10px",
                     "paddingRight": "10px"
                   },
@@ -240,10 +238,8 @@
                     "align": "center",
                     "justify": "center",
                     "style": {
-                      "backgroundColor": "#1f2937",
-                      "borderBottom": "1px solid #111827",
+                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
-                      "color": "#ffffff",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -255,7 +251,7 @@
                   "sortable": true,
                   "strictWidth": true,
                   "style": {
-                    "borderRight": "1px solid #d7dce5",
+                    "classes": "Page/Table/Fixed/Cell",
                     "paddingLeft": "10px",
                     "paddingRight": "10px"
                   },
@@ -267,10 +263,8 @@
                     "align": "center",
                     "justify": "left",
                     "style": {
-                      "backgroundColor": "#1f2937",
-                      "borderBottom": "1px solid #111827",
+                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
-                      "color": "#ffffff",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -281,7 +275,7 @@
                   "sort": "none",
                   "sortable": true,
                   "style": {
-                    "borderRight": "1px solid #d7dce5",
+                    "classes": "Page/Table/Fixed/Cell",
                     "overflow": "hidden",
                     "paddingLeft": "10px",
                     "paddingRight": "10px",
@@ -296,10 +290,8 @@
                     "align": "center",
                     "justify": "left",
                     "style": {
-                      "backgroundColor": "#1f2937",
-                      "borderBottom": "1px solid #111827",
+                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
-                      "color": "#ffffff",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -310,7 +302,7 @@
                   "sort": "none",
                   "sortable": false,
                   "style": {
-                    "borderRight": "1px solid #d7dce5",
+                    "classes": "Page/Table/Fixed/Cell",
                     "overflow": "hidden",
                     "paddingLeft": "10px",
                     "paddingRight": "10px",
@@ -325,10 +317,8 @@
                     "align": "center",
                     "justify": "left",
                     "style": {
-                      "backgroundColor": "#1f2937",
-                      "borderBottom": "1px solid #111827",
+                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
-                      "color": "#ffffff",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -339,7 +329,7 @@
                   "sort": "none",
                   "sortable": false,
                   "style": {
-                    "borderRight": "1px solid #d7dce5",
+                    "classes": "Page/Table/Fixed/Cell",
                     "overflow": "hidden",
                     "paddingLeft": "10px",
                     "paddingRight": "10px",
@@ -354,10 +344,8 @@
                     "align": "center",
                     "justify": "center",
                     "style": {
-                      "backgroundColor": "#1f2937",
-                      "borderBottom": "1px solid #111827",
+                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
-                      "color": "#ffffff",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -369,7 +357,7 @@
                   "sortable": true,
                   "strictWidth": true,
                   "style": {
-                    "borderRight": "1px solid #d7dce5",
+                    "classes": "Page/Table/Fixed/Cell",
                     "paddingLeft": "10px",
                     "paddingRight": "10px"
                   },
@@ -381,10 +369,8 @@
                     "align": "center",
                     "justify": "center",
                     "style": {
-                      "backgroundColor": "#1f2937",
-                      "borderBottom": "1px solid #111827",
+                      "classes": "Page/Table/Fixed/Header",
                       "borderRight": "1px solid #374151",
-                      "color": "#ffffff",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -396,7 +382,7 @@
                   "sortable": true,
                   "strictWidth": true,
                   "style": {
-                    "borderRight": "1px solid #d7dce5",
+                    "classes": "Page/Table/Fixed/Cell",
                     "paddingLeft": "10px",
                     "paddingRight": "10px"
                   },
@@ -408,9 +394,7 @@
                     "align": "center",
                     "justify": "left",
                     "style": {
-                      "backgroundColor": "#1f2937",
-                      "borderBottom": "1px solid #111827",
-                      "color": "#ffffff",
+                      "classes": "Page/Table/Fixed/Header",
                       "fontSize": "14px",
                       "fontWeight": "700",
                       "paddingLeft": "10px",
@@ -438,8 +422,7 @@
                   }
                 },
                 "style": {
-                  "borderBottom": "1px solid #e3e8ef",
-                  "fontSize": "13px"
+                  "classes": "Page/Table/Fixed/Row"
                 }
               },
               "selection": {
@@ -462,10 +445,7 @@
                 "Ts"
               ],
               "style": {
-                "backgroundColor": "#ffffff",
-                "border": "1px solid #cfd6df",
-                "borderRadius": "6px",
-                "overflow": "hidden"
+                "classes": "Page/Table/Fixed/Surface"
               }
             },
             "scripts": {

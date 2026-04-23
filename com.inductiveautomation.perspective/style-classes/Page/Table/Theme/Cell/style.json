@@ -1,0 +1,7 @@
+{
+  "base": {
+    "style": {
+      "borderRight": "1px solid var(--neutral-30)"
+    }
+  }
+}
