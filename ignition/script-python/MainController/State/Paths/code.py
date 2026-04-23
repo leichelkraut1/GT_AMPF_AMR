@@ -52,7 +52,14 @@ def plcRobotRowPath(plcTagName):
 
 
 def plcRobotPaths(plcTagName):
-    """Return the PLC-facing input/output contract for a mapped PLC robot row."""
+    """
+    Return the PLC-facing input/output contract for a mapped PLC robot row.
+
+    The returned dict uses stable snake_case path keys such as "activity_state".
+    Other modules, especially MainController.State.PlcStore, map logical output keys onto these
+    path keys first; this helper is where those keys become concrete PLC tag paths such as
+    "/ToPLC/ActivityState".
+    """
     basePath = plcRobotRowPath(plcTagName)
     fromPlc = basePath + "/FromPLC"
     toPlc = basePath + "/ToPLC"

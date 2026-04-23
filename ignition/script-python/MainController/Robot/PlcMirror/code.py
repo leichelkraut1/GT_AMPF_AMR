@@ -13,7 +13,14 @@ def buildOutputs(
     requestInvalid=False,
     missionNeedsFinalized=False
 ):
-    """Build the PLC-facing output snapshot for the current cycle."""
+    """
+    Build the PLC-facing output snapshot for the current cycle.
+
+    Health contract:
+    - `control_healthy` is the aggregate "safe to trust Ignition outputs" bit
+    - it is `False` whenever either `fleet_fault` or `plc_comm_fault` is `True`
+    - PLC code can use `plc_comm_fault` when it needs the specific reason for the unhealthy state
+    """
     plcCommFault = bool(plcCommFault)
     fleetFault = bool(fleetFault)
     return {

@@ -120,7 +120,21 @@ def _normalizeMappingRows(datasetRows, leftHeader, label, allowedLeftValues=None
 
 
 def readPlcMappings():
-    """Read, validate, and normalize the PLC/Fleet mapping datasets for the current cycle."""
+    """
+    Read, validate, and normalize the PLC/Fleet mapping datasets for the current cycle.
+
+    Returned result/data shape:
+    - robot_name_to_plc_tag: Fleet robot name -> PLC robot row tag name
+    - plc_robot_tag_to_robot_name: reverse lookup of the above
+    - place_tag_name_to_plc_tag: Fleet place tag name -> PLC place row tag name
+    - plc_place_tag_to_place_tag_name: reverse lookup of the above
+    - robot_dataset_ok: whether RobotTagNameMapping was readable and structurally valid
+    - place_dataset_ok: whether PlaceTagNameMapping was readable and structurally valid
+    - warnings: non-fatal issues such as blank rows, unknown names, or duplicate remaps
+
+    Controller code passes this dict through several layers as plcMappingState, so this docstring is
+    the contract for what callers may safely expect to exist.
+    """
     results = readTagValues([
         plcRobotTagNameMappingPath(),
         plcPlaceTagNameMappingPath(),

@@ -22,6 +22,24 @@ def _toWorkflowNumber(value):
     return normalizeWorkflowNumber(value) or 0
 
 
+# Spec shape:
+# - first item = logical output key produced by MainController.Robot.PlcMirror.buildOutputs()
+# - second item = path-map key returned by MainController.State.Paths.plcRobotPaths()
+# - third item = coercer before write
+#
+# Example:
+# - "activity_state" in the logical output dict
+# - maps to paths["activity_state"]
+# - which plcRobotPaths() resolves to the concrete "/ToPLC/ActivityState" tag path
+#
+# A concrete PLC path must exist in the path contract built by plcRobotPaths(), which is the
+# central lookup for the PLC robot interface under MainController.State.Paths / Otto_API.Common.TagPaths.
+#
+# Health note:
+# - "control_healthy" is the aggregate PLC-facing health bit
+# - MainController.Robot.PlcMirror.buildOutputs() sets it False whenever either "fleet_fault"
+#   or "plc_comm_fault" is True
+# - PLC logic can use the more specific fault bits when it needs the exact reason
 PLC_ROBOT_OUTPUT_SPECS = [
     ("available_for_work", "available_for_work", toBool),
     ("active_mission_count", "active_mission_count", _toInt),
