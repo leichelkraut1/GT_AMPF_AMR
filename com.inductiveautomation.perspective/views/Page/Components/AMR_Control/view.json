@@ -66,7 +66,7 @@
         },
         "props": {
           "style": {
-            "color": "#111827",
+            "color": "var(--neutral-90)",
             "fontSize": "18px",
             "fontWeight": "700",
             "textAlign": "center"
@@ -161,7 +161,7 @@
         },
         "props": {
           "style": {
-            "color": "#374151",
+            "color": "var(--neutral-70)",
             "fontSize": "13px",
             "whiteSpace": "normal"
           }
@@ -459,8 +459,8 @@
         },
         "props": {
           "style": {
-            "borderTop": "1px solid #e5e7eb",
-            "color": "#475569",
+            "borderTop": "1px solid var(--neutral-30)",
+            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700",
             "marginTop": "6px",
@@ -661,7 +661,7 @@
         },
         "props": {
           "style": {
-            "color": "#475569",
+            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700",
             "paddingTop": "4px"
@@ -718,8 +718,8 @@
         },
         "props": {
           "style": {
-            "borderTop": "1px solid #e5e7eb",
-            "color": "#475569",
+            "borderTop": "1px solid var(--neutral-30)",
+            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700",
             "marginTop": "6px",
@@ -740,7 +740,7 @@
         },
         "props": {
           "style": {
-            "color": "#475569",
+            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700",
             "paddingTop": "2px"
@@ -798,7 +798,7 @@
         },
         "props": {
           "style": {
-            "color": "#475569",
+            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700"
           },
@@ -852,8 +852,8 @@
         },
         "props": {
           "style": {
-            "borderTop": "1px solid #e5e7eb",
-            "color": "#475569",
+            "borderTop": "1px solid var(--neutral-30)",
+            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700",
             "marginTop": "6px",
@@ -1029,9 +1029,10 @@
     "props": {
       "direction": "column",
       "style": {
-        "backgroundColor": "#ffffff",
-        "border": "1px solid #d7dce5",
+        "backgroundColor": "var(--neutral-10)",
+        "border": "1px solid var(--neutral-40)",
         "borderRadius": "8px",
+        "color": "var(--neutral-90)",
         "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
         "marginBottom": "16px",
         "marginRight": "16px",

@@ -100,7 +100,7 @@
               "direction": "column",
               "style": {
                 "backgroundColor": "var(--neutral-10)",
-                "border": "1px solid var(--neutral-30)",
+                "border": "1px solid var(--neutral-40)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -187,7 +187,7 @@
               "direction": "column",
               "style": {
                 "backgroundColor": "var(--neutral-10)",
-                "border": "1px solid var(--neutral-30)",
+                "border": "1px solid var(--neutral-40)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -301,7 +301,7 @@
               "direction": "column",
               "style": {
                 "backgroundColor": "var(--neutral-10)",
-                "border": "1px solid var(--neutral-30)",
+                "border": "1px solid var(--neutral-40)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -389,7 +389,7 @@
               "direction": "column",
               "style": {
                 "backgroundColor": "var(--neutral-10)",
-                "border": "1px solid var(--neutral-30)",
+                "border": "1px solid var(--neutral-40)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -465,7 +465,7 @@
               "direction": "column",
               "style": {
                 "backgroundColor": "var(--neutral-10)",
-                "border": "1px solid var(--neutral-30)",
+                "border": "1px solid var(--neutral-40)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -542,7 +542,7 @@
               "direction": "column",
               "style": {
                 "backgroundColor": "var(--neutral-10)",
-                "border": "1px solid var(--neutral-30)",
+                "border": "1px solid var(--neutral-40)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -619,7 +619,7 @@
               "direction": "column",
               "style": {
                 "backgroundColor": "var(--neutral-10)",
-                "border": "1px solid var(--neutral-30)",
+                "border": "1px solid var(--neutral-40)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -696,7 +696,7 @@
               "direction": "column",
               "style": {
                 "backgroundColor": "var(--neutral-10)",
-                "border": "1px solid var(--neutral-30)",
+                "border": "1px solid var(--neutral-40)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -796,7 +796,7 @@
               "direction": "column",
               "style": {
                 "backgroundColor": "var(--neutral-10)",
-                "border": "1px solid var(--neutral-30)",
+                "border": "1px solid var(--neutral-40)",
                 "borderRadius": "8px",
                 "marginBottom": "12px",
                 "marginRight": "12px",
@@ -888,7 +888,7 @@
           "direction": "column",
           "style": {
             "backgroundColor": "var(--neutral-20)",
-            "border": "1px solid var(--neutral-30)",
+            "border": "1px solid var(--neutral-40)",
             "borderRadius": "8px",
             "marginBottom": "12px",
             "padding": "12px"
@@ -1265,52 +1265,12 @@
           },
           "style": {
             "backgroundColor": "var(--neutral-10)",
-            "border": "1px solid var(--neutral-30)",
+            "border": "1px solid var(--neutral-40)",
             "borderRadius": "6px",
             "overflow": "hidden"
           }
         },
         "type": "ia.display.table"
-      },
-      {
-        "meta": {
-          "name": "PhaseHealthCopyText"
-        },
-        "position": {
-          "basis": "120px",
-          "shrink": 0
-        },
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "now(2000)"
-              },
-              "transforms": [
-                {
-                  "code": "\timport MainController.State.FleetStatusStore\n\treturn MainController.State.FleetStatusStore.phaseHealthText()",
-                  "type": "script"
-                }
-              ],
-              "type": "expr"
-            }
-          }
-        },
-        "props": {
-          "style": {
-            "backgroundColor": "var(--neutral-20)",
-            "border": "1px solid var(--neutral-30)",
-            "borderRadius": "6px",
-            "color": "var(--neutral-90)",
-            "fontFamily": "Consolas, monospace",
-            "fontSize": "12px",
-            "marginTop": "8px",
-            "padding": "10px",
-            "userSelect": "text",
-            "whiteSpace": "pre-wrap"
-          }
-        },
-        "type": "ia.display.label"
       },
       {
         "meta": {
@@ -1397,7 +1357,7 @@
               },
               "style": {
                 "backgroundColor": "transparent",
-                "border": "1px solid var(--neutral-30)",
+                "border": "1px solid var(--neutral-40)",
                 "borderRadius": "6px",
                 "color": "var(--neutral-90)"
               }
