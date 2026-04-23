@@ -1,6 +1,134 @@
 {
-  "custom": {},
+  "custom": {
+    "selectedDatasetMode": "all",
+    "autoRefreshEnabled": true,
+    "manualRefreshNonce": 0,
+    "autoRefreshTick": 0,
+    "themePrimaryText": "#111827",
+    "themeMutedText": "#6b7280",
+    "themeSurfaceBg": "#f9fafb",
+    "themeSurfaceAltBg": "#f3f4f6",
+    "themeSurfaceBorder": "1px solid #d1d5db",
+    "themeDividerBorder": "1px solid #d1d5db",
+    "themeTableDividerBorder": "1px solid #9ca3af"
+  },
   "params": {},
+  "propConfig": {
+    "custom.autoRefreshTick": {
+      "binding": {
+        "config": {
+          "expression": "if({view.custom.autoRefreshEnabled}, now(1000), 0)"
+        },
+        "type": "expr"
+      },
+      "persistent": false
+    },
+    "custom.themePrimaryText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeMutedText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#9ca3af\"\n\treturn \"#6b7280\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceAltBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#1f2937\"\n\treturn \"#f3f4f6\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeDividerBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeTableDividerBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #4b5563\"\n\treturn \"1px solid #9ca3af\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    }
+  },
   "props": {
     "defaultSize": {
       "height": 745,
@@ -24,14 +152,23 @@
                 },
                 "props": {
                   "style": {
-                    "color": "var(--neutral-90)",
                     "fontSize": "13px",
                     "fontWeight": "700",
                     "paddingLeft": "4px"
                   },
                   "text": "Dataset"
                 },
-                "type": "ia.display.label"
+                "type": "ia.display.label",
+                "propConfig": {
+                  "props.style.color": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.themePrimaryText"
+                      },
+                      "type": "property"
+                    }
+                  }
+                }
               },
               {
                 "meta": {
@@ -43,9 +180,12 @@
                 },
                 "propConfig": {
                   "props.value": {
-                    "onChange": {
-                      "enabled": null,
-                      "script": "\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable \u003d True"
+                    "binding": {
+                      "config": {
+                        "bidirectional": true,
+                        "path": "view.custom.selectedDatasetMode"
+                      },
+                      "type": "property"
                     }
                   }
                 },
@@ -69,35 +209,30 @@
                   },
                   "style": {
                     "textAlign": "left"
-                  },
-                  "value": "all"
+                  }
                 },
                 "type": "ia.input.dropdown"
               },
               {
                 "meta": {
-                  "name": "Checkbox"
+                  "name": "AutoRefreshCheckbox"
                 },
                 "position": {
                   "basis": "136px",
                   "shrink": 0
                 },
                 "propConfig": {
-                  "props.Time": {
+                  "props.selected": {
                     "binding": {
                       "config": {
-                        "expression": "now(5000)"
+                        "bidirectional": true,
+                        "path": "view.custom.autoRefreshEnabled"
                       },
-                      "type": "expr"
-                    },
-                    "onChange": {
-                      "enabled": null,
-                      "script": "\tif self.props.selected:\n\t\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable \u003d True"
+                      "type": "property"
                     }
                   }
                 },
                 "props": {
-                  "selected": true,
                   "text": "Auto Refresh"
                 },
                 "type": "ia.input.checkbox"
@@ -107,7 +242,7 @@
                   "dom": {
                     "onClick": {
                       "config": {
-                        "script": "\tself.parent.parent.getChild(\"HttpHistoryTable\").props.UpdateTable \u003d True"
+                        "script": "\tself.view.custom.manualRefreshNonce = system.date.now().getTime()"
                       },
                       "scope": "G",
                       "type": "script"
@@ -125,6 +260,32 @@
                   "text": "Refresh"
                 },
                 "type": "ia.input.button"
+              },
+              {
+                "meta": {
+                  "name": "DisableCycleHttpGetsCheckbox"
+                },
+                "position": {
+                  "basis": "220px",
+                  "shrink": 0
+                },
+                "propConfig": {
+                  "props.selected": {
+                    "binding": {
+                      "config": {
+                        "bidirectional": true,
+                        "fallbackDelay": 2.5,
+                        "mode": "direct",
+                        "tagPath": "[Otto_FleetManager]Fleet/Config/DisableLogOfMainCycleHTTP"
+                      },
+                      "type": "tag"
+                    }
+                  }
+                },
+                "props": {
+                  "text": "Disable Cyclical HTTP Gets"
+                },
+                "type": "ia.input.checkbox"
               },
               {
                 "meta": {
@@ -151,7 +312,8 @@
                 "gap": "10px"
               }
             },
-            "type": "ia.container.flex"
+            "type": "ia.container.flex",
+            "propConfig": {}
           },
           {
             "meta": {
@@ -165,11 +327,11 @@
               "props.data": {
                 "binding": {
                   "config": {
-                    "expression": "toStr(now(1000)+{this.props.UpdateTable})"
+                    "expression": "toStr({view.custom.selectedDatasetMode}) + \":\" + toStr({view.custom.manualRefreshNonce}) + \":\" + toStr({view.custom.autoRefreshTick})"
                   },
                   "transforms": [
                     {
-                      "code": "\tdropdown \u003d self.parent.getChild(\"Toolbar\").getChild(\"DatasetModeDropdown\")\n\tvalue \u003d dropdown.props.value\n\tparts \u003d str(value or \"all\").rsplit(\":\", 1)\n\tmode \u003d parts[-1] if parts else \"all\"\n\tpathByMode \u003d {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\"\n\t}\n\ttagPath \u003d pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue \u003d system.tag.readBlocking([tagPath])[0].value\n\tif self.props.UpdateTable or self.props.data is None:\n\t\tself.props.UpdateTable \u003d False\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue\n\treturn self.props.data",
+                      "code": "\tmode = str(self.view.custom.selectedDatasetMode or \"all\").strip().lower()\n\tpathByMode = {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\"\n\t}\n\ttagPath = pathByMode.get(mode, pathByMode[\"all\"])\n\tdatasetValue = system.tag.readBlocking([tagPath])[0].value\n\tif datasetValue is None:\n\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\ttry:\n\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\texcept Exception:\n\t\treturn datasetValue",
                       "type": "script"
                     }
                   ],
@@ -178,7 +340,6 @@
               }
             },
             "props": {
-              "UpdateTable": false,
               "columns": [
                 {
                   "field": "Ts",
@@ -426,13 +587,7 @@
               }
             },
             "scripts": {
-              "customMethods": [
-                {
-                  "name": "UpdateDataset",
-                  "params": [],
-                  "script": "\tdropdown \u003d self.parent.getChild(\"Toolbar\").getChild(\"DatasetModeDropdown\")\n\tvalue \u003d dropdown.props.value\n\tparts \u003d str(value or \"all\").rsplit(\":\", 1)\n\tmode \u003d parts[-1] if parts else \"all\"\n\tpathByMode \u003d {\n\t\t\"all\": \"[Otto_FleetManager]MainControl/Runtime/HttpHistory\",\n\t\t\"get\": \"[Otto_FleetManager]MainControl/Runtime/HttpGetHistory\",\n\t\t\"post\": \"[Otto_FleetManager]MainControl/Runtime/HttpPostHistory\"\n\t}\n\ttagPath \u003d pathByMode.get(str(mode).lower(), pathByMode[\"all\"])\n\tdatasetValue \u003d system.tag.readBlocking([tagPath])[0].value\n\tif self.props.UpdateTable or self.props.data is None:\n\t\tif datasetValue is None:\n\t\t\treturn system.dataset.toDataSet([\"Ts\", \"Method\", \"Url\", \"Request\", \"Response\", \"Ok\", \"DurationMs\", \"Error\"], [])\n\t\ttry:\n\t\t\treturn system.dataset.sort(datasetValue, \"Ts\", True)\n\t\texcept Exception:\n\t\t\treturn datasetValue"
-                }
-              ],
+              "customMethods": [],
               "extensionFunctions": null,
               "messageHandlers": []
             },
@@ -451,7 +606,8 @@
             "padding": "8px"
           }
         },
-        "type": "ia.container.flex"
+        "type": "ia.container.flex",
+        "propConfig": {}
       },
       {
         "children": [
@@ -464,9 +620,27 @@
               "basis": "24px",
               "shrink": 0
             },
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "session.props.theme"
+                  },
+                  "transforms": [
+                    {
+                      "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+                      "type": "script"
+                    }
+                  ],
+                  "type": "property"
+                }
+              }
+            },
             "props": {
               "style": {
-                "classes": "Page/Display/PanelTitle"
+                "fontSize": "13px",
+                "fontWeight": "700",
+                "paddingLeft": "4px"
               },
               "text": "URL"
             },
@@ -482,6 +656,48 @@
               "shrink": 0
             },
             "propConfig": {
+              "props.style.backgroundColor": {
+                "binding": {
+                  "config": {
+                    "path": "session.props.theme"
+                  },
+                  "transforms": [
+                    {
+                      "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+                      "type": "script"
+                    }
+                  ],
+                  "type": "property"
+                }
+              },
+              "props.style.border": {
+                "binding": {
+                  "config": {
+                    "path": "session.props.theme"
+                  },
+                  "transforms": [
+                    {
+                      "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+                      "type": "script"
+                    }
+                  ],
+                  "type": "property"
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "session.props.theme"
+                  },
+                  "transforms": [
+                    {
+                      "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+                      "type": "script"
+                    }
+                  ],
+                  "type": "property"
+                }
+              },
               "props.text": {
                 "binding": {
                   "config": {
@@ -489,7 +705,7 @@
                   },
                   "transforms": [
                     {
-                      "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Url\", \"\")\n\treturn \"\"",
+                      "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Url\", \"\")\n\treturn \"\"",
                       "type": "script"
                     }
                   ],
@@ -499,7 +715,12 @@
             },
             "props": {
               "style": {
-                "classes": "Page/Display/CodeBox"
+                "borderRadius": "6px",
+                "fontFamily": "Consolas, monospace",
+                "fontSize": "12px",
+                "overflow": "auto",
+                "padding": "8px",
+                "whiteSpace": "pre-wrap"
               }
             },
             "type": "ia.display.label"
@@ -517,9 +738,27 @@
                       "basis": "24px",
                       "shrink": 0
                     },
+                    "propConfig": {
+                      "props.style.color": {
+                        "binding": {
+                          "config": {
+                            "path": "session.props.theme"
+                          },
+                          "transforms": [
+                            {
+                              "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+                              "type": "script"
+                            }
+                          ],
+                          "type": "property"
+                        }
+                      }
+                    },
                     "props": {
                       "style": {
-                        "classes": "Page/Display/PanelTitle"
+                        "fontSize": "13px",
+                        "fontWeight": "700",
+                        "paddingLeft": "4px"
                       },
                       "text": "Request Body"
                     },
@@ -535,6 +774,48 @@
                       "grow": 1
                     },
                     "propConfig": {
+                      "props.style.backgroundColor": {
+                        "binding": {
+                          "config": {
+                            "path": "session.props.theme"
+                          },
+                          "transforms": [
+                            {
+                              "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+                              "type": "script"
+                            }
+                          ],
+                          "type": "property"
+                        }
+                      },
+                      "props.style.border": {
+                        "binding": {
+                          "config": {
+                            "path": "session.props.theme"
+                          },
+                          "transforms": [
+                            {
+                              "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+                              "type": "script"
+                            }
+                          ],
+                          "type": "property"
+                        }
+                      },
+                      "props.style.color": {
+                        "binding": {
+                          "config": {
+                            "path": "session.props.theme"
+                          },
+                          "transforms": [
+                            {
+                              "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+                              "type": "script"
+                            }
+                          ],
+                          "type": "property"
+                        }
+                      },
                       "props.text": {
                         "binding": {
                           "config": {
@@ -542,7 +823,7 @@
                           },
                           "transforms": [
                             {
-                              "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Request\", \"\")\n\treturn \"\"",
+                              "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Request\", \"\")\n\treturn \"\"",
                               "type": "script"
                             }
                           ],
@@ -552,7 +833,12 @@
                     },
                     "props": {
                       "style": {
-                        "classes": "Page/Display/CodeBox"
+                        "borderRadius": "6px",
+                        "fontFamily": "Consolas, monospace",
+                        "fontSize": "12px",
+                        "overflow": "auto",
+                        "padding": "8px",
+                        "whiteSpace": "pre-wrap"
                       }
                     },
                     "type": "ia.display.label"
@@ -581,9 +867,27 @@
                       "basis": "24px",
                       "shrink": 0
                     },
+                    "propConfig": {
+                      "props.style.color": {
+                        "binding": {
+                          "config": {
+                            "path": "session.props.theme"
+                          },
+                          "transforms": [
+                            {
+                              "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+                              "type": "script"
+                            }
+                          ],
+                          "type": "property"
+                        }
+                      }
+                    },
                     "props": {
                       "style": {
-                        "classes": "Page/Display/PanelTitle"
+                        "fontSize": "13px",
+                        "fontWeight": "700",
+                        "paddingLeft": "4px"
                       },
                       "text": "Response"
                     },
@@ -599,6 +903,48 @@
                       "grow": 1
                     },
                     "propConfig": {
+                      "props.style.backgroundColor": {
+                        "binding": {
+                          "config": {
+                            "path": "session.props.theme"
+                          },
+                          "transforms": [
+                            {
+                              "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+                              "type": "script"
+                            }
+                          ],
+                          "type": "property"
+                        }
+                      },
+                      "props.style.border": {
+                        "binding": {
+                          "config": {
+                            "path": "session.props.theme"
+                          },
+                          "transforms": [
+                            {
+                              "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+                              "type": "script"
+                            }
+                          ],
+                          "type": "property"
+                        }
+                      },
+                      "props.style.color": {
+                        "binding": {
+                          "config": {
+                            "path": "session.props.theme"
+                          },
+                          "transforms": [
+                            {
+                              "code": "\tif \"dark\" in str(value or \"\"):\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+                              "type": "script"
+                            }
+                          ],
+                          "type": "property"
+                        }
+                      },
                       "props.text": {
                         "binding": {
                           "config": {
@@ -606,7 +952,7 @@
                           },
                           "transforms": [
                             {
-                              "code": "\tif value and len(value) \u003e 0:\n\t\treturn value[0].get(\"Response\", \"\")\n\treturn \"\"",
+                              "code": "\tif value and len(value) > 0:\n\t\treturn value[0].get(\"Response\", \"\")\n\treturn \"\"",
                               "type": "script"
                             }
                           ],
@@ -616,7 +962,12 @@
                     },
                     "props": {
                       "style": {
-                        "classes": "Page/Display/CodeBox"
+                        "borderRadius": "6px",
+                        "fontFamily": "Consolas, monospace",
+                        "fontSize": "12px",
+                        "overflow": "auto",
+                        "padding": "8px",
+                        "whiteSpace": "pre-wrap"
                       }
                     },
                     "type": "ia.display.label"
@@ -648,7 +999,8 @@
                 "paddingTop": "8px"
               }
             },
-            "type": "ia.container.flex"
+            "type": "ia.container.flex",
+            "propConfig": {}
           }
         ],
         "meta": {
@@ -663,7 +1015,8 @@
             "padding": "8px"
           }
         },
-        "type": "ia.container.flex"
+        "type": "ia.container.flex",
+        "propConfig": {}
       }
     ],
     "meta": {

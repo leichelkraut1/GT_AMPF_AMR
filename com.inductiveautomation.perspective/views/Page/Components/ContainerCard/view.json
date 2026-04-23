@@ -1,5 +1,13 @@
 {
-  "custom": {},
+  "custom": {
+    "themePrimaryText": "#111827",
+    "themeMutedText": "#6b7280",
+    "themeSurfaceBg": "#f9fafb",
+    "themeSurfaceAltBg": "#f3f4f6",
+    "themeSurfaceBorder": "1px solid #d1d5db",
+    "themeDividerBorder": "1px solid #d1d5db",
+    "themeTableDividerBorder": "1px solid #9ca3af"
+  },
   "params": {
     "containerId": "",
     "containerType": "",
@@ -22,6 +30,111 @@
     "params.state": {
       "paramDirection": "input",
       "persistent": true
+    },
+    "custom.themePrimaryText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeMutedText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#9ca3af\"\n\treturn \"#6b7280\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceAltBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#1f2937\"\n\treturn \"#f3f4f6\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeDividerBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeTableDividerBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #4b5563\"\n\treturn \"1px solid #9ca3af\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
     }
   },
   "props": {
@@ -44,15 +157,22 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if(len(trim(toStr({view.params.containerType}))) \u003d 0, \"Container Type: -\", \"Container Type: \" + toStr({view.params.containerType}))"
+                "expression": "if(len(trim(toStr({view.params.containerType}))) = 0, \"Container Type: -\", \"Container Type: \" + toStr({view.params.containerType}))"
               },
               "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
             }
           }
         },
         "props": {
           "style": {
-            "color": "var(--neutral-90)",
             "fontSize": "15px",
             "fontWeight": "700"
           }
@@ -71,7 +191,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "\"State: \" + if(len(trim(toStr({view.params.state}))) \u003d 0, \"-\", toStr({view.params.state}))"
+                "expression": "\"State: \" + if(len(trim(toStr({view.params.state}))) = 0, \"-\", toStr({view.params.state}))"
               },
               "type": "expr"
             }
@@ -96,7 +216,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if(len(trim(toStr({view.params.locationLabel}))) \u003d 0, \"Location: Unassigned\", toStr({view.params.locationLabel}))"
+                "expression": "if(len(trim(toStr({view.params.locationLabel}))) = 0, \"Location: Unassigned\", toStr({view.params.locationLabel}))"
               },
               "type": "expr"
             }
@@ -123,15 +243,22 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "\"ID: \" + if(len(trim(toStr({view.params.containerId}))) \u003d 0, \"-\", toStr({view.params.containerId}))"
+                "expression": "\"ID: \" + if(len(trim(toStr({view.params.containerId}))) = 0, \"-\", toStr({view.params.containerId}))"
               },
               "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
             }
           }
         },
         "props": {
           "style": {
-            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "whiteSpace": "normal",
             "wordBreak": "break-word"
@@ -144,7 +271,7 @@
           "dom": {
             "onClick": {
               "config": {
-                "script": "\tpopupId \u003d \"delete-container-{}\".format(str(self.view.params.containerId or \"unknown\"))\n\tsystem.perspective.openPopup(\n\t\tid\u003dpopupId,\n\t\tview\u003d\"Page/Components/ContainerDeletePopup\",\n\t\tparams\u003d{\n\t\t\t\"containerId\": self.view.params.containerId,\n\t\t\t\"locationLabel\": self.view.params.locationLabel,\n\t\t\t\"popupId\": popupId,\n\t\t},\n\t\ttitle\u003d\"Delete Container\",\n\t\tmodal\u003dTrue,\n\t\toverlayDismiss\u003dFalse,\n\t\tshowCloseIcon\u003dFalse,\n\t\tdraggable\u003dFalse,\n\t)\n"
+                "script": "\tpopupId = \"delete-container-{}\".format(str(self.view.params.containerId or \"unknown\"))\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/ContainerDeletePopup\",\n\t\tparams={\n\t\t\t\"containerId\": self.view.params.containerId,\n\t\t\t\"locationLabel\": self.view.params.locationLabel,\n\t\t\t\"popupId\": popupId,\n\t\t},\n\t\ttitle=\"Delete Container\",\n\t\tmodal=True,\n\t\toverlayDismiss=False,\n\t\tshowCloseIcon=False,\n\t\tdraggable=False,\n\t)\n"
               },
               "scope": "G",
               "type": "script"
@@ -166,7 +293,8 @@
           },
           "text": "Delete"
         },
-        "type": "ia.input.button"
+        "type": "ia.input.button",
+        "propConfig": {}
       }
     ],
     "meta": {
@@ -175,16 +303,39 @@
     "props": {
       "direction": "column",
       "style": {
-        "backgroundColor": "var(--neutral-10)",
-        "border": "1px solid var(--neutral-40)",
         "borderRadius": "8px",
-        "color": "var(--neutral-90)",
         "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
         "marginBottom": "16px",
         "marginRight": "16px",
         "padding": "12px"
       }
     },
-    "type": "ia.container.flex"
+    "type": "ia.container.flex",
+    "propConfig": {
+      "props.style.color": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themePrimaryText"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.backgroundColor": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBg"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.border": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBorder"
+          },
+          "type": "property"
+        }
+      }
+    }
   }
 }

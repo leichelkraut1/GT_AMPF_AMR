@@ -1,7 +1,14 @@
 {
   "custom": {
     "RVTagName": "AMPF_AMR_RV1",
-    "PlcRobotTagName": "AMPF_AMR_RV1"
+    "PlcRobotTagName": "AMPF_AMR_RV1",
+    "themePrimaryText": "#111827",
+    "themeMutedText": "#6b7280",
+    "themeSurfaceBg": "#f9fafb",
+    "themeSurfaceAltBg": "#f3f4f6",
+    "themeSurfaceBorder": "1px solid #d1d5db",
+    "themeDividerBorder": "1px solid #d1d5db",
+    "themeTableDividerBorder": "1px solid #9ca3af"
   },
   "params": {
     "RVNum": 1
@@ -36,6 +43,111 @@
     "params.RVNum": {
       "paramDirection": "input",
       "persistent": true
+    },
+    "custom.themePrimaryText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeMutedText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#9ca3af\"\n\treturn \"#6b7280\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceAltBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#1f2937\"\n\treturn \"#f3f4f6\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeDividerBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeTableDividerBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #4b5563\"\n\treturn \"1px solid #9ca3af\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
     }
   },
   "props": {
@@ -62,11 +174,18 @@
               },
               "type": "expr"
             }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
           }
         },
         "props": {
           "style": {
-            "color": "var(--neutral-90)",
             "fontSize": "18px",
             "fontWeight": "700",
             "textAlign": "center"
@@ -157,11 +276,18 @@
               ],
               "type": "tag"
             }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
           }
         },
         "props": {
           "style": {
-            "color": "var(--neutral-70)",
             "fontSize": "13px",
             "whiteSpace": "normal"
           }
@@ -459,8 +585,6 @@
         },
         "props": {
           "style": {
-            "borderTop": "1px solid var(--neutral-30)",
-            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700",
             "marginTop": "6px",
@@ -469,7 +593,25 @@
           },
           "text": "PLC Interlocks"
         },
-        "type": "ia.display.label"
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.borderTop": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeDividerBorder"
+              },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": {
@@ -661,14 +803,23 @@
         },
         "props": {
           "style": {
-            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700",
             "paddingTop": "4px"
           },
           "text": "Mission Control Status"
         },
-        "type": "ia.display.label"
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": {
@@ -718,8 +869,6 @@
         },
         "props": {
           "style": {
-            "borderTop": "1px solid var(--neutral-30)",
-            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700",
             "marginTop": "6px",
@@ -728,7 +877,25 @@
           },
           "text": "Current Mission"
         },
-        "type": "ia.display.label"
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.borderTop": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeDividerBorder"
+              },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": {
@@ -740,14 +907,23 @@
         },
         "props": {
           "style": {
-            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700",
             "paddingTop": "2px"
           },
           "text": "Mission Name"
         },
-        "type": "ia.display.label"
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": {
@@ -798,13 +974,22 @@
         },
         "props": {
           "style": {
-            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700"
           },
           "text": "Mission Status"
         },
-        "type": "ia.display.label"
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": {
@@ -852,8 +1037,6 @@
         },
         "props": {
           "style": {
-            "borderTop": "1px solid var(--neutral-30)",
-            "color": "var(--neutral-70)",
             "fontSize": "12px",
             "fontWeight": "700",
             "marginTop": "6px",
@@ -862,7 +1045,25 @@
           },
           "text": "Manual Workflow"
         },
-        "type": "ia.display.label"
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.borderTop": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeDividerBorder"
+              },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": {
@@ -1029,16 +1230,39 @@
     "props": {
       "direction": "column",
       "style": {
-        "backgroundColor": "var(--neutral-10)",
-        "border": "1px solid var(--neutral-40)",
         "borderRadius": "8px",
-        "color": "var(--neutral-90)",
         "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
         "marginBottom": "16px",
         "marginRight": "16px",
         "padding": "12px"
       }
     },
-    "type": "ia.container.flex"
+    "type": "ia.container.flex",
+    "propConfig": {
+      "props.style.color": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themePrimaryText"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.backgroundColor": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBg"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.border": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBorder"
+          },
+          "type": "property"
+        }
+      }
+    }
   }
 }
