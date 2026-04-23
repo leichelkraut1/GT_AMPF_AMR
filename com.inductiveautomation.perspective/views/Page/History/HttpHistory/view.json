@@ -24,7 +24,7 @@
                 },
                 "props": {
                   "style": {
-                    "color": "#111827",
+                    "color": "var(--neutral-90)",
                     "fontSize": "13px",
                     "fontWeight": "700",
                     "paddingLeft": "4px"
@@ -509,7 +509,7 @@
             },
             "props": {
               "style": {
-                "color": "#111827",
+                "color": "var(--neutral-90)",
                 "fontSize": "13px",
                 "fontWeight": "700",
                 "paddingLeft": "4px"
@@ -545,10 +545,10 @@
             },
             "props": {
               "style": {
-                "backgroundColor": "#ffffff",
-                "border": "1px solid #cfd6df",
+                "backgroundColor": "var(--neutral-10)",
+                "border": "1px solid var(--neutral-40)",
                 "borderRadius": "6px",
-                "color": "#111827",
+                "color": "var(--neutral-90)",
                 "fontFamily": "Consolas, monospace",
                 "fontSize": "12px",
                 "overflow": "auto",
@@ -573,7 +573,7 @@
                     },
                     "props": {
                       "style": {
-                        "color": "#111827",
+                        "color": "var(--neutral-90)",
                         "fontSize": "13px",
                         "fontWeight": "700",
                         "paddingLeft": "4px"
@@ -609,10 +609,10 @@
                     },
                     "props": {
                       "style": {
-                        "backgroundColor": "#ffffff",
-                        "border": "1px solid #cfd6df",
+                        "backgroundColor": "var(--neutral-10)",
+                        "border": "1px solid var(--neutral-40)",
                         "borderRadius": "6px",
-                        "color": "#111827",
+                        "color": "var(--neutral-90)",
                         "fontFamily": "Consolas, monospace",
                         "fontSize": "12px",
                         "overflow": "auto",
@@ -648,7 +648,7 @@
                     },
                     "props": {
                       "style": {
-                        "color": "#111827",
+                        "color": "var(--neutral-90)",
                         "fontSize": "13px",
                         "fontWeight": "700",
                         "paddingLeft": "4px"
@@ -684,10 +684,10 @@
                     },
                     "props": {
                       "style": {
-                        "backgroundColor": "#ffffff",
-                        "border": "1px solid #cfd6df",
+                        "backgroundColor": "var(--neutral-10)",
+                        "border": "1px solid var(--neutral-40)",
                         "borderRadius": "6px",
-                        "color": "#111827",
+                        "color": "var(--neutral-90)",
                         "fontFamily": "Consolas, monospace",
                         "fontSize": "12px",
                         "overflow": "auto",
