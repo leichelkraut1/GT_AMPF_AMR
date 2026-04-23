@@ -1,0 +1,23 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "onTagChange.py"
+  ],
+  "attributes": {
+    "changeTypes": [
+      "ValueChange"
+    ],
+    "lastModificationSignature": "",
+    "paths": [
+      "[Otto_FleetManager]Fleet/Triggers/SystemUpdates/ProvisionControllerTags"
+    ],
+    "lastModification": {
+      "actor": "Luke",
+      "timestamp": "2026-04-23T00:00:00Z"
+    },
+    "enabled": true
+  }
+}
