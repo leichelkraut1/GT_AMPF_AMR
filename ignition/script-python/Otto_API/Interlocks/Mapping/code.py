@@ -72,7 +72,7 @@ def _normalizeMappingRows(configRows):
         existing = mappingByName.get(fleetName)
         if existing is not None:
             warnings.append(
-                "PLC interlock config remaps FleetName [{}] from [{} / {}] to [{} / {}]; using the later row".format(
+                "Duplicate Interlock Mapping: FleetName [{}] is mapped more than once; replacing [{} / {}] with [{} / {}] and using the later row".format(
                     fleetName,
                     existing.get("PlcTagName"),
                     existing.get("Direction"),
