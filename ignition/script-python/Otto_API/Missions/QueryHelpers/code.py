@@ -18,7 +18,7 @@ def _normalizeMissionStatusList(missionStatus):
     return normalized
 
 
-def buildMissionsUrl(baseUrl, missionStatus, limit=None, offset=None):
+def buildMissionsUrl(baseUrl, missionStatus, limit=None, offset=None, ordering=None):
     """
     Build the OTTO missions URL for one or more mission status filters.
     """
@@ -29,6 +29,8 @@ def buildMissionsUrl(baseUrl, missionStatus, limit=None, offset=None):
     url = baseUrl + "/missions/?fields=%2A"
     if offset is not None:
         url += "&offset=" + str(offset)
+    if ordering is not None:
+        url += "&ordering=" + str(ordering)
 
     for status in statuses:
         url += "&mission_status=" + status

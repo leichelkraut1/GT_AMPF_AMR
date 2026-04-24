@@ -5,7 +5,7 @@ from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Missions.QueryHelpers import buildMissionsUrl
 
 
-def getMissions(logger, debug, mission_status=None, limit=None):
+def getMissions(logger, debug, mission_status=None, limit=None, ordering=None):
     """
     Get mission status info from OTTO for one or more mission statuses.
     If mission_status is None, returns an empty list (intentional safety).
@@ -17,7 +17,7 @@ def getMissions(logger, debug, mission_status=None, limit=None):
             return []
 
         base = getApiBaseUrl()
-        url = buildMissionsUrl(base, mission_status, limit)
+        url = buildMissionsUrl(base, mission_status, limit, ordering=ordering)
         if isinstance(mission_status, (list, tuple)):
             statusLabel = ",".join([str(x) for x in mission_status])
         else:

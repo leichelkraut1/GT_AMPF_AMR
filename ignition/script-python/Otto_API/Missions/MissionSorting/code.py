@@ -402,7 +402,8 @@ def runTerminalMaintenance():
             logger,
             debug,
             mission_status=TERMINAL_STATUSES,
-            limit=maxCompleted
+            limit=maxCompleted,
+            ordering="-created",
         )
 
         for mission in missions:
