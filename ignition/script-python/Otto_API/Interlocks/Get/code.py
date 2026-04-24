@@ -52,8 +52,6 @@ def getInterlocks():
     logger = _log()
     url = getApiBaseUrl().rstrip("/") + "/interlocks/?fields=%2A&offset=0&limit={}".format(INTERLOCK_FETCH_LIMIT)
 
-    logger.info("Otto API - Updating /Interlocks/")
-
     try:
         response = httpGet(url=url, headerValues=jsonHeaders())
         writeLastSystemResponse(response)
