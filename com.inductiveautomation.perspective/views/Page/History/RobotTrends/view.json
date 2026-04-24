@@ -1,6 +1,8 @@
 {
   "custom": {
-    "selectedRobot": "AMPF_AMR_RV1"
+    "selectedRobot": "AMPF_AMR_RV1",
+    "selectedMappingTagPath": "[Otto_FleetManager]Fleet/Config/Mapping_ActivityState",
+    "selectedMappingTitle": "Activity State Mapping"
   },
   "params": {},
   "propConfig": {
@@ -118,11 +120,130 @@
         "type": "ia.container.flex"
       },
       {
+        "children": [
+          {
+            "events": {
+              "dom": {
+                "onClick": {
+                  "config": {
+                    "script": "\tself.view.custom.selectedMappingTagPath = \"[Otto_FleetManager]Fleet/Config/Mapping_ActivityState\"\n\tself.view.custom.selectedMappingTitle = \"Activity State Mapping\""
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            },
+            "meta": {
+              "name": "ActivityMappingButton"
+            },
+            "position": {
+              "basis": "160px",
+              "shrink": 0
+            },
+            "props": {
+              "text": "Activity Mapping"
+            },
+            "type": "ia.input.button"
+          },
+          {
+            "events": {
+              "dom": {
+                "onClick": {
+                  "config": {
+                    "script": "\tself.view.custom.selectedMappingTagPath = \"[Otto_FleetManager]Fleet/Config/Mapping_SubSystemState\"\n\tself.view.custom.selectedMappingTitle = \"Subsystem State Mapping\""
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            },
+            "meta": {
+              "name": "SubSystemMappingButton"
+            },
+            "position": {
+              "basis": "180px",
+              "shrink": 0
+            },
+            "props": {
+              "text": "Subsystem Mapping"
+            },
+            "type": "ia.input.button"
+          },
+          {
+            "events": {
+              "dom": {
+                "onClick": {
+                  "config": {
+                    "script": "\tself.view.custom.selectedMappingTagPath = \"[Otto_FleetManager]Fleet/Config/Mapping_SystemState\"\n\tself.view.custom.selectedMappingTitle = \"System State Mapping\""
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            },
+            "meta": {
+              "name": "SystemMappingButton"
+            },
+            "position": {
+              "basis": "160px",
+              "shrink": 0
+            },
+            "props": {
+              "text": "System Mapping"
+            },
+            "type": "ia.input.button"
+          },
+          {
+            "meta": {
+              "name": "SelectedMappingLabel"
+            },
+            "position": {
+              "grow": 1
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "\"Showing: \" + {view.custom.selectedMappingTitle}"
+                  },
+                  "type": "expr"
+                }
+              }
+            },
+            "props": {
+              "style": {
+                "fontWeight": "600"
+              },
+              "text": "Showing: Activity State Mapping"
+            },
+            "type": "ia.display.label"
+          }
+        ],
+        "meta": {
+          "name": "MappingButtonRow"
+        },
+        "position": {
+          "basis": "48px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "alignItems": "center",
+            "gap": "10px",
+            "paddingBottom": "6px",
+            "paddingLeft": "12px",
+            "paddingRight": "12px"
+          }
+        },
+        "type": "ia.container.flex"
+      },
+      {
         "meta": {
           "name": "PowerChart"
         },
         "position": {
-          "basis": "712px"
+          "basis": "500px",
+          "shrink": 0
         },
         "propConfig": {
           "props.pens[0].data.source": {
@@ -665,6 +786,71 @@
           ]
         },
         "type": "ia.chart.powerchart"
+      },
+      {
+        "children": [
+          {
+            "meta": {
+              "name": "MappingTable"
+            },
+            "position": {
+              "grow": 1
+            },
+            "propConfig": {
+              "props.data": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.selectedMappingTagPath"
+                  },
+                  "transforms": [
+                    {
+                      "code": "\tselectedPath = str(value or \"\").strip()\n\tif not selectedPath:\n\t\treturn system.dataset.toDataSet([\"Value\", \"Label\"], [])\n\tqualified = system.tag.readBlocking([selectedPath])[0]\n\tif not qualified.quality.isGood() or qualified.value is None:\n\t\treturn system.dataset.toDataSet([\"Value\", \"Label\"], [])\n\treturn qualified.value",
+                      "type": "script"
+                    }
+                  ],
+                  "type": "property"
+                }
+              }
+            },
+            "props": {
+              "columns": [],
+              "dragOrderable": false,
+              "pager": {
+                "activeOption": 25
+              },
+              "rows": {
+                "striped": {
+                  "color": {
+                    "even": "#D5D5D5"
+                  }
+                },
+                "style": {
+                  "classes": "Page/Table/Fixed/Row"
+                }
+              },
+              "style": {
+                "classes": "Page/Table/Fixed/Surface"
+              }
+            },
+            "type": "ia.display.table"
+          }
+        ],
+        "meta": {
+          "name": "MappingPanel"
+        },
+        "position": {
+          "basis": "220px",
+          "grow": 1
+        },
+        "props": {
+          "direction": "column",
+          "style": {
+            "paddingBottom": "12px",
+            "paddingLeft": "12px",
+            "paddingRight": "12px"
+          }
+        },
+        "type": "ia.container.flex"
       }
     ],
     "meta": {
