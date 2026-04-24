@@ -8,6 +8,7 @@ from Otto_API.Common.TagPaths import getInterlockWritebackRetryMsPath
 from Otto_API.Common.TagPaths import getPlcInterlocksPath
 from Otto_API.Interlocks.Apply import applyInterlockSync
 from Otto_API.Interlocks.Get import getInterlocks
+from Otto_API.Interlocks.Mapping import DEFAULT_INTERLOCK_MASK
 from Otto_API.Interlocks.Mapping import DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS
 from Otto_API.Interlocks.Mapping import ensureInterlockTags
 from Otto_API.Interlocks.Mapping import readInterlockMappings
@@ -97,6 +98,7 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
     fleetName = row.get("FleetName")
     plcTagName = row.get("PlcTagName")
     writeEnabled = bool(row.get("WriteEnable", True))
+    mask = _toIntOrNone(row.get("Mask"))
     record = dict(recordsByName.get(fleetName) or {})
     interlockId = str(record.get("id") or "").strip()
     fleetState = _toIntOrNone(record.get("state"))
@@ -130,6 +132,8 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
             "level": "warn",
             "message": "ToFleet skipped [{}] because PLC state is unreadable".format(fleetName),
         }
+    if mask is None or mask < 0:
+        mask = DEFAULT_INTERLOCK_MASK
     if not writeEnabled:
         return {
             "ok": True,
@@ -160,7 +164,7 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
     if not pendingWrite or pendingWriteState != plcState:
         pendingWriteStartedMs = nowEpochMs
 
-    postResult = setInterlockState(interlockId, plcState, mask=65535)
+    postResult = setInterlockState(interlockId, plcState, mask=mask)
     _writePendingState(
         fleetRowPath,
         True,
