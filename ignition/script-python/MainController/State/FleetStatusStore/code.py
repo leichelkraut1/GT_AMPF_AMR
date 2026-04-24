@@ -8,6 +8,7 @@ RUNTIME_PHASE_ROWS = [
     ("Fleet Server API", "[Otto_FleetManager]MainControl/Runtime/ServerStatusStatus", "[Otto_FleetManager]MainControl/Runtime/ServerStatusMessage"),
     ("Robot Sync", "[Otto_FleetManager]MainControl/Runtime/RobotStateStatus", "[Otto_FleetManager]MainControl/Runtime/RobotStateMessage"),
     ("Container Sync", "[Otto_FleetManager]MainControl/Runtime/ContainerStateStatus", "[Otto_FleetManager]MainControl/Runtime/ContainerStateMessage"),
+    ("Interlock Sync", "[Otto_FleetManager]MainControl/Runtime/InterlockSyncStatus", "[Otto_FleetManager]MainControl/Runtime/InterlockSyncMessage"),
     ("PLC Place Fleet Sync", "[Otto_FleetManager]MainControl/Runtime/PLCPlaceFleetSyncStatus", "[Otto_FleetManager]MainControl/Runtime/PLCPlaceFleetSyncMessage"),
     ("PLC Robot Fleet Sync", "[Otto_FleetManager]MainControl/Runtime/PLCRobotFleetSyncStatus", "[Otto_FleetManager]MainControl/Runtime/PLCRobotFleetSyncMessage"),
     ("Mission Sorting", "[Otto_FleetManager]MainControl/Runtime/MissionSortingStatus", "[Otto_FleetManager]MainControl/Runtime/MissionSortingMessage"),

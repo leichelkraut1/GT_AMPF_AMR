@@ -68,6 +68,13 @@ def runtimePaths():
         "loop_last_duration_ms": RUNTIME_BASE + "/LoopLastDurationMs",
         "loop_last_result": RUNTIME_BASE + "/LoopLastResult",
         "loop_overlap_count": RUNTIME_BASE + "/LoopOverlapCount",
+        "interlock_sync_is_running": RUNTIME_BASE + "/InterlockSyncIsRunning",
+        "interlock_sync_last_start_ts": RUNTIME_BASE + "/InterlockSyncLastStartTs",
+        "interlock_sync_last_end_ts": RUNTIME_BASE + "/InterlockSyncLastEndTs",
+        "interlock_sync_last_duration_ms": RUNTIME_BASE + "/InterlockSyncLastDurationMs",
+        "interlock_sync_last_result": RUNTIME_BASE + "/InterlockSyncLastResult",
+        "interlock_sync_status": RUNTIME_BASE + "/InterlockSyncStatus",
+        "interlock_sync_message": RUNTIME_BASE + "/InterlockSyncMessage",
         "server_status_status": RUNTIME_BASE + "/ServerStatusStatus",
         "server_status_message": RUNTIME_BASE + "/ServerStatusMessage",
         "robot_state_status": RUNTIME_BASE + "/RobotStateStatus",
@@ -102,6 +109,13 @@ def ensureRuntimeTags():
     ensureMemoryTag(paths["loop_last_duration_ms"], "Int4", 0)
     ensureMemoryTag(paths["loop_last_result"], "String", "")
     ensureMemoryTag(paths["loop_overlap_count"], "Int4", 0)
+    ensureMemoryTag(paths["interlock_sync_is_running"], "Boolean", False)
+    ensureMemoryTag(paths["interlock_sync_last_start_ts"], "String", "")
+    ensureMemoryTag(paths["interlock_sync_last_end_ts"], "String", "")
+    ensureMemoryTag(paths["interlock_sync_last_duration_ms"], "Int4", 0)
+    ensureMemoryTag(paths["interlock_sync_last_result"], "String", "")
+    ensureMemoryTag(paths["interlock_sync_status"], "String", "")
+    ensureMemoryTag(paths["interlock_sync_message"], "String", "")
     ensureMemoryTag(paths["server_status_status"], "String", "")
     ensureMemoryTag(paths["server_status_message"], "String", "")
     ensureMemoryTag(paths["robot_state_status"], "String", "")

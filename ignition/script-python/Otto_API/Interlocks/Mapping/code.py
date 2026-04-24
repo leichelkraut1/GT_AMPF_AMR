@@ -14,7 +14,6 @@ from Otto_API.Interlocks.Helpers import childRowNames
 VALID_DIRECTIONS = ["FromFleet", "ToFleet"]
 PLC_INTERLOCK_TYPE_ID = "PLC_InterlockInterface"
 DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS = 30000
-DEFAULT_INTERLOCK_MASK = 65535
 
 
 def _log():
@@ -31,51 +30,6 @@ def _normalizeBool(value, defaultValue=True):
     if text in ["false", "0", "no", "off"]:
         return False
     return bool(defaultValue)
-
-
-def _normalizeMask(value, plcTagName, warnings):
-    if value is None:
-        warnings.append(
-            "PLC interlock row [{}] has blank Mask; using default [{}]".format(
-                plcTagName or "<unknown>",
-                DEFAULT_INTERLOCK_MASK,
-            )
-        )
-        return DEFAULT_INTERLOCK_MASK
-
-    text = str(value).strip()
-    if not text:
-        warnings.append(
-            "PLC interlock row [{}] has blank Mask; using default [{}]".format(
-                plcTagName or "<unknown>",
-                DEFAULT_INTERLOCK_MASK,
-            )
-        )
-        return DEFAULT_INTERLOCK_MASK
-
-    try:
-        mask = int(value)
-    except Exception:
-        warnings.append(
-            "PLC interlock row [{}] has unreadable Mask [{}]; using default [{}]".format(
-                plcTagName or "<unknown>",
-                value,
-                DEFAULT_INTERLOCK_MASK,
-            )
-        )
-        return DEFAULT_INTERLOCK_MASK
-
-    if mask < 0:
-        warnings.append(
-            "PLC interlock row [{}] has negative Mask [{}]; using default [{}]".format(
-                plcTagName or "<unknown>",
-                mask,
-                DEFAULT_INTERLOCK_MASK,
-            )
-        )
-        return DEFAULT_INTERLOCK_MASK
-
-    return mask
 
 
 def ensureInterlockTags():
@@ -100,7 +54,6 @@ def _normalizeMappingRows(configRows):
         plcTagName = normalizeTagValue(row.get("PlcTagName"))
         direction = normalizeTagValue(row.get("Direction"))
         writeEnable = _normalizeBool(row.get("WriteEnable"), True)
-        mask = _normalizeMask(row.get("Mask"), plcTagName, warnings)
 
         if not fleetName or not plcTagName or not direction:
             warnings.append("PLC interlock row [{}] has blank Config/FleetName or Config/Direction".format(plcTagName or "<unknown>"))
@@ -133,7 +86,6 @@ def _normalizeMappingRows(configRows):
             "PlcTagName": plcTagName,
             "Direction": direction,
             "WriteEnable": writeEnable,
-            "Mask": mask,
         }
 
     normalizedRows = [mappingByName[name] for name in sorted(mappingByName.keys())]
@@ -172,7 +124,6 @@ def readInterlockMappings():
                 "PlcTagName": plcTagName,
                 "Direction": readOptionalTagValue(rowPath + "/Config/Direction", ""),
                 "WriteEnable": readOptionalTagValue(rowPath + "/Config/WriteEnable", True),
-                "Mask": readOptionalTagValue(rowPath + "/Mask", DEFAULT_INTERLOCK_MASK),
             }
         )
 
@@ -208,7 +159,6 @@ def ensurePlcInterlockRow(rowPath):
     # Keep the member explicit so the local test shim exposes State the same way
     # the gateway-backed UDT instance will.
     ensureMemoryTag(rowPath + "/State", "Int4", 0)
-    ensureMemoryTag(rowPath + "/Mask", "Int8", DEFAULT_INTERLOCK_MASK)
     ensureFolder(rowPath + "/Config")
     ensureMemoryTag(rowPath + "/Config/FleetName", "String", "")
     ensureMemoryTag(rowPath + "/Config/Direction", "String", "")
