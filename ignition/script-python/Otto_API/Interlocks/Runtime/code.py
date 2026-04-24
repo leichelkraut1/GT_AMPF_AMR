@@ -71,7 +71,7 @@ def runInterlockSyncCycle(nowEpochMs=None):
         if result is not None:
             lastResult = str(result.get("level", "info")) + ":" + str(result.get("message", ""))
 
-        recordRuntimeIssues(result, nowEpochMs=endEpochMs, logger=logger)
+        recordRuntimeIssues([result], nowEpochMs=endEpochMs, logger=logger)
 
         writeRuntimeFields({
             "interlock_sync_is_running": False,
