@@ -412,18 +412,18 @@
               "$": [
                 "ts",
                 0,
-                1777038322490
+                1777041775636
               ],
-              "$ts": 1777038315063
+              "$ts": 1777041685421
             },
             "rangeSelectorPen": "histprov:CoreHistory:/sys:Ignition-VisionTesting:/prov:Otto_FleetManager:/tag:Fleet/Robots/AMPF_AMR_RV1/Expression/ActivityState_Numberized",
             "rangeStartDate": {
               "$": [
                 "ts",
                 0,
-                1777038322490
+                1777041775636
               ],
-              "$ts": 1777034727063
+              "$ts": 1777012981421
             },
             "startDate": {
               "$": [
@@ -433,7 +433,6 @@
               ],
               "$ts": 1776951309861
             },
-            "unitOfTime": 1,
             "visibility": {
               "buttons": {
                 "showPanZoomButton": false,
