@@ -1,0 +1,38 @@
+{
+  "enabled": true,
+  "source": {
+    "type": "ignition.gatewayEvent",
+    "config": null
+  },
+  "sourceEncoder": {
+    "type": "ignition.jsonObject",
+    "properties": {
+      "encoding": "UTF-8"
+    }
+  },
+  "handlers": [],
+  "batch": {
+    "debounceMs": 100,
+    "maxWaitMs": 1000,
+    "maxQueueSize": 0,
+    "overflow": "DROP_OLDEST"
+  },
+  "filter": {
+    "enabled": false,
+    "userCode": "\treturn True"
+  },
+  "transform": {
+    "enabled": false,
+    "userCode": "\treturn event.data"
+  },
+  "transformEncoder": {
+    "type": "ignition.jsonObject",
+    "properties": {
+      "encoding": "UTF-8"
+    }
+  },
+  "onError": {
+    "enabled": false,
+    "userCode": ""
+  }
+}
