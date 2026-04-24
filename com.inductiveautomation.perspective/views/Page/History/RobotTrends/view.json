@@ -124,7 +124,7 @@
               "dom": {
                 "onClick": {
                   "config": {
-                    "script": "\tpopupId = \"robot-trends-mapping-activity\"\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/MappingDatasetPopup\",\n\t\tparams={\n\t\t\t\"popupId\": popupId,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]Fleet/Config/Mapping_ActivityState\",\n\t\t\t\"title\": \"Activity State Mapping\",\n\t\t},\n\t\ttitle=\"Activity State Mapping\",\n\t\tmodal=True,\n\t\toverlayDismiss=True,\n\t\tshowCloseIcon=True,\n\t\tdraggable=True,\n\t)"
+                    "script": "\tpopupId \u003d \"robot-trends-mapping-activity\"\n\tsystem.perspective.openPopup(\n\t\tid\u003dpopupId,\n\t\tview\u003d\"Page/Components/MappingDatasetPopup\",\n\t\tparams\u003d{\n\t\t\t\"popupId\": popupId,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]Fleet/Config/Mapping_ActivityState\",\n\t\t\t\"title\": \"Activity State Mapping\",\n\t\t},\n\t\ttitle\u003d\"Activity State Mapping\",\n\t\tmodal\u003dTrue,\n\t\toverlayDismiss\u003dTrue,\n\t\tshowCloseIcon\u003dTrue,\n\t\tdraggable\u003dTrue,\n\t)"
                   },
                   "scope": "G",
                   "type": "script"
@@ -153,7 +153,7 @@
               "dom": {
                 "onClick": {
                   "config": {
-                    "script": "\tpopupId = \"robot-trends-mapping-subsystem\"\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/MappingDatasetPopup\",\n\t\tparams={\n\t\t\t\"popupId\": popupId,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]Fleet/Config/Mapping_SubSystemState\",\n\t\t\t\"title\": \"Subsystem State Mapping\",\n\t\t},\n\t\ttitle=\"Subsystem State Mapping\",\n\t\tmodal=True,\n\t\toverlayDismiss=True,\n\t\tshowCloseIcon=True,\n\t\tdraggable=True,\n\t)"
+                    "script": "\tpopupId \u003d \"robot-trends-mapping-subsystem\"\n\tsystem.perspective.openPopup(\n\t\tid\u003dpopupId,\n\t\tview\u003d\"Page/Components/MappingDatasetPopup\",\n\t\tparams\u003d{\n\t\t\t\"popupId\": popupId,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]Fleet/Config/Mapping_SubSystemState\",\n\t\t\t\"title\": \"Subsystem State Mapping\",\n\t\t},\n\t\ttitle\u003d\"Subsystem State Mapping\",\n\t\tmodal\u003dTrue,\n\t\toverlayDismiss\u003dTrue,\n\t\tshowCloseIcon\u003dTrue,\n\t\tdraggable\u003dTrue,\n\t)"
                   },
                   "scope": "G",
                   "type": "script"
@@ -182,7 +182,7 @@
               "dom": {
                 "onClick": {
                   "config": {
-                    "script": "\tpopupId = \"robot-trends-mapping-system\"\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/MappingDatasetPopup\",\n\t\tparams={\n\t\t\t\"popupId\": popupId,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]Fleet/Config/Mapping_SystemState\",\n\t\t\t\"title\": \"System State Mapping\",\n\t\t},\n\t\ttitle=\"System State Mapping\",\n\t\tmodal=True,\n\t\toverlayDismiss=True,\n\t\tshowCloseIcon=True,\n\t\tdraggable=True,\n\t)"
+                    "script": "\tpopupId \u003d \"robot-trends-mapping-system\"\n\tsystem.perspective.openPopup(\n\t\tid\u003dpopupId,\n\t\tview\u003d\"Page/Components/MappingDatasetPopup\",\n\t\tparams\u003d{\n\t\t\t\"popupId\": popupId,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]Fleet/Config/Mapping_SystemState\",\n\t\t\t\"title\": \"System State Mapping\",\n\t\t},\n\t\ttitle\u003d\"System State Mapping\",\n\t\tmodal\u003dTrue,\n\t\toverlayDismiss\u003dTrue,\n\t\tshowCloseIcon\u003dTrue,\n\t\tdraggable\u003dTrue,\n\t)"
                   },
                   "scope": "G",
                   "type": "script"
@@ -245,7 +245,7 @@
           "name": "PowerChart"
         },
         "position": {
-          "basis": "500px",
+          "basis": "664px",
           "shrink": 0
         },
         "propConfig": {
@@ -412,18 +412,18 @@
               "$": [
                 "ts",
                 0,
-                1776981362107
+                1777038322490
               ],
-              "$ts": 1776981352485
+              "$ts": 1777038315063
             },
             "rangeSelectorPen": "histprov:CoreHistory:/sys:Ignition-VisionTesting:/prov:Otto_FleetManager:/tag:Fleet/Robots/AMPF_AMR_RV1/Expression/ActivityState_Numberized",
             "rangeStartDate": {
               "$": [
                 "ts",
                 0,
-                1776981362107
+                1777038322490
               ],
-              "$ts": 1776977764485
+              "$ts": 1777034727063
             },
             "startDate": {
               "$": [
