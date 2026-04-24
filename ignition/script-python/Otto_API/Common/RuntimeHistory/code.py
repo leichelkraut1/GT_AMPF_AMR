@@ -52,6 +52,11 @@ HTTP_HISTORY_HEADERS = [
     "Error",
 ]
 
+INTERLOCK_SYNC_ISSUES_HEADERS = [
+    "Level",
+    "Message",
+]
+
 COMMAND_HISTORY_MAX_ROWS = 100
 MISSION_STATE_HISTORY_MAX_ROWS = 100
 ROBOT_STATE_HISTORY_MAX_ROWS = 100
@@ -75,6 +80,7 @@ def runtimePaths():
         "interlock_sync_last_result": RUNTIME_BASE + "/InterlockSyncLastResult",
         "interlock_sync_status": RUNTIME_BASE + "/InterlockSyncStatus",
         "interlock_sync_message": RUNTIME_BASE + "/InterlockSyncMessage",
+        "interlock_sync_issues": RUNTIME_BASE + "/InterlockSyncIssues",
         "server_status_status": RUNTIME_BASE + "/ServerStatusStatus",
         "server_status_message": RUNTIME_BASE + "/ServerStatusMessage",
         "robot_state_status": RUNTIME_BASE + "/RobotStateStatus",
@@ -116,6 +122,11 @@ def ensureRuntimeTags():
     ensureMemoryTag(paths["interlock_sync_last_result"], "String", "")
     ensureMemoryTag(paths["interlock_sync_status"], "String", "")
     ensureMemoryTag(paths["interlock_sync_message"], "String", "")
+    ensureMemoryTag(
+        paths["interlock_sync_issues"],
+        "DataSet",
+        system.dataset.toDataSet(INTERLOCK_SYNC_ISSUES_HEADERS, [])
+    )
     ensureMemoryTag(paths["server_status_status"], "String", "")
     ensureMemoryTag(paths["server_status_message"], "String", "")
     ensureMemoryTag(paths["robot_state_status"], "String", "")

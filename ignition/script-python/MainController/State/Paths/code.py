@@ -137,6 +137,7 @@ def runtimePaths():
         "interlock_sync_last_result": RUNTIME_BASE + "/InterlockSyncLastResult",
         "interlock_sync_status": RUNTIME_BASE + "/InterlockSyncStatus",
         "interlock_sync_message": RUNTIME_BASE + "/InterlockSyncMessage",
+        "interlock_sync_issues": RUNTIME_BASE + "/InterlockSyncIssues",
         "server_status_status": RUNTIME_BASE + "/ServerStatusStatus",
         "server_status_message": RUNTIME_BASE + "/ServerStatusMessage",
         "robot_state_status": RUNTIME_BASE + "/RobotStateStatus",
