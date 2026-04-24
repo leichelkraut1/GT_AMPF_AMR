@@ -2,7 +2,6 @@ from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import isWriteResultGood
 from Otto_API.Common.TagIO import readTagValues
-from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagPaths import getFleetPlacesPath
 
 from MainController.State.PlcMappingStore import readPlcMappings
@@ -36,8 +35,6 @@ def _fleetPlaceOccupancyByTagName(placeTagNames):
     orderedNames = []
     for placeTagName in list(placeTagNames or []):
         placePath = basePath + "/" + str(placeTagName or "")
-        if not tagExists(placePath):
-            continue
         orderedNames.append(placeTagName)
         readPaths.extend([
             placePath + "/ContainerPresent",
@@ -48,17 +45,18 @@ def _fleetPlaceOccupancyByTagName(placeTagNames):
     occupancyByTagName = {}
     for index, placeTagName in enumerate(orderedNames):
         offset = index * 2
+        presentResult = readResults[offset] if offset < len(readResults) else None
+        containerResult = readResults[offset + 1] if offset + 1 < len(readResults) else None
+        if (
+            presentResult is None
+            or containerResult is None
+            or (not presentResult.quality.isGood())
+            or (not containerResult.quality.isGood())
+        ):
+            continue
         occupancyByTagName[placeTagName] = {
-            "container_present": bool(
-                readResults[offset].value
-                if offset < len(readResults) and readResults[offset].quality.isGood()
-                else False
-            ),
-            "container_id": str(
-                readResults[offset + 1].value
-                if offset + 1 < len(readResults) and readResults[offset + 1].quality.isGood()
-                else ""
-            ) or "",
+            "container_present": bool(presentResult.value),
+            "container_id": str(containerResult.value or "") or "",
         }
     return occupancyByTagName
 

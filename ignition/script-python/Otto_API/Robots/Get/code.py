@@ -9,6 +9,7 @@ from Otto_API.Common.SyncHelpers import listUdtInstanceNames
 from Otto_API.Common.TagIO import browseTagResults
 from Otto_API.Common.TagIO import deleteTagPath
 from Otto_API.Common.TagIO import getApiBaseUrl
+from Otto_API.Common.TagIO import readOptionalTagValues
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import readRequiredTagValue
 from Otto_API.Common.TagIO import readTagValues
@@ -232,19 +233,17 @@ def updateRobotOperationalState():
             getMissionMinChargePath(),
             "Minimum charge threshold"
         )
-        chargingDelayMs = int(readOptionalTagValue(
-            getRobotChargingDelayMsPath(),
-            0
-        ) or 0)
-        missionLastUpdateTs = readOptionalTagValue(
-            getMissionLastUpdateTsPath(),
-            None,
+        chargingDelayMs, missionLastUpdateTs, missionLastUpdateSuccess = readOptionalTagValues(
+            [
+                getRobotChargingDelayMsPath(),
+                getMissionLastUpdateTsPath(),
+                getMissionLastUpdateSuccessPath(),
+            ],
+            [0, None, False],
             allowEmptyString=False
         )
-        missionLastUpdateSuccess = bool(readOptionalTagValue(
-            getMissionLastUpdateSuccessPath(),
-            False
-        ))
+        chargingDelayMs = int(chargingDelayMs or 0)
+        missionLastUpdateSuccess = bool(missionLastUpdateSuccess)
     except ValueError as e:
         message = str(e)
         ottoLogger.warn(message)
