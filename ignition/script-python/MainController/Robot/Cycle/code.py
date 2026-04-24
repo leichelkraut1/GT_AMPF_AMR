@@ -545,7 +545,13 @@ def _evaluateNoActiveMissions(snapshot):
 
     if _latchedRequestMatches(snapshot):
         if currentState.get("mission_created"):
-            pendingCreateAgeMs = _pendingCreateAgeMs(snapshot)
+            pendingCreateStartEpochMs = _pendingCreateStartEpochMs(snapshot)
+            if pendingCreateStartEpochMs is None:
+                pendingCreateStartEpochMs = int(snapshot.get("now_epoch_ms") or 0)
+            pendingCreateAgeMs = max(
+                0,
+                int(snapshot.get("now_epoch_ms") or 0) - int(pendingCreateStartEpochMs or 0)
+            )
             pendingCreateTimeoutMs = _pendingCreateTimeoutMs()
             if pendingCreateAgeMs is None or pendingCreateAgeMs < pendingCreateTimeoutMs:
                 context = _requestedOutcome(
@@ -558,7 +564,7 @@ def _evaluateNoActiveMissions(snapshot):
                         "waiting for created mission to appear in fleet",
                         requestLatched=True,
                         missionCreated=True,
-                        pendingCreateStartEpochMs=currentState.get("pending_create_start_epoch_ms"),
+                        pendingCreateStartEpochMs=pendingCreateStartEpochMs,
                     ),
                 )
                 context["plc_flags"]["requestSuccess"] = True
