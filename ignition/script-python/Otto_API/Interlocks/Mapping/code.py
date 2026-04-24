@@ -4,6 +4,7 @@ from Otto_API.Common.TagIO import normalizeTagValue
 from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagPaths import getFleetInterlocksPath
 from Otto_API.Common.TagPaths import getInterlockMappingPath
+from Otto_API.Common.TagPaths import getPlcFleetMappingPath
 from Otto_API.Common.TagPaths import getInterlockWritebackRetryMsPath
 from Otto_API.Common.TagPaths import getPlcInterlocksPath
 from Otto_API.Common.TagProvisioning import ensureFolder
@@ -72,6 +73,7 @@ def ensureInterlockTags():
     """
     ensureFolder(getFleetInterlocksPath())
     ensureFolder(getPlcInterlocksPath())
+    ensureFolder(getPlcFleetMappingPath())
     ensureMemoryTag(
         getInterlockMappingPath(),
         "DataSet",
