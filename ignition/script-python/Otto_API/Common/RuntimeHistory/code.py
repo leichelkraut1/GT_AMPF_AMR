@@ -52,9 +52,13 @@ HTTP_HISTORY_HEADERS = [
     "Error",
 ]
 
-INTERLOCK_SYNC_ISSUES_HEADERS = [
+RUNTIME_ISSUES_HEADERS = [
+    "IssueId",
+    "Source",
     "Level",
     "Message",
+    "FirstSeenTs",
+    "LastSeenTs",
 ]
 
 COMMAND_HISTORY_MAX_ROWS = 100
@@ -80,7 +84,7 @@ def runtimePaths():
         "interlock_sync_last_result": RUNTIME_BASE + "/InterlockSyncLastResult",
         "interlock_sync_status": RUNTIME_BASE + "/InterlockSyncStatus",
         "interlock_sync_message": RUNTIME_BASE + "/InterlockSyncMessage",
-        "interlock_sync_issues": RUNTIME_BASE + "/InterlockSyncIssues",
+        "runtime_issues": RUNTIME_BASE + "/RuntimeIssues",
         "server_status_status": RUNTIME_BASE + "/ServerStatusStatus",
         "server_status_message": RUNTIME_BASE + "/ServerStatusMessage",
         "robot_state_status": RUNTIME_BASE + "/RobotStateStatus",
@@ -123,9 +127,9 @@ def ensureRuntimeTags():
     ensureMemoryTag(paths["interlock_sync_status"], "String", "")
     ensureMemoryTag(paths["interlock_sync_message"], "String", "")
     ensureMemoryTag(
-        paths["interlock_sync_issues"],
+        paths["runtime_issues"],
         "DataSet",
-        system.dataset.toDataSet(INTERLOCK_SYNC_ISSUES_HEADERS, [])
+        system.dataset.toDataSet(RUNTIME_ISSUES_HEADERS, [])
     )
     ensureMemoryTag(paths["server_status_status"], "String", "")
     ensureMemoryTag(paths["server_status_message"], "String", "")
@@ -184,6 +188,124 @@ def timestampString(nowEpochMs=None):
     )
 
 
+def buildRuntimeIssue(issueId, source, level, message):
+    """Build one normalized runtime issue payload for RuntimeIssues recording."""
+    return {
+        "id": str(issueId or "").strip(),
+        "source": str(source or "").strip(),
+        "level": str(level or "warn").strip(),
+        "message": str(message or "").strip(),
+    }
+
+
+def _normalizeRuntimeIssueLevel(levelText):
+    normalized = str(levelText or "Warn").strip().lower()
+    if normalized == "error":
+        return "Error"
+    if normalized == "info":
+        return "Info"
+    return "Warn"
+
+
+def _coerceRuntimeIssues(items):
+    issues = []
+    for item in list(items or []):
+        if item is None:
+            continue
+        if isinstance(item, dict):
+            if "id" in item and "source" in item and "message" in item:
+                issues.append(dict(item))
+                continue
+            issues.extend(list(dict(item).get("issues") or []))
+            continue
+        if isinstance(item, (list, tuple)):
+            issues.extend(_coerceRuntimeIssues(item))
+    return issues
+
+
+def recordRuntimeIssues(items, nowEpochMs=None, logger=None):
+    """
+    Upsert recurring runtime issues by IssueId, updating the latest level/message/timestamps.
+    Accepts issue rows directly or result dicts that expose an ``issues`` list.
+    """
+    if nowEpochMs is None:
+        nowEpochMs = int(time.time() * 1000)
+    issueRows = _coerceRuntimeIssues(items)
+    if not issueRows:
+        return readRuntimeDataset("runtime_issues", RUNTIME_ISSUES_HEADERS)
+
+    timestampText = timestampString(nowEpochMs)
+    currentDataset = readRuntimeDataset("runtime_issues", RUNTIME_ISSUES_HEADERS)
+    rowsById = {}
+
+    if hasattr(currentDataset, "getRowCount"):
+        for rowIndex in range(currentDataset.getRowCount()):
+            issueId = str(currentDataset.getValueAt(rowIndex, "IssueId") or "").strip()
+            if not issueId:
+                continue
+            rowsById[issueId] = {
+                "IssueId": issueId,
+                "Source": str(currentDataset.getValueAt(rowIndex, "Source") or ""),
+                "Level": str(currentDataset.getValueAt(rowIndex, "Level") or ""),
+                "Message": str(currentDataset.getValueAt(rowIndex, "Message") or ""),
+                "FirstSeenTs": str(currentDataset.getValueAt(rowIndex, "FirstSeenTs") or ""),
+                "LastSeenTs": str(currentDataset.getValueAt(rowIndex, "LastSeenTs") or ""),
+            }
+
+    for rawIssue in issueRows:
+        issue = dict(rawIssue or {})
+        issueId = str(issue.get("id") or "").strip()
+        source = str(issue.get("source") or "").strip()
+        message = str(issue.get("message") or "").strip()
+        if not issueId or not source or not message:
+            continue
+
+        existing = rowsById.get(issueId)
+        if existing is None:
+            rowsById[issueId] = {
+                "IssueId": issueId,
+                "Source": source,
+                "Level": _normalizeRuntimeIssueLevel(issue.get("level")),
+                "Message": message,
+                "FirstSeenTs": timestampText,
+                "LastSeenTs": timestampText,
+            }
+        else:
+            existing["Source"] = source
+            existing["Level"] = _normalizeRuntimeIssueLevel(issue.get("level"))
+            existing["Message"] = message
+            existing["LastSeenTs"] = timestampText
+
+        if (
+            logger is not None
+            and _normalizeRuntimeIssueLevel(issue.get("level")) == "Error"
+        ):
+            logger.error(message)
+
+    orderedRows = sorted(
+        list(rowsById.values()),
+        key=lambda row: (
+            str(row.get("LastSeenTs") or ""),
+            str(row.get("IssueId") or ""),
+        ),
+        reverse=True,
+    )
+    updatedDataset = system.dataset.toDataSet(
+        RUNTIME_ISSUES_HEADERS,
+        [
+            [
+                str(row.get("IssueId") or ""),
+                str(row.get("Source") or ""),
+                str(row.get("Level") or ""),
+                str(row.get("Message") or ""),
+                str(row.get("FirstSeenTs") or ""),
+                str(row.get("LastSeenTs") or ""),
+            ]
+            for row in orderedRows
+        ],
+    )
+    writeTagValues([runtimePaths()["runtime_issues"]], [updatedDataset])
+    return updatedDataset
 def appendRuntimeDatasetRow(
     fieldName,
     headers,

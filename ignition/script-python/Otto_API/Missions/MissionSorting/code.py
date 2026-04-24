@@ -198,7 +198,7 @@ def run():
         failedCountsByFolder = {}
         missionStarvedByFolder = {}
         attachmentReadyByFolder = {}
-        attachmentMissionNameByFolder = {}
+        currentMissionNameByFolder = {}
         currentMissionIdByFolder = {}
         currentMissionStatusByFolder = {}
         activeMissionsByFolder = {}
@@ -241,14 +241,16 @@ def run():
                     missionStarvedByFolder[robotFolder] = True
                 if attachmentState.get("ready_for_attachment") is True:
                     attachmentReadyByFolder[robotFolder] = True
-                    attachmentMissionNameByFolder[robotFolder] = str(
-                        attachmentState.get("attachment_mission_name") or mission.get("name") or ""
-                    )
 
         for robotFolder, robotMissions in list(dict(activeMissionsByFolder or {}).items()):
             currentMission = selectCurrentActiveMissionRecord(robotMissions)
             if currentMission is None:
                 continue
+            currentMissionNameByFolder[robotFolder] = str(
+                currentMission.get("name")
+                or currentMission.get("mission_name")
+                or ""
+            )
             currentMissionIdByFolder[robotFolder] = str(currentMission.get("id") or "")
             currentMissionStatusByFolder[robotFolder] = str(currentMission.get("mission_status") or "")
 
@@ -259,7 +261,7 @@ def run():
                 "failed_mission_count": int(failedCountsByFolder.get(robotFolder, 0) or 0),
                 "mission_starved": bool(missionStarvedByFolder.get(robotFolder, False)),
                 "mission_ready_for_attachment": bool(attachmentReadyByFolder.get(robotFolder, False)),
-                "current_mission_name": str(attachmentMissionNameByFolder.get(robotFolder, "") or ""),
+                "current_mission_name": str(currentMissionNameByFolder.get(robotFolder, "") or ""),
                 "current_mission_id": str(currentMissionIdByFolder.get(robotFolder, "") or ""),
                 "current_mission_status": str(currentMissionStatusByFolder.get(robotFolder, "") or ""),
             }

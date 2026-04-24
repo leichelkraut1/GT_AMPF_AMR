@@ -1,4 +1,5 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import normalizeTagValue
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import tagExists
@@ -48,6 +49,7 @@ def ensureInterlockTags():
 def _normalizeMappingRows(configRows):
     mappingByName = {}
     warnings = []
+    issues = []
 
     for row in list(configRows or []):
         fleetName = normalizeTagValue(row.get("FleetName"))
@@ -56,30 +58,47 @@ def _normalizeMappingRows(configRows):
         writeEnable = _normalizeBool(row.get("WriteEnable"), True)
 
         if not fleetName or not plcTagName or not direction:
-            warnings.append("PLC interlock row [{}] has blank Config/FleetName or Config/Direction".format(plcTagName or "<unknown>"))
+            warning = "PLC interlock row [{}] has blank Config/FleetName or Config/Direction".format(plcTagName or "<unknown>")
+            warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "interlocks.mapping.blank_config.{}".format(plcTagName or "unknown"),
+                "Otto_API.Interlocks.Mapping",
+                "warn",
+                warning,
+            ))
             continue
 
         if direction not in VALID_DIRECTIONS:
-            warnings.append(
-                "PLC interlock row [{}] direction [{}] is invalid for FleetName [{}]; skipping row".format(
-                    plcTagName,
-                    direction,
-                    fleetName,
-                )
+            warning = "PLC interlock row [{}] direction [{}] is invalid for FleetName [{}]; skipping row".format(
+                plcTagName,
+                direction,
+                fleetName,
             )
+            warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "interlocks.mapping.invalid_direction.{}".format(plcTagName),
+                "Otto_API.Interlocks.Mapping",
+                "warn",
+                warning,
+            ))
             continue
 
         existing = mappingByName.get(fleetName)
         if existing is not None:
-            warnings.append(
-                "Duplicate Interlock Mapping: FleetName [{}] is mapped more than once; replacing [{} / {}] with [{} / {}] and using the later row".format(
-                    fleetName,
-                    existing.get("PlcTagName"),
-                    existing.get("Direction"),
-                    plcTagName,
-                    direction,
-                )
+            warning = "Duplicate Interlock Mapping: FleetName [{}] is mapped more than once; replacing [{} / {}] with [{} / {}] and using the later row".format(
+                fleetName,
+                existing.get("PlcTagName"),
+                existing.get("Direction"),
+                plcTagName,
+                direction,
             )
+            warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "interlocks.mapping.duplicate_fleet_name.{}".format(fleetName),
+                "Otto_API.Interlocks.Mapping",
+                "warn",
+                warning,
+            ))
 
         mappingByName[fleetName] = {
             "FleetName": fleetName,
@@ -89,7 +108,7 @@ def _normalizeMappingRows(configRows):
         }
 
     normalizedRows = [mappingByName[name] for name in sorted(mappingByName.keys())]
-    return normalizedRows, mappingByName, warnings
+    return normalizedRows, mappingByName, warnings, issues
 
 
 def readInterlockMappings():
@@ -107,13 +126,30 @@ def readInterlockMappings():
                 "rows": [],
                 "mapping_by_name": {},
                 "warnings": [warning],
+                "issues": [
+                    buildRuntimeIssue(
+                        "interlocks.mapping.missing_root",
+                        "Otto_API.Interlocks.Mapping",
+                        "warn",
+                        warning,
+                    )
+                ],
             },
             rows=[],
             mapping_by_name={},
             warnings=[warning],
+            issues=[
+                buildRuntimeIssue(
+                    "interlocks.mapping.missing_root",
+                    "Otto_API.Interlocks.Mapping",
+                    "warn",
+                    warning,
+                )
+            ],
         )
     rowNames = list(childRowNames(basePath) or [])
     warnings = []
+    issues = []
     configRows = []
 
     for plcTagName in list(rowNames or []):
@@ -127,8 +163,9 @@ def readInterlockMappings():
             }
         )
 
-    normalizedRows, mappingByName, rowWarnings = _normalizeMappingRows(configRows)
+    normalizedRows, mappingByName, rowWarnings, rowIssues = _normalizeMappingRows(configRows)
     warnings.extend(list(rowWarnings or []))
+    issues.extend(list(rowIssues or []))
 
     ok = not warnings
     level = "info"
@@ -147,10 +184,12 @@ def readInterlockMappings():
             "rows": normalizedRows,
             "mapping_by_name": mappingByName,
             "warnings": warnings,
+            "issues": issues,
         },
         rows=normalizedRows,
         mapping_by_name=mappingByName,
         warnings=warnings,
+        issues=issues,
     )
 
 

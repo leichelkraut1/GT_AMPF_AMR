@@ -1,4 +1,5 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.RuntimeHistory import recordRuntimeIssues
 from Otto_API.Containers import Get as ContainerGet
 from Otto_API.Missions import MissionSorting
 from Otto_API.Robots import Get as RobotGet
@@ -236,6 +237,7 @@ def _mainCycleResults(
         "mission_summary_mirror": missionSummaryResult,
         "robot_state": robotStateResult,
         "container_state": containerStateResult,
+        "plc_mapping": plcMappingState,
         "plc_place_sync": plcPlaceSyncResult,
         "plc_robot_sync": plcRobotSyncResult,
         "workflow_cycles": workflowResult,
@@ -318,6 +320,10 @@ def runMainControllerCycle(
         createMission=createMission,
         finalizeMissionId=finalizeMissionId,
         cancelMissionIds=cancelMissionIds,
+    )
+    recordRuntimeIssues(
+        [results.get("plc_mapping"), results.get("plc_place_sync")],
+        logger=_log(),
     )
     missionPhaseResult = _mergeResults(
         "Mission sorting",

@@ -1,4 +1,5 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import isWriteResultGood
 from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagIO import tagExists
@@ -67,19 +68,39 @@ def mirrorPlcPlaces(plcMappingState=None):
     Mirror Fleet place occupancy into mapped PLC/Places rows.
     Unresolved place mappings are warned and skipped so last-good values remain.
     """
-    logger = _log()
     plcMappingState = dict(plcMappingState or readPlcMappings() or {})
     placeMappings = dict(plcMappingState.get("place_tag_name_to_plc_tag") or {})
 
     if not plcMappingState.get("place_dataset_ok", True):
+        warningText = "Skipped PLC place sync because PlaceTagNameMapping is unreadable"
         return buildOperationResult(
             False,
             "warn",
-            "Skipped PLC place sync because PlaceTagNameMapping is unreadable",
-            data={"rows": [], "writes": [], "warnings": list(plcMappingState.get("warnings") or [])},
+            warningText,
+            data={
+                "rows": [],
+                "writes": [],
+                "warnings": list(plcMappingState.get("warnings") or []),
+                "issues": [
+                    buildRuntimeIssue(
+                        "container_mirror.place_dataset_unreadable",
+                        "MainController.State.ContainerMirror",
+                        "warn",
+                        warningText,
+                    )
+                ],
+            },
             rows=[],
             writes=[],
             warnings=list(plcMappingState.get("warnings") or []),
+            issues=[
+                buildRuntimeIssue(
+                    "container_mirror.place_dataset_unreadable",
+                    "MainController.State.ContainerMirror",
+                    "warn",
+                    warningText,
+                )
+            ],
         )
 
     if not placeMappings:
@@ -95,6 +116,7 @@ def mirrorPlcPlaces(plcMappingState=None):
 
     fleetOccupancy = _fleetPlaceOccupancyByTagName(placeMappings.keys())
     warnings = []
+    issues = []
     mirroredRows = []
     writePaths = []
     writeValues = []
@@ -102,7 +124,14 @@ def mirrorPlcPlaces(plcMappingState=None):
     for placeTagName in sorted(placeMappings.keys()):
         plcTagName = str(placeMappings.get(placeTagName) or "")
         if not plcTagName:
-            warnings.append("PLC place mapping for [{}] is blank".format(placeTagName))
+            warning = "PLC place mapping for [{}] is blank".format(placeTagName)
+            warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "container_mirror.blank_mapping.{}".format(placeTagName),
+                "MainController.State.ContainerMirror",
+                "warn",
+                warning,
+            ))
             continue
 
         placeOccupancy = fleetOccupancy.get(placeTagName)
@@ -111,8 +140,13 @@ def mirrorPlcPlaces(plcMappingState=None):
                 placeTagName,
                 plcTagName,
             )
-            logger.warn(warning)
             warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "container_mirror.missing_fleet_place.{}".format(placeTagName),
+                "MainController.State.ContainerMirror",
+                "warn",
+                warning,
+            ))
             continue
 
         rowPath = plcPlaceRowPath(plcTagName)
@@ -142,8 +176,13 @@ def mirrorPlcPlaces(plcMappingState=None):
                 writePaths[index],
                 writeResult,
             )
-            logger.warn(warning)
             warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "container_mirror.write_failed.{}".format(writePaths[index]),
+                "MainController.State.ContainerMirror",
+                "warn",
+                warning,
+            ))
 
     ok = not warnings
     level = "info" if ok else "warn"
@@ -159,10 +198,12 @@ def mirrorPlcPlaces(plcMappingState=None):
             "rows": mirroredRows,
             "writes": list(zip(writePaths, writeValues)),
             "warnings": warnings,
+            "issues": issues,
             "failed_write_paths": failedWritePaths,
         },
         rows=mirroredRows,
         writes=list(zip(writePaths, writeValues)),
         warnings=warnings,
+        issues=issues,
         failed_write_paths=failedWritePaths,
     )

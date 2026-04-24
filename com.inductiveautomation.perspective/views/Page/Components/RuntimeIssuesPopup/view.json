@@ -1,0 +1,253 @@
+{
+  "custom": {},
+  "params": {
+    "popupId": "",
+    "tagPath": "[Otto_FleetManager]MainControl/Runtime/RuntimeIssues",
+    "title": "Runtime Issues"
+  },
+  "propConfig": {
+    "params.popupId": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.tagPath": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.title": {
+      "paramDirection": "input",
+      "persistent": true
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 520,
+      "width": 860
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "Title"
+        },
+        "position": {
+          "basis": "28px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "if(len(trim(toStr({view.params.title}))) = 0, \"Runtime Issues\", toStr({view.params.title}))"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "16px",
+            "fontWeight": "700"
+          },
+          "text": "Runtime Issues"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "TagPathLabel"
+        },
+        "position": {
+          "basis": "30px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"Tag: \" + toStr({view.params.tagPath})"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "whiteSpace": "pre-wrap",
+            "wordBreak": "break-word"
+          },
+          "text": "Tag: [Otto_FleetManager]MainControl/Runtime/RuntimeIssues"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "IssuesTable"
+        },
+        "position": {
+          "basis": "380px",
+          "grow": 1
+        },
+        "propConfig": {
+          "props.data": {
+            "binding": {
+              "config": {
+                "path": "view.params.tagPath"
+              },
+              "transforms": [
+                {
+                  "code": "\tselectedPath = str(value or \"\").strip()\n\theaders = [\"IssueId\", \"Source\", \"Level\", \"Message\", \"FirstSeenTs\", \"LastSeenTs\"]\n\tif not selectedPath:\n\t\treturn system.dataset.toDataSet(headers, [])\n\tqualified = system.tag.readBlocking([selectedPath])[0]\n\tif (not qualified.quality.isGood()) or qualified.value is None or (not hasattr(qualified.value, \"getRowCount\")):\n\t\treturn system.dataset.toDataSet(headers, [])\n\treturn qualified.value",
+                  "type": "script"
+                }
+              ],
+              "type": "property"
+            }
+          }
+        },
+        "props": {
+          "columns": [
+            {
+              "field": "Level",
+              "header": {
+                "title": "Level"
+              },
+              "filter": {
+                "enabled": true,
+                "visible": "always"
+              },
+              "resizable": true,
+              "sortable": true,
+              "strictWidth": true,
+              "width": 90
+            },
+            {
+              "field": "Source",
+              "header": {
+                "title": "Source"
+              },
+              "filter": {
+                "enabled": true,
+                "visible": "always"
+              },
+              "resizable": true,
+              "sortable": true,
+              "strictWidth": true,
+              "width": 220
+            },
+            {
+              "field": "Message",
+              "header": {
+                "title": "Message"
+              },
+              "filter": {
+                "enabled": true,
+                "visible": "always"
+              },
+              "resizable": true,
+              "sortable": true,
+              "strictWidth": false,
+              "width": ""
+            },
+            {
+              "field": "LastSeenTs",
+              "header": {
+                "title": "Last Seen"
+              },
+              "filter": {
+                "enabled": false,
+                "visible": "always"
+              },
+              "resizable": true,
+              "sortable": true,
+              "strictWidth": true,
+              "width": 150
+            },
+            {
+              "field": "FirstSeenTs",
+              "header": {
+                "title": "First Seen"
+              },
+              "filter": {
+                "enabled": false,
+                "visible": "always"
+              },
+              "resizable": true,
+              "sortable": true,
+              "strictWidth": true,
+              "width": 150
+            }
+          ],
+          "dragOrderable": false,
+          "pager": {
+            "activeOption": 25
+          },
+          "rows": {
+            "striped": {
+              "color": {
+                "even": "#f3f4f6"
+              }
+            }
+          },
+          "style": {
+            "classes": "Page/Table/Theme/Surface"
+          }
+        },
+        "type": "ia.display.table"
+      },
+      {
+        "children": [
+          {
+            "events": {
+              "dom": {
+                "onClick": {
+                  "config": {
+                    "script": "\tsystem.perspective.closePopup(str(self.view.params.popupId or \"\"))"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            },
+            "meta": {
+              "name": "CloseButton"
+            },
+            "position": {
+              "basis": "90px",
+              "shrink": 0
+            },
+            "props": {
+              "text": "Close"
+            },
+            "type": "ia.input.button"
+          }
+        ],
+        "meta": {
+          "name": "ButtonRow"
+        },
+        "position": {
+          "basis": "36px",
+          "shrink": 0
+        },
+        "props": {
+          "direction": "row",
+          "justify": "end"
+        },
+        "type": "ia.container.flex"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#ffffff",
+        "border": "1px solid #d1d5db",
+        "padding": "16px"
+      }
+    },
+    "type": "ia.container.flex"
+  }
+}

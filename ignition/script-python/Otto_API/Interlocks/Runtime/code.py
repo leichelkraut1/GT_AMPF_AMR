@@ -2,7 +2,8 @@ import time
 
 from MainController.State.RuntimeStore import writeRuntimeFields
 from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Common.RuntimeHistory import INTERLOCK_SYNC_ISSUES_HEADERS
+from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
+from Otto_API.Common.RuntimeHistory import recordRuntimeIssues
 from Otto_API.Common.RuntimeHistory import timestampString
 from Otto_API.Interlocks.Sync import updateInterlocks
 
@@ -24,41 +25,6 @@ def _statusFromResult(result):
 
 def _messageFromResult(result):
     return str(dict(result or {}).get("message") or "")
-
-
-def _issueLevelText(levelText):
-    normalized = str(levelText or "warn").strip().lower()
-    if normalized == "error":
-        return "Error"
-    if normalized == "info":
-        return "Info"
-    return "Warn"
-
-
-def _issuesDatasetFromResult(result):
-    result = dict(result or {})
-    rows = []
-
-    for warning in list(result.get("warnings") or []):
-        if isinstance(warning, dict):
-            levelText = _issueLevelText(warning.get("level"))
-            message = str(warning.get("message") or "").strip()
-        else:
-            levelText = "Warn"
-            message = str(warning or "").strip()
-        if not message:
-            continue
-        rows.append([levelText, message])
-
-    if (not rows) and (not result.get("ok")):
-        fallbackMessage = str(result.get("message") or "").strip()
-        if fallbackMessage:
-            rows.append([
-                _issueLevelText(result.get("level")),
-                fallbackMessage,
-            ])
-
-    return system.dataset.toDataSet(INTERLOCK_SYNC_ISSUES_HEADERS, rows)
 
 
 def runInterlockSyncCycle(nowEpochMs=None):
@@ -86,6 +52,14 @@ def runInterlockSyncCycle(nowEpochMs=None):
             "error",
             message,
             data={},
+            issues=[
+                buildRuntimeIssue(
+                    "interlocks.runtime.wrapper_exception",
+                    "Otto_API.Interlocks.Runtime",
+                    "error",
+                    message,
+                )
+            ],
         )
         return result
     finally:
@@ -93,10 +67,11 @@ def runInterlockSyncCycle(nowEpochMs=None):
         durationMs = max(0, endEpochMs - startEpochMs)
         status = _statusFromResult(result)
         message = _messageFromResult(result)
-        issuesDataset = _issuesDatasetFromResult(result)
         lastResult = "unknown"
         if result is not None:
             lastResult = str(result.get("level", "info")) + ":" + str(result.get("message", ""))
+
+        recordRuntimeIssues(result, nowEpochMs=endEpochMs, logger=logger)
 
         writeRuntimeFields({
             "interlock_sync_is_running": False,
@@ -105,7 +80,6 @@ def runInterlockSyncCycle(nowEpochMs=None):
             "interlock_sync_last_result": lastResult,
             "interlock_sync_status": status,
             "interlock_sync_message": message,
-            "interlock_sync_issues": issuesDataset,
         })
 
     return result

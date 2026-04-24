@@ -1,5 +1,6 @@
 import time
 
+from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import writeObservedTagValue
@@ -69,19 +70,37 @@ def _applyFromFleet(row, instanceNameByRawName, logger):
     plcTagName = row.get("PlcTagName")
     fleetRowPath = _fleetInterlockRowPath(fleetName, instanceNameByRawName)
     if not fleetRowPath:
+        message = "FromFleet skipped [{}] because the Fleet interlock row was not found".format(fleetName)
         return {
             "ok": False,
             "level": "warn",
-            "message": "FromFleet skipped [{}] because the Fleet interlock row was not found".format(fleetName),
+            "message": message,
+            "issues": [
+                buildRuntimeIssue(
+                    "interlocks.sync.fromfleet.missing_row.{}".format(fleetName),
+                    "Otto_API.Interlocks.Sync",
+                    "warn",
+                    message,
+                )
+            ],
         }
     fleetStatePath = fleetRowPath + "/State"
     plcStatePath = getPlcInterlocksPath() + "/" + plcTagName + "/State"
     fleetState = _toIntOrNone(readOptionalTagValue(fleetStatePath, None))
     if fleetState is None:
+        message = "FromFleet skipped [{}] because Fleet state is unreadable".format(fleetName)
         return {
             "ok": False,
             "level": "warn",
-            "message": "FromFleet skipped [{}] because Fleet state is unreadable".format(fleetName),
+            "message": message,
+            "issues": [
+                buildRuntimeIssue(
+                    "interlocks.sync.fromfleet.unreadable_state.{}".format(fleetName),
+                    "Otto_API.Interlocks.Sync",
+                    "warn",
+                    message,
+                )
+            ],
         }
 
     writeObservedTagValue(plcStatePath, fleetState, label="Interlock FromFleet sync", logger=logger)
@@ -89,6 +108,7 @@ def _applyFromFleet(row, instanceNameByRawName, logger):
         "ok": True,
         "level": "info",
         "message": "FromFleet synced [{}] -> [{}]".format(fleetName, plcTagName),
+        "issues": [],
     }
 
 
@@ -106,34 +126,71 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
     retryMs = _readRetryMs()
 
     if not interlockId:
+        message = "ToFleet skipped [{}] because no OTTO interlock id was available".format(fleetName)
         return {
             "ok": False,
             "level": "warn",
-            "message": "ToFleet skipped [{}] because no OTTO interlock id was available".format(fleetName),
+            "message": message,
+            "issues": [
+                buildRuntimeIssue(
+                    "interlocks.sync.tofleet.missing_interlock_id.{}".format(fleetName),
+                    "Otto_API.Interlocks.Sync",
+                    "warn",
+                    message,
+                )
+            ],
         }
     if not fleetRowPath:
+        message = "ToFleet skipped [{}] because the Fleet interlock row was not found".format(fleetName)
         return {
             "ok": False,
             "level": "warn",
-            "message": "ToFleet skipped [{}] because the Fleet interlock row was not found".format(fleetName),
+            "message": message,
+            "issues": [
+                buildRuntimeIssue(
+                    "interlocks.sync.tofleet.missing_row.{}".format(fleetName),
+                    "Otto_API.Interlocks.Sync",
+                    "warn",
+                    message,
+                )
+            ],
         }
     if fleetState is None:
+        message = "ToFleet skipped [{}] because Fleet state is unreadable".format(fleetName)
         return {
             "ok": False,
             "level": "warn",
-            "message": "ToFleet skipped [{}] because Fleet state is unreadable".format(fleetName),
+            "message": message,
+            "issues": [
+                buildRuntimeIssue(
+                    "interlocks.sync.tofleet.unreadable_fleet_state.{}".format(fleetName),
+                    "Otto_API.Interlocks.Sync",
+                    "warn",
+                    message,
+                )
+            ],
         }
     if plcState is None:
+        message = "ToFleet skipped [{}] because PLC state is unreadable".format(fleetName)
         return {
             "ok": False,
             "level": "warn",
-            "message": "ToFleet skipped [{}] because PLC state is unreadable".format(fleetName),
+            "message": message,
+            "issues": [
+                buildRuntimeIssue(
+                    "interlocks.sync.tofleet.unreadable_plc_state.{}".format(fleetName),
+                    "Otto_API.Interlocks.Sync",
+                    "warn",
+                    message,
+                )
+            ],
         }
     if not writeEnabled:
         return {
             "ok": True,
             "level": "info",
             "message": "ToFleet disabled [{}] because Config/WriteEnable is false".format(fleetName),
+            "issues": [],
         }
 
     pendingWrite = bool(readOptionalTagValue(fleetRowPath + "/PendingWriteToFleet", False))
@@ -147,6 +204,7 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
             "ok": True,
             "level": "info",
             "message": "ToFleet no-op [{}]; PLC already matches Fleet".format(fleetName),
+            "issues": [],
         }
 
     if pendingWrite and pendingWriteState == plcState and (nowEpochMs - lastWriteAttemptMs) < retryMs:
@@ -154,6 +212,7 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
             "ok": True,
             "level": "info",
             "message": "ToFleet waiting [{}] for retry backoff".format(fleetName),
+            "issues": [],
         }
 
     if not pendingWrite or pendingWriteState != plcState:
@@ -183,6 +242,14 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
         "level": postResult.get("level"),
         "message": message,
         "post_result": postResult,
+        "issues": [] if bool(postResult.get("ok")) else [
+            buildRuntimeIssue(
+                "interlocks.sync.tofleet.post_failed.{}".format(fleetName),
+                "Otto_API.Interlocks.Sync",
+                postResult.get("level"),
+                message,
+            )
+        ],
     }
 
 
@@ -206,6 +273,16 @@ def updateInterlocks():
     warnings = []
     warnings.extend(list(getResult.get("warnings") or []))
     warnings.extend(list(mappingState.get("warnings") or []))
+    issues = []
+    issues.extend(list(getResult.get("issues") or []))
+    issues.extend(list(mappingState.get("issues") or []))
+    if not applyResult.get("ok"):
+        issues.append(buildRuntimeIssue(
+            "interlocks.sync.apply_result",
+            "Otto_API.Interlocks.Sync",
+            applyResult.get("level"),
+            applyResult.get("message"),
+        ))
 
     directionalResults = []
     for row in list(mappingState.get("rows") or []):
@@ -218,12 +295,11 @@ def updateInterlocks():
     for directionalResult in list(directionalResults or []):
         if not directionalResult.get("ok"):
             warnings.append(directionalResult.get("message"))
+        issues.extend(list(directionalResult.get("issues") or []))
         level = str(directionalResult.get("level") or "").lower()
         message = str(directionalResult.get("message") or "")
         if level == "error":
             logger.error("Otto API - " + message)
-        elif level == "warn":
-            logger.warn("Otto API - " + message)
 
     hasError = False
     for result in [getResult, applyResult, mappingState] + list(directionalResults or []):
@@ -254,10 +330,12 @@ def updateInterlocks():
             "mapping_result": mappingState,
             "directional_results": directionalResults,
             "warnings": warnings,
+            "issues": issues,
         },
         get_result=getResult,
         apply_result=applyResult,
         mapping_result=mappingState,
         directional_results=directionalResults,
         warnings=warnings,
+        issues=issues,
     )

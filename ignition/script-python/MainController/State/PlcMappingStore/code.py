@@ -1,4 +1,5 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.SyncHelpers import cleanupStaleUdtInstances
 from Otto_API.Common.TagIO import normalizeTagValue
 from Otto_API.Common.TagIO import readTagValues
@@ -93,6 +94,7 @@ def _normalizeMappingRows(datasetRows, leftHeader, label, allowedLeftValues=None
     """
     mapping = {}
     warnings = []
+    issues = []
     allowedLeftValues = set(list(allowedLeftValues or []))
     enforceAllowedValues = bool(allowedLeftValues)
 
@@ -100,23 +102,42 @@ def _normalizeMappingRows(datasetRows, leftHeader, label, allowedLeftValues=None
         leftValue = normalizeTagValue(row.get(leftHeader))
         plcTagName = normalizeTagValue(row.get("PlcTagName"))
         if not leftValue or not plcTagName:
-            warnings.append("{} row has blank {} or PlcTagName".format(label, leftHeader))
+            warning = "{} row has blank {} or PlcTagName".format(label, leftHeader)
+            warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "plc_mapping.{}.blank_row".format(label.lower()),
+                "MainController.State.PlcMappingStore",
+                "warn",
+                warning,
+            ))
             continue
         if enforceAllowedValues and leftValue not in allowedLeftValues:
-            warnings.append("{} references unknown {} [{}]".format(label, leftHeader, leftValue))
+            warning = "{} references unknown {} [{}]".format(label, leftHeader, leftValue)
+            warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "plc_mapping.{}.unknown_left_value.{}".format(label.lower(), leftValue),
+                "MainController.State.PlcMappingStore",
+                "warn",
+                warning,
+            ))
             continue
         if leftValue in mapping and mapping[leftValue] != plcTagName:
-            warnings.append(
-                "{} remaps [{}] from [{}] to [{}]; using the later row".format(
-                    label,
-                    leftValue,
-                    mapping[leftValue],
-                    plcTagName,
-                )
+            warning = "{} remaps [{}] from [{}] to [{}]; using the later row".format(
+                label,
+                leftValue,
+                mapping[leftValue],
+                plcTagName,
             )
+            warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "plc_mapping.{}.duplicate_mapping.{}".format(label.lower(), leftValue),
+                "MainController.State.PlcMappingStore",
+                "warn",
+                warning,
+            ))
         mapping[leftValue] = plcTagName
 
-    return mapping, warnings
+    return mapping, warnings, issues
 
 
 def readPlcMappings():
@@ -145,6 +166,7 @@ def readPlcMappings():
     robotRows = []
     placeRows = []
     warnings = []
+    issues = []
     robotDatasetOk = bool(robotResult is not None and robotResult.quality.isGood())
     placeDatasetOk = bool(placeResult is not None and placeResult.quality.isGood())
 
@@ -155,10 +177,24 @@ def readPlcMappings():
         )
         if robotRows is None:
             robotDatasetOk = False
-            warnings.append("RobotTagNameMapping is invalid: {}".format(errorMessage))
+            warning = "RobotTagNameMapping is invalid: {}".format(errorMessage)
+            warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "plc_mapping.robot_dataset_invalid",
+                "MainController.State.PlcMappingStore",
+                "error",
+                warning,
+            ))
             robotRows = []
     else:
-        warnings.append("RobotTagNameMapping is unreadable")
+        warning = "RobotTagNameMapping is unreadable"
+        warnings.append(warning)
+        issues.append(buildRuntimeIssue(
+            "plc_mapping.robot_dataset_unreadable",
+            "MainController.State.PlcMappingStore",
+            "error",
+            warning,
+        ))
 
     if placeDatasetOk:
         placeRows, errorMessage = _datasetRows(
@@ -167,24 +203,40 @@ def readPlcMappings():
         )
         if placeRows is None:
             placeDatasetOk = False
-            warnings.append("PlaceTagNameMapping is invalid: {}".format(errorMessage))
+            warning = "PlaceTagNameMapping is invalid: {}".format(errorMessage)
+            warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "plc_mapping.place_dataset_invalid",
+                "MainController.State.PlcMappingStore",
+                "error",
+                warning,
+            ))
             placeRows = []
     else:
-        warnings.append("PlaceTagNameMapping is unreadable")
+        warning = "PlaceTagNameMapping is unreadable"
+        warnings.append(warning)
+        issues.append(buildRuntimeIssue(
+            "plc_mapping.place_dataset_unreadable",
+            "MainController.State.PlcMappingStore",
+            "error",
+            warning,
+        ))
 
-    robotMappings, robotWarnings = _normalizeMappingRows(
+    robotMappings, robotWarnings, robotIssues = _normalizeMappingRows(
         robotRows,
         "FleetRobotName",
         "RobotTagNameMapping",
         allowedLeftValues=ROBOT_NAMES,
     )
-    placeMappings, placeWarnings = _normalizeMappingRows(
+    placeMappings, placeWarnings, placeIssues = _normalizeMappingRows(
         placeRows,
         "PlaceTagName",
         "PlaceTagNameMapping",
     )
     warnings.extend(list(robotWarnings or []))
     warnings.extend(list(placeWarnings or []))
+    issues.extend(list(robotIssues or []))
+    issues.extend(list(placeIssues or []))
 
     ok = robotDatasetOk and placeDatasetOk and not warnings
     level = "info"
@@ -210,6 +262,7 @@ def readPlcMappings():
             "place_tag_name_to_plc_tag": placeMappings,
             "plc_place_tag_to_place_tag_name": dict([(plcTagName, placeTagName) for placeTagName, plcTagName in placeMappings.items()]),
             "warnings": warnings,
+            "issues": issues,
             "robot_dataset_ok": robotDatasetOk,
             "place_dataset_ok": placeDatasetOk,
         },
@@ -218,6 +271,7 @@ def readPlcMappings():
         place_tag_name_to_plc_tag=placeMappings,
         plc_place_tag_to_place_tag_name=dict([(plcTagName, placeTagName) for placeTagName, plcTagName in placeMappings.items()]),
         warnings=warnings,
+        issues=issues,
         robot_dataset_ok=robotDatasetOk,
         place_dataset_ok=placeDatasetOk,
     )

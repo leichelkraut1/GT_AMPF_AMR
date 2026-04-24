@@ -1204,7 +1204,7 @@
               "dom": {
                 "onClick": {
                   "config": {
-                    "script": "\tpopup_id = \"interlock-sync-issues\"\n\tsystem.perspective.openPopup(\n\t\tpopup_id,\n\t\t\"Page/Components/MappingDatasetPopup\",\n\t\tparams={\n\t\t\t\"popupId\": popup_id,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]MainControl/Runtime/InterlockSyncIssues\",\n\t\t\t\"title\": \"Interlock Sync Issues\",\n\t\t},\n\t\tmodal=False,\n\t\tdraggable=True,\n\t\tresizable=True,\n\t\ttitle=\"Interlock Sync Issues\",\n\t)\n\treturn"
+                    "script": "\tpopup_id = \"runtime-issues\"\n\tsystem.perspective.openPopup(\n\t\tpopup_id,\n\t\t\"Page/Components/RuntimeIssuesPopup\",\n\t\tparams={\n\t\t\t\"popupId\": popup_id,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]MainControl/Runtime/RuntimeIssues\",\n\t\t\t\"title\": \"Runtime Issues\",\n\t\t},\n\t\tmodal=False,\n\t\tdraggable=True,\n\t\tresizable=True,\n\t\ttitle=\"Runtime Issues\",\n\t)\n\treturn"
                   },
                   "scope": "G",
                   "type": "script"
@@ -1212,48 +1212,18 @@
               }
             },
             "meta": {
-              "name": "InterlockIssuesButton"
+              "name": "RuntimeIssuesButton"
             },
             "position": {
               "basis": "180px",
               "shrink": 0
-            },
-            "propConfig": {
-              "props.enabled": {
-                "binding": {
-                  "config": {
-                    "expression": "now(2000)"
-                  },
-                  "transforms": [
-                    {
-                      "code": "\tqualified = system.tag.readBlocking([\"[Otto_FleetManager]MainControl/Runtime/InterlockSyncIssues\"])[0]\n\tif (not qualified.quality.isGood()) or qualified.value is None:\n\t\treturn False\n\tdataset_value = qualified.value\n\treturn hasattr(dataset_value, \"getRowCount\") and dataset_value.getRowCount() > 0",
-                      "type": "script"
-                    }
-                  ],
-                  "type": "expr"
-                }
-              },
-              "props.text": {
-                "binding": {
-                  "config": {
-                    "expression": "now(2000)"
-                  },
-                  "transforms": [
-                    {
-                      "code": "\tqualified = system.tag.readBlocking([\"[Otto_FleetManager]MainControl/Runtime/InterlockSyncIssues\"])[0]\n\trow_count = 0\n\tif qualified.quality.isGood() and qualified.value is not None and hasattr(qualified.value, \"getRowCount\"):\n\t\trow_count = qualified.value.getRowCount()\n\treturn \"Interlock Issues ({})\".format(int(row_count or 0))",
-                      "type": "script"
-                    }
-                  ],
-                  "type": "expr"
-                }
-              }
             },
             "props": {
               "style": {
                 "fontSize": "12px",
                 "fontWeight": "600"
               },
-              "text": "Interlock Issues (0)"
+              "text": "Runtime Issues"
             },
             "type": "ia.input.button"
           }
