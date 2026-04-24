@@ -39,7 +39,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if(len(trim(toStr({view.params.title}))) = 0, \"Runtime Issues\", toStr({view.params.title}))"
+                "expression": "if(len(trim(toStr({view.params.title}))) \u003d 0, \"Runtime Issues\", toStr({view.params.title}))"
               },
               "type": "expr"
             }
@@ -49,8 +49,7 @@
           "style": {
             "fontSize": "16px",
             "fontWeight": "700"
-          },
-          "text": "Runtime Issues"
+          }
         },
         "type": "ia.display.label"
       },
@@ -77,8 +76,7 @@
             "fontSize": "12px",
             "whiteSpace": "pre-wrap",
             "wordBreak": "break-word"
-          },
-          "text": "Tag: [Otto_FleetManager]MainControl/Runtime/RuntimeIssues"
+          }
         },
         "type": "ia.display.label"
       },
@@ -94,8 +92,9 @@
           "props.data": {
             "binding": {
               "config": {
-                "mode": "indirect",
-                "path": "{view.params.tagPath}"
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]MainControl/Runtime/RuntimeIssues"
               },
               "type": "tag"
             }
@@ -105,12 +104,12 @@
           "columns": [
             {
               "field": "Level",
-              "header": {
-                "title": "Level"
-              },
               "filter": {
                 "enabled": true,
                 "visible": "always"
+              },
+              "header": {
+                "title": "Level"
               },
               "resizable": true,
               "sortable": true,
@@ -119,12 +118,12 @@
             },
             {
               "field": "Source",
-              "header": {
-                "title": "Source"
-              },
               "filter": {
                 "enabled": true,
                 "visible": "always"
+              },
+              "header": {
+                "title": "Source"
               },
               "resizable": true,
               "sortable": true,
@@ -133,12 +132,12 @@
             },
             {
               "field": "Message",
-              "header": {
-                "title": "Message"
-              },
               "filter": {
                 "enabled": true,
                 "visible": "always"
+              },
+              "header": {
+                "title": "Message"
               },
               "resizable": true,
               "sortable": true,
@@ -147,12 +146,12 @@
             },
             {
               "field": "LastSeenTs",
-              "header": {
-                "title": "Last Seen"
-              },
               "filter": {
                 "enabled": false,
                 "visible": "always"
+              },
+              "header": {
+                "title": "Last Seen"
               },
               "resizable": true,
               "sortable": true,
@@ -161,12 +160,12 @@
             },
             {
               "field": "FirstSeenTs",
-              "header": {
-                "title": "First Seen"
-              },
               "filter": {
                 "enabled": false,
                 "visible": "always"
+              },
+              "header": {
+                "title": "First Seen"
               },
               "resizable": true,
               "sortable": true,
@@ -175,9 +174,6 @@
             }
           ],
           "dragOrderable": false,
-          "pager": {
-            "activeOption": 25
-          },
           "rows": {
             "striped": {
               "color": {
@@ -226,7 +222,6 @@
           "shrink": 0
         },
         "props": {
-          "direction": "row",
           "justify": "end"
         },
         "type": "ia.container.flex"
