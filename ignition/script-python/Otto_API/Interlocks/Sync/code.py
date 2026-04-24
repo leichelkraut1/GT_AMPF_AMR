@@ -120,7 +120,7 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, duplicateInfoByName
         return {
             "ok": True,
             "level": "info",
-            "message": "ToFleet disabled [{}] because Config/WriteEnable is false".format(fleetName),
+            "message": "ToFleet disabled [{}] because WriteEnable is false".format(fleetName),
             "issues": [],
         }
 

@@ -1,20 +1,20 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import normalizeTagValue
-from Otto_API.Common.TagIO import readOptionalTagValue
-from Otto_API.Common.TagIO import tagExists
+from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagPaths import getFleetInterlocksPath
+from Otto_API.Common.TagPaths import getInterlockMappingPath
 from Otto_API.Common.TagPaths import getInterlockWritebackRetryMsPath
 from Otto_API.Common.TagPaths import getPlcInterlocksPath
 from Otto_API.Common.TagProvisioning import ensureFolder
 from Otto_API.Common.TagProvisioning import ensureMemoryTag
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
-from Otto_API.Interlocks.Helpers import childRowNames
 
 
 VALID_DIRECTIONS = ["FromFleet", "ToFleet"]
 PLC_INTERLOCK_TYPE_ID = "PLC_InterlockInterface"
 DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS = 30000
+INTERLOCK_MAPPING_HEADERS = ["FleetName", "PlcTagName", "Direction", "WriteEnable"]
 
 
 def _log():
@@ -33,12 +33,50 @@ def _normalizeBool(value, defaultValue=True):
     return bool(defaultValue)
 
 
+def _datasetWithHeaders(headers, rows=None):
+    return system.dataset.toDataSet(list(headers or []), list(rows or []))
+
+
+def buildInterlockMappingDataset(rows=None):
+    return _datasetWithHeaders(INTERLOCK_MAPPING_HEADERS, rows)
+
+
+def _datasetRows(datasetValue, expectedHeaders):
+    if datasetValue is None or not hasattr(datasetValue, "getColumnCount"):
+        return None, "value is not a dataset"
+
+    actualHeaders = []
+    if hasattr(datasetValue, "getColumnNames"):
+        actualHeaders = [str(header or "") for header in list(datasetValue.getColumnNames() or [])]
+    else:
+        for columnIndex in range(datasetValue.getColumnCount()):
+            actualHeaders.append(str(datasetValue.getColumnName(columnIndex) or ""))
+    if list(actualHeaders) != list(expectedHeaders):
+        return None, "expected headers [{}], found [{}]".format(
+            ", ".join(list(expectedHeaders)),
+            ", ".join(actualHeaders),
+        )
+
+    rows = []
+    for rowIndex in range(datasetValue.getRowCount()):
+        row = {}
+        for header in list(expectedHeaders):
+            row[header] = datasetValue.getValueAt(rowIndex, header)
+        rows.append(row)
+    return rows, ""
+
+
 def ensureInterlockTags():
     """
-    Ensure the Fleet/Interlocks, PLC/Interlocks, and writeback config surfaces exist.
+    Ensure the Fleet/Interlocks, PLC/Interlocks, and interlock config surfaces exist.
     """
     ensureFolder(getFleetInterlocksPath())
     ensureFolder(getPlcInterlocksPath())
+    ensureMemoryTag(
+        getInterlockMappingPath(),
+        "DataSet",
+        buildInterlockMappingDataset(),
+    )
     ensureMemoryTag(
         getInterlockWritebackRetryMsPath(),
         "Int8",
@@ -59,7 +97,7 @@ def _normalizeMappingRows(configRows):
         writeEnable = _normalizeBool(row.get("WriteEnable"), True)
 
         if not fleetName or not plcTagName or not direction:
-            warning = "PLC interlock row [{}] has blank Config/FleetName or Config/Direction".format(plcTagName or "<unknown>")
+            warning = "InterlockMapping row [{}] has blank FleetName, PlcTagName, or Direction".format(plcTagName or "<unknown>")
             warnings.append(warning)
             issues.append(buildRuntimeIssue(
                 "interlocks.mapping.blank_config.{}".format(plcTagName or "unknown"),
@@ -70,7 +108,7 @@ def _normalizeMappingRows(configRows):
             continue
 
         if direction not in VALID_DIRECTIONS:
-            warning = "PLC interlock row [{}] direction [{}] is invalid for FleetName [{}]; skipping row".format(
+            warning = "InterlockMapping row [{}] direction [{}] is invalid for FleetName [{}]; skipping row".format(
                 plcTagName,
                 direction,
                 fleetName,
@@ -121,57 +159,35 @@ def _normalizeMappingRows(configRows):
 
 def readInterlockMappings():
     """
-    Read, validate, and normalize PLC/Interlocks row values.
+    Read, validate, and normalize the interlock mapping dataset.
     """
-    basePath = getPlcInterlocksPath()
-    if not tagExists(basePath):
-        warning = "PLC interlock root is missing: {}".format(basePath)
-        return buildOperationResult(
-            False,
-            "warn",
-            "PLC interlock config loaded with 1 issue(s)",
-            data={
-                "rows": [],
-                "mapping_by_name": {},
-                "duplicate_info_by_name": {},
-                "warnings": [warning],
-                "issues": [
-                    buildRuntimeIssue(
-                        "interlocks.mapping.missing_root",
-                        "Otto_API.Interlocks.Mapping",
-                        "warn",
-                        warning,
-                    )
-                ],
-            },
-            rows=[],
-            mapping_by_name={},
-            duplicate_info_by_name={},
-            warnings=[warning],
-            issues=[
-                buildRuntimeIssue(
-                    "interlocks.mapping.missing_root",
-                    "Otto_API.Interlocks.Mapping",
-                    "warn",
-                    warning,
-                )
-            ],
-        )
-    rowNames = list(childRowNames(basePath) or [])
+    mappingResult = readTagValues([getInterlockMappingPath()])
+    datasetResult = mappingResult[0] if len(mappingResult) > 0 else None
     warnings = []
     issues = []
     configRows = []
 
-    for plcTagName in list(rowNames or []):
-        rowPath = basePath + "/" + plcTagName
-        configRows.append(
-            {
-                "FleetName": readOptionalTagValue(rowPath + "/Config/FleetName", ""),
-                "PlcTagName": plcTagName,
-                "Direction": readOptionalTagValue(rowPath + "/Config/Direction", ""),
-                "WriteEnable": readOptionalTagValue(rowPath + "/Config/WriteEnable", True),
-            }
-        )
+    if datasetResult is None or not datasetResult.quality.isGood():
+        warning = "InterlockMapping is unreadable"
+        warnings.append(warning)
+        issues.append(buildRuntimeIssue(
+            "interlocks.mapping.dataset_unreadable",
+            "Otto_API.Interlocks.Mapping",
+            "warn",
+            warning,
+        ))
+    else:
+        configRows, errorMessage = _datasetRows(datasetResult.value, INTERLOCK_MAPPING_HEADERS)
+        if configRows is None:
+            warning = "InterlockMapping is invalid: {}".format(errorMessage)
+            warnings.append(warning)
+            issues.append(buildRuntimeIssue(
+                "interlocks.mapping.dataset_invalid",
+                "Otto_API.Interlocks.Mapping",
+                "warn",
+                warning,
+            ))
+            configRows = []
 
     normalizedRows, mappingByName, duplicateInfoByName, rowWarnings, rowIssues = _normalizeMappingRows(configRows)
     warnings.extend(list(rowWarnings or []))
@@ -210,7 +226,3 @@ def ensurePlcInterlockRow(rowPath):
     # Keep the member explicit so the local test shim exposes State the same way
     # the gateway-backed UDT instance will.
     ensureMemoryTag(rowPath + "/State", "Int4", 0)
-    ensureFolder(rowPath + "/Config")
-    ensureMemoryTag(rowPath + "/Config/FleetName", "String", "")
-    ensureMemoryTag(rowPath + "/Config/Direction", "String", "")
-    ensureMemoryTag(rowPath + "/Config/WriteEnable", "Boolean", True)
