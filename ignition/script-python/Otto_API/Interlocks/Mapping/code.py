@@ -35,7 +35,7 @@ def _normalizeBool(value, defaultValue=True):
 def _normalizeMask(value, plcTagName, warnings):
     if value is None:
         warnings.append(
-            "PLC interlock row [{}] has blank Config/Mask; using default [{}]".format(
+            "PLC interlock row [{}] has blank Mask; using default [{}]".format(
                 plcTagName or "<unknown>",
                 DEFAULT_INTERLOCK_MASK,
             )
@@ -45,7 +45,7 @@ def _normalizeMask(value, plcTagName, warnings):
     text = str(value).strip()
     if not text:
         warnings.append(
-            "PLC interlock row [{}] has blank Config/Mask; using default [{}]".format(
+            "PLC interlock row [{}] has blank Mask; using default [{}]".format(
                 plcTagName or "<unknown>",
                 DEFAULT_INTERLOCK_MASK,
             )
@@ -56,7 +56,7 @@ def _normalizeMask(value, plcTagName, warnings):
         mask = int(value)
     except Exception:
         warnings.append(
-            "PLC interlock row [{}] has unreadable Config/Mask [{}]; using default [{}]".format(
+            "PLC interlock row [{}] has unreadable Mask [{}]; using default [{}]".format(
                 plcTagName or "<unknown>",
                 value,
                 DEFAULT_INTERLOCK_MASK,
@@ -66,7 +66,7 @@ def _normalizeMask(value, plcTagName, warnings):
 
     if mask < 0:
         warnings.append(
-            "PLC interlock row [{}] has negative Config/Mask [{}]; using default [{}]".format(
+            "PLC interlock row [{}] has negative Mask [{}]; using default [{}]".format(
                 plcTagName or "<unknown>",
                 mask,
                 DEFAULT_INTERLOCK_MASK,
@@ -141,7 +141,7 @@ def _normalizeMappingRows(configRows):
 
 def readInterlockMappings():
     """
-    Read, validate, and normalize PLC/Interlocks/*/Config values.
+    Read, validate, and normalize PLC/Interlocks row values.
     """
     basePath = getPlcInterlocksPath()
     ensureFolder(basePath)
@@ -158,7 +158,7 @@ def readInterlockMappings():
                 "PlcTagName": plcTagName,
                 "Direction": readOptionalTagValue(rowPath + "/Config/Direction", ""),
                 "WriteEnable": readOptionalTagValue(rowPath + "/Config/WriteEnable", True),
-                "Mask": readOptionalTagValue(rowPath + "/Config/Mask", DEFAULT_INTERLOCK_MASK),
+                "Mask": readOptionalTagValue(rowPath + "/Mask", DEFAULT_INTERLOCK_MASK),
             }
         )
 
@@ -194,8 +194,8 @@ def _ensurePlcInterlockRow(rowPath):
     # Keep the member explicit so the local test shim exposes State the same way
     # the gateway-backed UDT instance will.
     ensureMemoryTag(rowPath + "/State", "Int4", 0)
+    ensureMemoryTag(rowPath + "/Mask", "Int8", DEFAULT_INTERLOCK_MASK)
     ensureFolder(rowPath + "/Config")
     ensureMemoryTag(rowPath + "/Config/FleetName", "String", "")
     ensureMemoryTag(rowPath + "/Config/Direction", "String", "")
     ensureMemoryTag(rowPath + "/Config/WriteEnable", "Boolean", True)
-    ensureMemoryTag(rowPath + "/Config/Mask", "Int8", DEFAULT_INTERLOCK_MASK)
