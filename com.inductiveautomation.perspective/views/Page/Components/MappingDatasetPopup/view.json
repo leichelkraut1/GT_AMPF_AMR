@@ -1,0 +1,178 @@
+{
+  "custom": {},
+  "params": {
+    "popupId": "",
+    "tagPath": "",
+    "title": ""
+  },
+  "propConfig": {
+    "params.popupId": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.tagPath": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.title": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "root.children[0].props.text": {
+      "binding": {
+        "config": {
+          "expression": "if(len(trim(toStr({view.params.title}))) = 0, \"Mapping Dataset\", toStr({view.params.title}))"
+        },
+        "type": "expr"
+      }
+    },
+    "root.children[1].props.text": {
+      "binding": {
+        "config": {
+          "expression": "\"Tag: \" + if(len(trim(toStr({view.params.tagPath}))) = 0, \"-\", toStr({view.params.tagPath}))"
+        },
+        "type": "expr"
+      }
+    },
+    "root.children[2].props.data": {
+      "binding": {
+        "config": {
+          "path": "view.params.tagPath"
+        },
+        "transforms": [
+          {
+            "code": "\tselectedPath = str(value or \"\").strip()\n\tif not selectedPath:\n\t\treturn system.dataset.toDataSet([\"Value\", \"Label\"], [])\n\tqualified = system.tag.readBlocking([selectedPath])[0]\n\tif not qualified.quality.isGood() or qualified.value is None:\n\t\treturn system.dataset.toDataSet([\"Value\", \"Label\"], [])\n\treturn qualified.value",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 420,
+      "width": 520
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "Title"
+        },
+        "position": {
+          "basis": "28px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "16px",
+            "fontWeight": "700"
+          },
+          "text": "Mapping Dataset"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "TagPathLabel"
+        },
+        "position": {
+          "basis": "32px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "whiteSpace": "pre-wrap",
+            "wordBreak": "break-word"
+          },
+          "text": "Tag: -"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "MappingTable"
+        },
+        "position": {
+          "basis": "280px",
+          "grow": 1
+        },
+        "props": {
+          "columns": [],
+          "dragOrderable": false,
+          "pager": {
+            "activeOption": 25
+          },
+          "rows": {
+            "striped": {
+              "color": {
+                "even": "#D5D5D5"
+              }
+            },
+            "style": {
+              "classes": "Page/Table/Fixed/Row"
+            }
+          },
+          "style": {
+            "classes": "Page/Table/Fixed/Surface"
+          }
+        },
+        "type": "ia.display.table"
+      },
+      {
+        "children": [
+          {
+            "events": {
+              "dom": {
+                "onClick": {
+                  "config": {
+                    "script": "\tsystem.perspective.closePopup(str(self.view.params.popupId or \"\"))"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            },
+            "meta": {
+              "name": "CloseButton"
+            },
+            "position": {
+              "basis": "90px",
+              "shrink": 0
+            },
+            "props": {
+              "text": "Close"
+            },
+            "type": "ia.input.button"
+          }
+        ],
+        "meta": {
+          "name": "ButtonRow"
+        },
+        "position": {
+          "basis": "36px",
+          "shrink": 0
+        },
+        "props": {
+          "direction": "row",
+          "justify": "end"
+        },
+        "type": "ia.container.flex"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#ffffff",
+        "padding": "16px"
+      }
+    },
+    "type": "ia.container.flex"
+  }
+}

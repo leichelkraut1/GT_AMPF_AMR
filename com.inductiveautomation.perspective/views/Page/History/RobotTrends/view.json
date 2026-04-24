@@ -1,8 +1,6 @@
 {
   "custom": {
-    "selectedRobot": "AMPF_AMR_RV1",
-    "selectedMappingTagPath": "[Otto_FleetManager]Fleet/Config/Mapping_ActivityState",
-    "selectedMappingTitle": "Activity State Mapping"
+    "selectedRobot": "AMPF_AMR_RV1"
   },
   "params": {},
   "propConfig": {
@@ -126,7 +124,7 @@
               "dom": {
                 "onClick": {
                   "config": {
-                    "script": "\tself.view.custom.selectedMappingTagPath = \"[Otto_FleetManager]Fleet/Config/Mapping_ActivityState\"\n\tself.view.custom.selectedMappingTitle = \"Activity State Mapping\""
+                    "script": "\tpopupId = \"robot-trends-mapping-activity\"\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/MappingDatasetPopup\",\n\t\tparams={\n\t\t\t\"popupId\": popupId,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]Fleet/Config/Mapping_ActivityState\",\n\t\t\t\"title\": \"Activity State Mapping\",\n\t\t},\n\t\ttitle=\"Activity State Mapping\",\n\t\tmodal=True,\n\t\toverlayDismiss=True,\n\t\tshowCloseIcon=True,\n\t\tdraggable=True,\n\t)"
                   },
                   "scope": "G",
                   "type": "script"
@@ -150,7 +148,7 @@
               "dom": {
                 "onClick": {
                   "config": {
-                    "script": "\tself.view.custom.selectedMappingTagPath = \"[Otto_FleetManager]Fleet/Config/Mapping_SubSystemState\"\n\tself.view.custom.selectedMappingTitle = \"Subsystem State Mapping\""
+                    "script": "\tpopupId = \"robot-trends-mapping-subsystem\"\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/MappingDatasetPopup\",\n\t\tparams={\n\t\t\t\"popupId\": popupId,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]Fleet/Config/Mapping_SubSystemState\",\n\t\t\t\"title\": \"Subsystem State Mapping\",\n\t\t},\n\t\ttitle=\"Subsystem State Mapping\",\n\t\tmodal=True,\n\t\toverlayDismiss=True,\n\t\tshowCloseIcon=True,\n\t\tdraggable=True,\n\t)"
                   },
                   "scope": "G",
                   "type": "script"
@@ -174,7 +172,7 @@
               "dom": {
                 "onClick": {
                   "config": {
-                    "script": "\tself.view.custom.selectedMappingTagPath = \"[Otto_FleetManager]Fleet/Config/Mapping_SystemState\"\n\tself.view.custom.selectedMappingTitle = \"System State Mapping\""
+                    "script": "\tpopupId = \"robot-trends-mapping-system\"\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/MappingDatasetPopup\",\n\t\tparams={\n\t\t\t\"popupId\": popupId,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]Fleet/Config/Mapping_SystemState\",\n\t\t\t\"title\": \"System State Mapping\",\n\t\t},\n\t\ttitle=\"System State Mapping\",\n\t\tmodal=True,\n\t\toverlayDismiss=True,\n\t\tshowCloseIcon=True,\n\t\tdraggable=True,\n\t)"
                   },
                   "scope": "G",
                   "type": "script"
@@ -195,26 +193,16 @@
           },
           {
             "meta": {
-              "name": "SelectedMappingLabel"
+              "name": "MappingHintLabel"
             },
             "position": {
               "grow": 1
-            },
-            "propConfig": {
-              "props.text": {
-                "binding": {
-                  "config": {
-                    "expression": "\"Showing: \" + {view.custom.selectedMappingTitle}"
-                  },
-                  "type": "expr"
-                }
-              }
             },
             "props": {
               "style": {
                 "fontWeight": "600"
               },
-              "text": "Showing: Activity State Mapping"
+              "text": "Open a mapping popup to inspect the source-of-truth dataset."
             },
             "type": "ia.display.label"
           }
@@ -786,71 +774,6 @@
           ]
         },
         "type": "ia.chart.powerchart"
-      },
-      {
-        "children": [
-          {
-            "meta": {
-              "name": "MappingTable"
-            },
-            "position": {
-              "grow": 1
-            },
-            "propConfig": {
-              "props.data": {
-                "binding": {
-                  "config": {
-                    "path": "view.custom.selectedMappingTagPath"
-                  },
-                  "transforms": [
-                    {
-                      "code": "\tselectedPath = str(value or \"\").strip()\n\tif not selectedPath:\n\t\treturn system.dataset.toDataSet([\"Value\", \"Label\"], [])\n\tqualified = system.tag.readBlocking([selectedPath])[0]\n\tif not qualified.quality.isGood() or qualified.value is None:\n\t\treturn system.dataset.toDataSet([\"Value\", \"Label\"], [])\n\treturn qualified.value",
-                      "type": "script"
-                    }
-                  ],
-                  "type": "property"
-                }
-              }
-            },
-            "props": {
-              "columns": [],
-              "dragOrderable": false,
-              "pager": {
-                "activeOption": 25
-              },
-              "rows": {
-                "striped": {
-                  "color": {
-                    "even": "#D5D5D5"
-                  }
-                },
-                "style": {
-                  "classes": "Page/Table/Fixed/Row"
-                }
-              },
-              "style": {
-                "classes": "Page/Table/Fixed/Surface"
-              }
-            },
-            "type": "ia.display.table"
-          }
-        ],
-        "meta": {
-          "name": "MappingPanel"
-        },
-        "position": {
-          "basis": "220px",
-          "grow": 1
-        },
-        "props": {
-          "direction": "column",
-          "style": {
-            "paddingBottom": "12px",
-            "paddingLeft": "12px",
-            "paddingRight": "12px"
-          }
-        },
-        "type": "ia.container.flex"
       }
     ],
     "meta": {
