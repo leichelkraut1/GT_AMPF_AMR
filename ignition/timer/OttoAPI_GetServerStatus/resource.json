@@ -7,7 +7,7 @@
     "handleTimerEvent.py"
   ],
   "attributes": {
-    "sharedThread": true,
+    "sharedThread": false,
     "delay": 10000,
     "lastModificationSignature": "efb63a9c57f7665539e73543e960f872acdaf4dcd6368d2d01a0557a43bb5de5",
     "fixedDelay": true,
