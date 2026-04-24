@@ -1,6 +1,7 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagIO import normalizeTagValue
 from Otto_API.Common.TagIO import readOptionalTagValue
+from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagPaths import getFleetInterlocksPath
 from Otto_API.Common.TagPaths import getInterlockWritebackRetryMsPath
 from Otto_API.Common.TagPaths import getPlcInterlocksPath
@@ -144,14 +145,27 @@ def readInterlockMappings():
     Read, validate, and normalize PLC/Interlocks row values.
     """
     basePath = getPlcInterlocksPath()
-    ensureFolder(basePath)
+    if not tagExists(basePath):
+        warning = "PLC interlock root is missing: {}".format(basePath)
+        return buildOperationResult(
+            False,
+            "warn",
+            "PLC interlock config loaded with 1 issue(s)",
+            data={
+                "rows": [],
+                "mapping_by_name": {},
+                "warnings": [warning],
+            },
+            rows=[],
+            mapping_by_name={},
+            warnings=[warning],
+        )
     rowNames = list(childRowNames(basePath) or [])
     warnings = []
     configRows = []
 
     for plcTagName in list(rowNames or []):
         rowPath = basePath + "/" + plcTagName
-        _ensurePlcInterlockRow(rowPath)
         configRows.append(
             {
                 "FleetName": readOptionalTagValue(rowPath + "/Config/FleetName", ""),
@@ -189,7 +203,7 @@ def readInterlockMappings():
     )
 
 
-def _ensurePlcInterlockRow(rowPath):
+def ensurePlcInterlockRow(rowPath):
     ensureUdtInstancePath(rowPath, PLC_INTERLOCK_TYPE_ID)
     # Keep the member explicit so the local test shim exposes State the same way
     # the gateway-backed UDT instance will.

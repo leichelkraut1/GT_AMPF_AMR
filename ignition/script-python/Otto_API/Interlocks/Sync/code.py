@@ -10,7 +10,6 @@ from Otto_API.Interlocks.Apply import applyInterlockSync
 from Otto_API.Interlocks.Get import getInterlocks
 from Otto_API.Interlocks.Mapping import DEFAULT_INTERLOCK_MASK
 from Otto_API.Interlocks.Mapping import DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS
-from Otto_API.Interlocks.Mapping import ensureInterlockTags
 from Otto_API.Interlocks.Mapping import readInterlockMappings
 from Otto_API.Interlocks.Post import setInterlockState
 
@@ -196,7 +195,6 @@ def updateInterlocks():
     Full OTTO interlock read/mirror/sync pass.
     """
     logger = _log()
-    ensureInterlockTags()
 
     getResult = getInterlocks()
     if not getResult.get("ok") and str(getResult.get("level")) == "error":
