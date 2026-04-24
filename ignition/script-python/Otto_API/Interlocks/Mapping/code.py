@@ -48,6 +48,7 @@ def ensureInterlockTags():
 
 def _normalizeMappingRows(configRows):
     mappingByName = {}
+    duplicateInfoByName = {}
     warnings = []
     issues = []
 
@@ -99,6 +100,13 @@ def _normalizeMappingRows(configRows):
                 "warn",
                 warning,
             ))
+            duplicateInfoByName[fleetName] = {
+                "fleet_name": fleetName,
+                "replaced_plc_tag_name": existing.get("PlcTagName"),
+                "replaced_direction": existing.get("Direction"),
+                "winning_plc_tag_name": plcTagName,
+                "winning_direction": direction,
+            }
 
         mappingByName[fleetName] = {
             "FleetName": fleetName,
@@ -108,7 +116,7 @@ def _normalizeMappingRows(configRows):
         }
 
     normalizedRows = [mappingByName[name] for name in sorted(mappingByName.keys())]
-    return normalizedRows, mappingByName, warnings, issues
+    return normalizedRows, mappingByName, duplicateInfoByName, warnings, issues
 
 
 def readInterlockMappings():
@@ -125,6 +133,7 @@ def readInterlockMappings():
             data={
                 "rows": [],
                 "mapping_by_name": {},
+                "duplicate_info_by_name": {},
                 "warnings": [warning],
                 "issues": [
                     buildRuntimeIssue(
@@ -137,6 +146,7 @@ def readInterlockMappings():
             },
             rows=[],
             mapping_by_name={},
+            duplicate_info_by_name={},
             warnings=[warning],
             issues=[
                 buildRuntimeIssue(
@@ -163,7 +173,7 @@ def readInterlockMappings():
             }
         )
 
-    normalizedRows, mappingByName, rowWarnings, rowIssues = _normalizeMappingRows(configRows)
+    normalizedRows, mappingByName, duplicateInfoByName, rowWarnings, rowIssues = _normalizeMappingRows(configRows)
     warnings.extend(list(rowWarnings or []))
     issues.extend(list(rowIssues or []))
 
@@ -183,11 +193,13 @@ def readInterlockMappings():
         data={
             "rows": normalizedRows,
             "mapping_by_name": mappingByName,
+            "duplicate_info_by_name": duplicateInfoByName,
             "warnings": warnings,
             "issues": issues,
         },
         rows=normalizedRows,
         mapping_by_name=mappingByName,
+        duplicate_info_by_name=duplicateInfoByName,
         warnings=warnings,
         issues=issues,
     )

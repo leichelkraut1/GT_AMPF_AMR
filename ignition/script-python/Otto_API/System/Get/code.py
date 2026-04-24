@@ -2,6 +2,7 @@ from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ParseHelpers import parseServerStatus
 from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import writeTagValueAsync
@@ -33,25 +34,43 @@ def getServerStatus():
                 "Server status updated",
                 data={"value": status},
                 value=status,
+                issues=[],
             )
 
-        logger.warn("Otto Fleet Manager did not respond to status update request")
         writeTagValueAsync(SYSTEM_BASE_PATH + "/ServerStatus", "ResponseError")
+        message = "Otto Fleet Manager did not respond"
         return buildOperationResult(
             False,
             "warn",
-            "Otto Fleet Manager did not respond",
+            message,
             data={"value": None},
             value=None,
+            issues=[
+                buildRuntimeIssue(
+                    "server_status.http_no_response",
+                    "Otto_API.System.Get",
+                    "warn",
+                    message,
+                )
+            ],
         )
     except Exception as exc:
-        logger.error("Otto API - Status update failed - {}".format(str(exc)))
+        message = "Status update failed - {}".format(str(exc))
+        logger.error("Otto API - {}".format(message))
         return buildOperationResult(
             False,
             "error",
-            "Status update failed - {}".format(str(exc)),
+            message,
             data={"value": None},
             value=None,
+            issues=[
+                buildRuntimeIssue(
+                    "server_status.fetch_failed",
+                    "Otto_API.System.Get",
+                    "error",
+                    message,
+                )
+            ],
         )
 
 
@@ -65,12 +84,21 @@ def readCachedServerStatus():
         allowEmptyString=False
     )
     if status in [None, "", "ResponseError"]:
+        message = "Cached server status is unavailable"
         return buildOperationResult(
             False,
             "warn",
-            "Cached server status is unavailable",
+            message,
             data={"value": status},
             value=status,
+            issues=[
+                buildRuntimeIssue(
+                    "server_status.cached_unavailable",
+                    "Otto_API.System.Get",
+                    "warn",
+                    message,
+                )
+            ],
         )
 
     return buildOperationResult(
@@ -79,4 +107,5 @@ def readCachedServerStatus():
         "Cached server status read",
         data={"value": status},
         value=status,
+        issues=[],
     )

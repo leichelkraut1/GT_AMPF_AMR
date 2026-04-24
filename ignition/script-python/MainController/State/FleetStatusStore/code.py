@@ -114,7 +114,16 @@ def mainPlcCommsDisplay(robotName="AMPF_AMR_RV1"):
 
 def controllerHealthDisplay():
     """Summarize the runtime phase-status tags for the FleetStatus controller-health card."""
-    statuses = list(_loadFleetStatusModel().get("statuses") or [])
+    model = _loadFleetStatusModel()
+    statuses = list(model.get("statuses") or [])
+    if not bool(model.get("plc_healthy")):
+        statuses.append("Error")
+
+    loopStatus = str(dict(model.get("loop_row") or {}).get("Status") or "")
+    if loopStatus == "Error":
+        statuses.append("Error")
+    elif loopStatus == "Warn":
+        statuses.append("Warn")
 
     displayStatus = "Healthy"
     if any(status == "Error" for status in statuses):

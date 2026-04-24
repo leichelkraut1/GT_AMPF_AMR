@@ -5,10 +5,6 @@ from Otto_API.Common.OperationHelpers import buildDataResult
 from Otto_API.Common.TagIO import getOttoOperationsUrl
 
 
-def _log():
-    return system.util.getLogger("Otto_API.Interlocks.Post")
-
-
 def _buildRpcPayload(interlockId, state, mask):
     return {
         "id": int(time.time() * 1000),
@@ -81,14 +77,6 @@ def setInterlockState(interlockId, state, mask=65535):
     """
     Set one OTTO interlock state using the shared operations endpoint.
     """
-    logger = _log()
-    logger.info(
-        "Setting interlock [{}] state to [{}] with mask [{}]".format(
-            interlockId,
-            state,
-            mask,
-        )
-    )
     return setInterlockStateFromInputs(
         interlockId,
         state,

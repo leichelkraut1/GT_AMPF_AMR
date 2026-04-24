@@ -1,4 +1,5 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.RuntimeHistory import recordRuntimeIssues
 from Otto_API.Containers import Get as ContainerGet
 from Otto_API.Missions import MissionSorting
@@ -165,13 +166,23 @@ def _missionMirrorResult(missionSortResult):
             "info",
             "Mission summary mirror healthy",
             data={"robot_summary_by_folder": robotSummaryByFolder},
+            issues=[],
         )
     except Exception as exc:
+        message = "Mission summary mirror failed: {}".format(str(exc))
         return buildOperationResult(
             False,
             "warn",
-            "Mission summary mirror failed: {}".format(str(exc)),
+            message,
             data={"robot_summary_by_folder": robotSummaryByFolder},
+            issues=[
+                buildRuntimeIssue(
+                    "mission_sorting.summary_mirror_failed",
+                    "MainController.Loop.ControllerCycle",
+                    "warn",
+                    message,
+                )
+            ],
         )
 
 
@@ -322,7 +333,14 @@ def runMainControllerCycle(
         cancelMissionIds=cancelMissionIds,
     )
     recordRuntimeIssues(
-        [results.get("plc_mapping"), results.get("plc_place_sync")],
+        [
+            results.get("server_status"),
+            results.get("mission_sorting"),
+            results.get("mission_summary_mirror"),
+            results.get("robot_state"),
+            results.get("plc_mapping"),
+            results.get("plc_place_sync"),
+        ],
         logger=_log(),
     )
     missionPhaseResult = _mergeResults(

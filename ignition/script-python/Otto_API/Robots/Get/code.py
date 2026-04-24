@@ -3,6 +3,7 @@ import time
 
 from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
+from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.RuntimeHistory import timestampString
 from Otto_API.Common.SyncHelpers import listUdtInstanceNames
 from Otto_API.Common.TagIO import browseTagResults
@@ -38,10 +39,23 @@ def _log():
 
 
 def _fetch_json_results(url, failureMessage, logger, writeLastResponseValue=False):
+    issueSuffix = str(url or "").split("/")[-1].split("?")[0] or "unknown"
     response = httpGet(url=url, headerValues=jsonHeaders())
     if not response:
         logger.error("Otto API - {}".format(failureMessage))
-        return None, buildRobotSyncResult(False, "error", failureMessage)
+        return None, buildRobotSyncResult(
+            False,
+            "error",
+            failureMessage,
+            issues=[
+                buildRuntimeIssue(
+                    "robot_state.http_failed.{}".format(issueSuffix),
+                    "Otto_API.Robots.Get",
+                    "error",
+                    failureMessage,
+                )
+            ],
+        )
 
     if writeLastResponseValue:
         writeLastSystemResponse(response)
@@ -51,7 +65,19 @@ def _fetch_json_results(url, failureMessage, logger, writeLastResponseValue=Fals
     except Exception as exc:
         message = "JSON decode error - {}".format(exc)
         logger.error("Otto API - {}".format(message))
-        return None, buildRobotSyncResult(False, "error", message)
+        return None, buildRobotSyncResult(
+            False,
+            "error",
+            message,
+            issues=[
+                buildRuntimeIssue(
+                    "robot_state.json_decode_failed.{}".format(issueSuffix),
+                    "Otto_API.Robots.Get",
+                    "error",
+                    message,
+                )
+            ],
+        )
 
     return data.get("results", []), None
 
@@ -222,7 +248,19 @@ def updateRobotOperationalState():
     except ValueError as e:
         message = str(e)
         ottoLogger.warn(message)
-        return buildRobotSyncResult(False, "warn", message)
+        return buildRobotSyncResult(
+            False,
+            "warn",
+            message,
+            issues=[
+                buildRuntimeIssue(
+                    "robot_state.required_config_missing",
+                    "Otto_API.Robots.Get",
+                    "warn",
+                    message,
+                )
+            ],
+        )
 
     try:
         _, robotTags, invalidRobotRows, readPlan = readRobotInventory(robotsBasePath)
@@ -410,7 +448,18 @@ def updateRobotOperationalState():
         )
 
     except Exception as e:
-        ottoLogger.error(
-            "Otto API - Failed to update robot operational state - " + str(e)
+        message = "Failed to update robot operational state - " + str(e)
+        ottoLogger.error("Otto API - " + message)
+        return buildRobotSyncResult(
+            False,
+            "error",
+            message,
+            issues=[
+                buildRuntimeIssue(
+                    "robot_state.update_failed",
+                    "Otto_API.Robots.Get",
+                    "error",
+                    message,
+                )
+            ],
         )
-        return buildRobotSyncResult(False, "error", "Failed to update robot operational state - " + str(e))

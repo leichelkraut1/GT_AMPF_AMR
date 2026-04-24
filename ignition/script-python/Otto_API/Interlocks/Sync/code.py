@@ -112,10 +112,18 @@ def _applyFromFleet(row, instanceNameByRawName, logger):
     }
 
 
-def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
+def _applyToFleet(row, recordsByName, instanceNameByRawName, duplicateInfoByName, logger):
     fleetName = row.get("FleetName")
     plcTagName = row.get("PlcTagName")
     writeEnabled = bool(row.get("WriteEnable", True))
+    if not writeEnabled:
+        return {
+            "ok": True,
+            "level": "info",
+            "message": "ToFleet disabled [{}] because Config/WriteEnable is false".format(fleetName),
+            "issues": [],
+        }
+
     record = dict(recordsByName.get(fleetName) or {})
     interlockId = str(record.get("id") or "").strip()
     fleetState = _toIntOrNone(record.get("state"))
@@ -126,7 +134,13 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
     retryMs = _readRetryMs()
 
     if not interlockId:
-        message = "ToFleet skipped [{}] because no OTTO interlock id was available".format(fleetName)
+        duplicateInfo = dict(dict(duplicateInfoByName or {}).get(fleetName) or {})
+        message = "ToFleet skipped [{}] because no OTTO interlock record was available".format(fleetName)
+        if duplicateInfo:
+            message += "; Duplicate Interlock Mapping is also present and the later row [{} / {}] won".format(
+                duplicateInfo.get("winning_plc_tag_name"),
+                duplicateInfo.get("winning_direction"),
+            )
         return {
             "ok": False,
             "level": "warn",
@@ -185,13 +199,6 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
                 )
             ],
         }
-    if not writeEnabled:
-        return {
-            "ok": True,
-            "level": "info",
-            "message": "ToFleet disabled [{}] because Config/WriteEnable is false".format(fleetName),
-            "issues": [],
-        }
 
     pendingWrite = bool(readOptionalTagValue(fleetRowPath + "/PendingWriteToFleet", False))
     pendingWriteState = _toIntOrNone(readOptionalTagValue(fleetRowPath + "/PendingWriteState", 0))
@@ -230,13 +237,6 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
         logger,
     )
     message = postResult.get("message") or "ToFleet posted [{}]".format(fleetName)
-    logger.info(
-        "Otto API - ToFleet posting [{}] from PLC [{}] to Fleet [{}]".format(
-            fleetName,
-            plcState,
-            fleetState,
-        )
-    )
     return {
         "ok": bool(postResult.get("ok")),
         "level": postResult.get("level"),
@@ -273,10 +273,12 @@ def updateInterlocks():
     warnings = []
     warnings.extend(list(getResult.get("warnings") or []))
     warnings.extend(list(mappingState.get("warnings") or []))
+    duplicateInfoByName = dict(mappingState.get("duplicate_info_by_name") or {})
     issues = []
     issues.extend(list(getResult.get("issues") or []))
     issues.extend(list(mappingState.get("issues") or []))
     if not applyResult.get("ok"):
+        warnings.append(applyResult.get("message"))
         issues.append(buildRuntimeIssue(
             "interlocks.sync.apply_result",
             "Otto_API.Interlocks.Sync",
@@ -290,7 +292,7 @@ def updateInterlocks():
         if direction == "FromFleet":
             directionalResults.append(_applyFromFleet(row, instanceNameByRawName, logger))
         elif direction == "ToFleet":
-            directionalResults.append(_applyToFleet(row, recordsByName, instanceNameByRawName, logger))
+            directionalResults.append(_applyToFleet(row, recordsByName, instanceNameByRawName, duplicateInfoByName, logger))
 
     for directionalResult in list(directionalResults or []):
         if not directionalResult.get("ok"):

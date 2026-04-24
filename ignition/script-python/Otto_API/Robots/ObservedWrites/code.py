@@ -2,9 +2,10 @@ from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagIO import writeObservedTagValues
 
 
-def buildRobotSyncResult(ok, level, message, records=None, writes=None, data=None):
+def buildRobotSyncResult(ok, level, message, records=None, writes=None, data=None, issues=None):
     records = list(records or [])
     writes = list(writes or [])
+    issues = list(issues or [])
     return buildOperationResult(
         ok,
         level,
@@ -13,9 +14,11 @@ def buildRobotSyncResult(ok, level, message, records=None, writes=None, data=Non
             "records": records,
             "writes": writes,
             "value": data,
+            "issues": issues,
         },
         records=records,
         writes=writes,
+        issues=issues,
     )
 
 

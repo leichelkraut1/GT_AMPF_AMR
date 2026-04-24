@@ -36,12 +36,16 @@ def runInterlockSyncCycle(nowEpochMs=None):
         nowEpochMs = int(time.time() * 1000)
 
     startEpochMs = int(nowEpochMs)
-    writeRuntimeFields({
-        "interlock_sync_is_running": True,
-        "interlock_sync_last_start_ts": timestampString(startEpochMs),
-    })
-
     result = None
+
+    try:
+        writeRuntimeFields({
+            "interlock_sync_is_running": True,
+            "interlock_sync_last_start_ts": timestampString(startEpochMs),
+        })
+    except Exception as exc:
+        logger.error("Interlock sync runtime start telemetry failed: {}".format(str(exc)))
+
     try:
         result = updateInterlocks()
     except Exception as exc:
@@ -73,13 +77,16 @@ def runInterlockSyncCycle(nowEpochMs=None):
 
         recordRuntimeIssues([result], nowEpochMs=endEpochMs, logger=logger)
 
-        writeRuntimeFields({
-            "interlock_sync_is_running": False,
-            "interlock_sync_last_end_ts": timestampString(endEpochMs),
-            "interlock_sync_last_duration_ms": durationMs,
-            "interlock_sync_last_result": lastResult,
-            "interlock_sync_status": status,
-            "interlock_sync_message": message,
-        })
+        try:
+            writeRuntimeFields({
+                "interlock_sync_is_running": False,
+                "interlock_sync_last_end_ts": timestampString(endEpochMs),
+                "interlock_sync_last_duration_ms": durationMs,
+                "interlock_sync_last_result": lastResult,
+                "interlock_sync_status": status,
+                "interlock_sync_message": message,
+            })
+        except Exception as exc:
+            logger.error("Interlock sync runtime end telemetry failed: {}".format(str(exc)))
 
     return result

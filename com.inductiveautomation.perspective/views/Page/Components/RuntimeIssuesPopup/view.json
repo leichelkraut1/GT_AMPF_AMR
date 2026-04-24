@@ -94,15 +94,10 @@
           "props.data": {
             "binding": {
               "config": {
-                "path": "view.params.tagPath"
+                "mode": "indirect",
+                "path": "{view.params.tagPath}"
               },
-              "transforms": [
-                {
-                  "code": "\tselectedPath = str(value or \"\").strip()\n\theaders = [\"IssueId\", \"Source\", \"Level\", \"Message\", \"FirstSeenTs\", \"LastSeenTs\"]\n\tif not selectedPath:\n\t\treturn system.dataset.toDataSet(headers, [])\n\tqualified = system.tag.readBlocking([selectedPath])[0]\n\tif (not qualified.quality.isGood()) or qualified.value is None or (not hasattr(qualified.value, \"getRowCount\")):\n\t\treturn system.dataset.toDataSet(headers, [])\n\treturn qualified.value",
-                  "type": "script"
-                }
-              ],
-              "type": "property"
+              "type": "tag"
             }
           }
         },
