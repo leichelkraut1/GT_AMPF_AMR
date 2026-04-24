@@ -2,7 +2,6 @@ import time
 
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagIO import readOptionalTagValue
-from Otto_API.Common.TagIO import readRequiredTagValue
 from Otto_API.Common.TagIO import writeObservedTagValue
 from Otto_API.Common.TagPaths import getFleetInterlocksPath
 from Otto_API.Common.TagPaths import getInterlockWritebackRetryMsPath
@@ -12,7 +11,6 @@ from Otto_API.Interlocks.Get import getInterlocks
 from Otto_API.Interlocks.Mapping import DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS
 from Otto_API.Interlocks.Mapping import ensureInterlockTags
 from Otto_API.Interlocks.Mapping import readInterlockMappings
-from Otto_API.Interlocks.Mapping import syncPlcInterlockTags
 from Otto_API.Interlocks.Post import setInterlockState
 
 
@@ -61,15 +59,21 @@ def _writePendingState(rowPath, pendingWrite, pendingState, pendingStartedMs, la
     writeObservedTagValue(rowPath + "/LastCommandedMs", int(lastCommandedMs or 0), label="Interlock pending-write sync", logger=logger)
 
 
+def _clearPendingState(rowPath, logger):
+    writeObservedTagValue(rowPath + "/PendingWriteToFleet", False, label="Interlock pending-write sync", logger=logger)
+    writeObservedTagValue(rowPath + "/PendingWriteState", 0, label="Interlock pending-write sync", logger=logger)
+    writeObservedTagValue(rowPath + "/PendingWriteStartedMs", 0, label="Interlock pending-write sync", logger=logger)
+
+
 def _applyFromFleet(row, instanceNameByRawName, logger):
-    interlockName = row.get("InterlockName")
+    fleetName = row.get("FleetName")
     plcTagName = row.get("PlcTagName")
-    fleetRowPath = _fleetInterlockRowPath(interlockName, instanceNameByRawName)
+    fleetRowPath = _fleetInterlockRowPath(fleetName, instanceNameByRawName)
     if not fleetRowPath:
         return {
             "ok": False,
             "level": "warn",
-            "message": "FromFleet skipped [{}] because the Fleet interlock row was not found".format(interlockName),
+            "message": "FromFleet skipped [{}] because the Fleet interlock row was not found".format(fleetName),
         }
     fleetStatePath = fleetRowPath + "/State"
     plcStatePath = getPlcInterlocksPath() + "/" + plcTagName + "/State"
@@ -78,24 +82,25 @@ def _applyFromFleet(row, instanceNameByRawName, logger):
         return {
             "ok": False,
             "level": "warn",
-            "message": "FromFleet skipped [{}] because Fleet state is unreadable".format(interlockName),
+            "message": "FromFleet skipped [{}] because Fleet state is unreadable".format(fleetName),
         }
 
     writeObservedTagValue(plcStatePath, fleetState, label="Interlock FromFleet sync", logger=logger)
     return {
         "ok": True,
         "level": "info",
-        "message": "FromFleet synced [{}] -> [{}]".format(interlockName, plcTagName),
+        "message": "FromFleet synced [{}] -> [{}]".format(fleetName, plcTagName),
     }
 
 
 def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
-    interlockName = row.get("InterlockName")
+    fleetName = row.get("FleetName")
     plcTagName = row.get("PlcTagName")
-    record = dict(recordsByName.get(interlockName) or {})
+    writeEnabled = bool(row.get("WriteEnable", True))
+    record = dict(recordsByName.get(fleetName) or {})
     interlockId = str(record.get("id") or "").strip()
     fleetState = _toIntOrNone(record.get("state"))
-    fleetRowPath = _fleetInterlockRowPath(interlockName, instanceNameByRawName)
+    fleetRowPath = _fleetInterlockRowPath(fleetName, instanceNameByRawName)
     plcStatePath = getPlcInterlocksPath() + "/" + plcTagName + "/State"
     plcState = _toIntOrNone(readOptionalTagValue(plcStatePath, None))
     nowEpochMs = _nowEpochMs()
@@ -105,25 +110,31 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
         return {
             "ok": False,
             "level": "warn",
-            "message": "ToFleet skipped [{}] because no OTTO interlock id was available".format(interlockName),
+            "message": "ToFleet skipped [{}] because no OTTO interlock id was available".format(fleetName),
         }
     if not fleetRowPath:
         return {
             "ok": False,
             "level": "warn",
-            "message": "ToFleet skipped [{}] because the Fleet interlock row was not found".format(interlockName),
+            "message": "ToFleet skipped [{}] because the Fleet interlock row was not found".format(fleetName),
         }
     if fleetState is None:
         return {
             "ok": False,
             "level": "warn",
-            "message": "ToFleet skipped [{}] because Fleet state is unreadable".format(interlockName),
+            "message": "ToFleet skipped [{}] because Fleet state is unreadable".format(fleetName),
         }
     if plcState is None:
         return {
             "ok": False,
             "level": "warn",
-            "message": "ToFleet skipped [{}] because PLC state is unreadable".format(interlockName),
+            "message": "ToFleet skipped [{}] because PLC state is unreadable".format(fleetName),
+        }
+    if not writeEnabled:
+        return {
+            "ok": True,
+            "level": "info",
+            "message": "ToFleet disabled [{}] because Config/WriteEnable is false".format(fleetName),
         }
 
     pendingWrite = bool(readOptionalTagValue(fleetRowPath + "/PendingWriteToFleet", False))
@@ -132,27 +143,18 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
     lastWriteAttemptMs = _toIntOrNone(readOptionalTagValue(fleetRowPath + "/LastWriteAttemptMs", 0)) or 0
 
     if plcState == fleetState:
-        _writePendingState(
-            fleetRowPath,
-            False,
-            0,
-            0,
-            lastWriteAttemptMs,
-            readOptionalTagValue(fleetRowPath + "/LastCommandedState", 0),
-            readOptionalTagValue(fleetRowPath + "/LastCommandedMs", 0),
-            logger,
-        )
+        _clearPendingState(fleetRowPath, logger)
         return {
             "ok": True,
             "level": "info",
-            "message": "ToFleet no-op [{}]; PLC already matches Fleet".format(interlockName),
+            "message": "ToFleet no-op [{}]; PLC already matches Fleet".format(fleetName),
         }
 
     if pendingWrite and pendingWriteState == plcState and (nowEpochMs - lastWriteAttemptMs) < retryMs:
         return {
             "ok": True,
             "level": "info",
-            "message": "ToFleet waiting [{}] for retry backoff".format(interlockName),
+            "message": "ToFleet waiting [{}] for retry backoff".format(fleetName),
         }
 
     if not pendingWrite or pendingWriteState != plcState:
@@ -169,12 +171,12 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, logger):
         nowEpochMs,
         logger,
     )
-    message = postResult.get("message") or "ToFleet posted [{}]".format(interlockName)
+    message = postResult.get("message") or "ToFleet posted [{}]".format(fleetName)
     logger.info(
-        "Otto API - ToFleet posting [{}] from Fleet [{}] to PLC [{}]".format(
-            interlockName,
-            fleetState,
+        "Otto API - ToFleet posting [{}] from PLC [{}] to Fleet [{}]".format(
+            fleetName,
             plcState,
+            fleetState,
         )
     )
     return {
@@ -202,7 +204,6 @@ def updateInterlocks():
 
     applyResult = applyInterlockSync(records, instanceNameByRawName, logger)
     mappingState = readInterlockMappings()
-    plcSyncResult = syncPlcInterlockTags(mappingState)
 
     warnings = []
     warnings.extend(list(getResult.get("warnings") or []))
@@ -227,7 +228,7 @@ def updateInterlocks():
             logger.warn("Otto API - " + message)
 
     hasError = False
-    for result in [getResult, applyResult, mappingState, plcSyncResult] + list(directionalResults or []):
+    for result in [getResult, applyResult, mappingState] + list(directionalResults or []):
         if str(result.get("level") or "").lower() == "error":
             hasError = True
             break
@@ -253,14 +254,12 @@ def updateInterlocks():
             "get_result": getResult,
             "apply_result": applyResult,
             "mapping_result": mappingState,
-            "plc_sync_result": plcSyncResult,
             "directional_results": directionalResults,
             "warnings": warnings,
         },
         get_result=getResult,
         apply_result=applyResult,
         mapping_result=mappingState,
-        plc_sync_result=plcSyncResult,
         directional_results=directionalResults,
         warnings=warnings,
     )

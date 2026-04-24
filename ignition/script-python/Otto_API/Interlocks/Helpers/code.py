@@ -18,7 +18,7 @@ def childRowNames(basePath):
         tagType = str(row.get("tagType") or "").strip().lower()
         if tagType in ["folder", "udtinstance"]:
             names.append(str(row.get("name") or ""))
-    return names
+    return sorted(names)
 
 
 def buildInterlockInstanceMap(records):
