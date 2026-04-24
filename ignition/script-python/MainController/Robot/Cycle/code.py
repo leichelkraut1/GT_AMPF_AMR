@@ -576,8 +576,13 @@ def _evaluateNoActiveMissions(snapshot):
             context = _requestedOutcome(
                 "hold_request_timeout",
                 "Robot [{}] {}".format(snapshot["robot_name"], timeoutMessage),
-                "mission_requested",
-                _clearRequestStatePatch(timeoutMessage, recordTimestamp=True),
+                "fault",
+                dict(
+                    _clearRequestStatePatch(timeoutMessage, recordTimestamp=True),
+                    next_action_allowed_epoch_ms=int(snapshot["now_epoch_ms"] or 0) + RETRY_DELAY_MS,
+                    last_attempt_action="create",
+                    retry_count=int(currentState.get("retry_count") or 0) + 1,
+                ),
             )
             context["level"] = "warn"
             return _buildOutcomeFromContext(context)
