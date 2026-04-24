@@ -139,6 +139,11 @@
               "shrink": 0
             },
             "props": {
+              "style": {
+                "backgroundColor": "#eff6ff",
+                "borderColor": "#bfdbfe",
+                "color": "#1d4ed8"
+              },
               "text": "Activity Mapping"
             },
             "type": "ia.input.button"
@@ -163,6 +168,11 @@
               "shrink": 0
             },
             "props": {
+              "style": {
+                "backgroundColor": "#eef2ff",
+                "borderColor": "#c7d2fe",
+                "color": "#4338ca"
+              },
               "text": "Subsystem Mapping"
             },
             "type": "ia.input.button"
@@ -187,6 +197,11 @@
               "shrink": 0
             },
             "props": {
+              "style": {
+                "backgroundColor": "#ecfdf5",
+                "borderColor": "#a7f3d0",
+                "color": "#047857"
+              },
               "text": "System Mapping"
             },
             "type": "ia.input.button"
