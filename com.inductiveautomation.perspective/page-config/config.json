@@ -31,6 +31,9 @@
     },
     "/statuspage": {
       "viewPath": "Page/StatusPage"
+    },
+    "/statusboard": {
+      "viewPath": "Page/StatusBoardPage"
     }
   },
   "sharedDocks": {

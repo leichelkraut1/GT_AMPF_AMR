@@ -38,7 +38,49 @@
               },
               "transforms": [
                 {
+                  "expression": "if ({value} \u003d {this.props.items[1].target}, \"bold\", \"normal\")",
+                  "type": "expression"
+                }
+              ],
+              "type": "property"
+            }
+          },
+          "props.items[2].style.fontWeight": {
+            "binding": {
+              "config": {
+                "path": "page.props.path"
+              },
+              "transforms": [
+                {
                   "expression": "if ({value} \u003d {this.props.items[2].target}, \"bold\", \"normal\")",
+                  "type": "expression"
+                }
+              ],
+              "type": "property"
+            }
+          },
+          "props.items[3].style.fontWeight": {
+            "binding": {
+              "config": {
+                "path": "page.props.path"
+              },
+              "transforms": [
+                {
+                  "expression": "if ({value} \u003d {this.props.items[3].target}, \"bold\", \"normal\")",
+                  "type": "expression"
+                }
+              ],
+              "type": "property"
+            }
+          },
+          "props.items[4].style.fontWeight": {
+            "binding": {
+              "config": {
+                "path": "page.props.path"
+              },
+              "transforms": [
+                {
+                  "expression": "if ({value} \u003d {this.props.items[4].target}, \"bold\", \"normal\")",
                   "type": "expression"
                 }
               ],
@@ -105,6 +147,28 @@
                 "classes": ""
               },
               "target": "/statuspage",
+              "visible": true
+            },
+            {
+              "backActionText": "",
+              "enabled": true,
+              "items": [],
+              "label": {
+                "icon": {
+                  "path": ""
+                },
+                "text": "Status Board"
+              },
+              "navIcon": {
+                "color": "",
+                "path": "material/chevron_right"
+              },
+              "resetOnClick": false,
+              "showHeader": true,
+              "style": {
+                "classes": ""
+              },
+              "target": "/statusboard",
               "visible": true
             },
             {

@@ -1,0 +1,247 @@
+{
+  "custom": {
+    "themePrimaryText": "#111827",
+    "themeMutedText": "#6b7280",
+    "themeSurfaceBg": "#f9fafb",
+    "themeSurfaceBorder": "1px solid #d1d5db"
+  },
+  "params": {
+    "title": "",
+    "value": "",
+    "detail": "",
+    "tone": "Info"
+  },
+  "propConfig": {
+    "params.title": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.value": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.detail": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.tone": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "custom.themePrimaryText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeMutedText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#9ca3af\"\n\treturn \"#6b7280\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 150,
+      "width": 240
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "Title"
+        },
+        "position": {
+          "basis": "20px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "textTransform": "uppercase"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.params.title"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "Value"
+        },
+        "position": {
+          "basis": "38px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "28px",
+            "fontWeight": "700",
+            "whiteSpace": "normal"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.params.value"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.tone} = \"Error\", \"#b91c1c\", if({view.params.tone} = \"Warn\", \"#b45309\", if({view.params.tone} = \"Healthy\", \"#166534\", if({view.params.tone} = \"Idle\", \"#475569\", \"#2563eb\"))))"
+              },
+              "type": "expr"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "Detail"
+        },
+        "position": {
+          "grow": 1
+        },
+        "props": {
+          "style": {
+            "fontSize": "14px",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.params.detail"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "borderRadius": "12px",
+        "boxShadow": "0 6px 18px rgba(0,0,0,0.08)",
+        "marginBottom": "16px",
+        "marginRight": "16px",
+        "minHeight": "140px",
+        "padding": "16px"
+      }
+    },
+    "type": "ia.container.flex",
+    "propConfig": {
+      "props.style.backgroundColor": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBg"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.border": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBorder"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.borderLeft": {
+        "binding": {
+          "config": {
+            "expression": "\"6px solid \" + if({view.params.tone} = \"Error\", \"#b91c1c\", if({view.params.tone} = \"Warn\", \"#b45309\", if({view.params.tone} = \"Healthy\", \"#166534\", if({view.params.tone} = \"Idle\", \"#475569\", \"#2563eb\"))))"
+          },
+          "type": "expr"
+        }
+      }
+    }
+  }
+}

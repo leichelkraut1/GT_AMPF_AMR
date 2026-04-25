@@ -1,0 +1,672 @@
+{
+  "custom": {
+    "themePrimaryText": "#111827",
+    "themeMutedText": "#6b7280",
+    "themeSurfaceBg": "#f9fafb",
+    "themeSurfaceBorder": "1px solid #d1d5db"
+  },
+  "params": {
+    "robotName": "",
+    "availableForWork": false,
+    "notReadyReason": "",
+    "systemState": "",
+    "subSystemState": "",
+    "activityState": "",
+    "chargeLevel": null,
+    "placeName": "",
+    "currentMissionName": "",
+    "currentMissionStatus": "",
+    "activeMissionCount": 0,
+    "requestedWorkflowNumber": null
+  },
+  "propConfig": {
+    "params.robotName": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.availableForWork": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.notReadyReason": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.systemState": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.subSystemState": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.activityState": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.chargeLevel": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.placeName": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.currentMissionName": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.currentMissionStatus": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.activeMissionCount": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.requestedWorkflowNumber": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "custom.themePrimaryText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeMutedText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#9ca3af\"\n\treturn \"#6b7280\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 270,
+      "width": 320
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "meta": {
+              "name": "RobotName"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "26px",
+                "fontWeight": "700"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "path": "view.params.robotName"
+                  },
+                  "type": "property"
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
+            }
+          },
+          {
+            "meta": {
+              "name": "ChargeBadge"
+            },
+            "position": {
+              "basis": "88px",
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "borderRadius": "999px",
+                "fontSize": "16px",
+                "fontWeight": "700",
+                "paddingBottom": "6px",
+                "paddingTop": "6px",
+                "textAlign": "center"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "if(isNull({view.params.chargeLevel}), \"-\", toStr({view.params.chargeLevel}) + \"%\")"
+                  },
+                  "type": "expr"
+                }
+              },
+              "props.style.backgroundColor": {
+                "binding": {
+                  "config": {
+                    "expression": "if(isNull({view.params.chargeLevel}), \"#64748b\", if(toInt({view.params.chargeLevel}) >= 60, \"#166534\", if(toInt({view.params.chargeLevel}) >= 30, \"#b45309\", \"#b91c1c\")))"
+                  },
+                  "type": "expr"
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "expression": "\"#ffffff\""
+                  },
+                  "type": "expr"
+                }
+              }
+            }
+          }
+        ],
+        "meta": {
+          "name": "HeaderRow"
+        },
+        "position": {
+          "basis": "38px",
+          "shrink": 0
+        },
+        "props": {
+          "alignItems": "center"
+        },
+        "type": "ia.container.flex"
+      },
+      {
+        "meta": {
+          "name": "Availability"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "16px",
+            "fontWeight": "700"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.availableForWork}, \"Available For Work\", \"Not Ready\")"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.availableForWork}, \"#166534\", \"#b45309\")"
+              },
+              "type": "expr"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "Reason"
+        },
+        "position": {
+          "basis": "40px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.availableForWork}, \"Ready for work\", if(len(trim(toStr({view.params.notReadyReason}))) = 0, \"No reason provided\", toStr({view.params.notReadyReason})))"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "MissionLabel"
+        },
+        "position": {
+          "basis": "18px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "11px",
+            "fontWeight": "700",
+            "letterSpacing": "0.08em",
+            "textTransform": "uppercase"
+          },
+          "text": "Current Mission"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "MissionName"
+        },
+        "position": {
+          "basis": "38px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "18px",
+            "fontWeight": "700",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.params.currentMissionName"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "children": [
+          {
+            "meta": {
+              "name": "MissionStatus"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "\"Mission Status: \" + toStr({view.params.currentMissionStatus})"
+                  },
+                  "type": "expr"
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
+            }
+          },
+          {
+            "meta": {
+              "name": "Place"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "\"Place: \" + toStr({view.params.placeName})"
+                  },
+                  "type": "expr"
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
+            }
+          }
+        ],
+        "meta": {
+          "name": "RowOne"
+        },
+        "position": {
+          "basis": "22px",
+          "shrink": 0
+        },
+        "type": "ia.container.flex"
+      },
+      {
+        "children": [
+          {
+            "meta": {
+              "name": "Activity"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "\"Activity: \" + toStr({view.params.activityState})"
+                  },
+                  "type": "expr"
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
+            }
+          },
+          {
+            "meta": {
+              "name": "ActiveCount"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "\"Active Missions: \" + toStr({view.params.activeMissionCount})"
+                  },
+                  "type": "expr"
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
+            }
+          }
+        ],
+        "meta": {
+          "name": "RowTwo"
+        },
+        "position": {
+          "basis": "22px",
+          "shrink": 0
+        },
+        "type": "ia.container.flex"
+      },
+      {
+        "children": [
+          {
+            "meta": {
+              "name": "SystemState"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "\"System: \" + toStr({view.params.systemState})"
+                  },
+                  "type": "expr"
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
+            }
+          },
+          {
+            "meta": {
+              "name": "SubSystemState"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "\"Sub-System: \" + toStr({view.params.subSystemState})"
+                  },
+                  "type": "expr"
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
+            }
+          }
+        ],
+        "meta": {
+          "name": "RowThree"
+        },
+        "position": {
+          "basis": "22px",
+          "shrink": 0
+        },
+        "type": "ia.container.flex"
+      },
+      {
+        "meta": {
+          "name": "RequestedWorkflow"
+        },
+        "position": {
+          "basis": "22px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"Requested Workflow: \" + if(isNull({view.params.requestedWorkflowNumber}), \"-\", toStr({view.params.requestedWorkflowNumber}))"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "borderRadius": "14px",
+        "boxShadow": "0 8px 22px rgba(0,0,0,0.08)",
+        "marginBottom": "18px",
+        "marginRight": "18px",
+        "minHeight": "270px",
+        "padding": "16px"
+      }
+    },
+    "type": "ia.container.flex",
+    "propConfig": {
+      "props.style.backgroundColor": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBg"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.border": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBorder"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.borderLeft": {
+        "binding": {
+          "config": {
+            "expression": "\"6px solid \" + if({view.params.availableForWork}, if(indexOf(lower(toStr({view.params.systemState})), \"error\") >= 0 || indexOf(lower(toStr({view.params.subSystemState})), \"error\") >= 0, \"#b91c1c\", \"#166534\"), \"#b45309\")"
+          },
+          "type": "expr"
+        }
+      }
+    }
+  }
+}

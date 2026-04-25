@@ -1,0 +1,310 @@
+{
+  "custom": {
+    "themePrimaryText": "#111827",
+    "themeMutedText": "#6b7280",
+    "themeSurfaceBg": "#f9fafb",
+    "themeSurfaceBorder": "1px solid #d1d5db"
+  },
+  "params": {
+    "containerId": "",
+    "containerType": "",
+    "locationLabel": "",
+    "state": ""
+  },
+  "propConfig": {
+    "params.containerId": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.containerType": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.locationLabel": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.state": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "custom.themePrimaryText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeMutedText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#9ca3af\"\n\treturn \"#6b7280\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 170,
+      "width": 280
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "TypeLabel"
+        },
+        "position": {
+          "basis": "20px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "textTransform": "uppercase"
+          },
+          "text": "Container Type"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "TypeValue"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "24px",
+            "fontWeight": "700",
+            "whiteSpace": "normal"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.params.containerType"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "State"
+        },
+        "position": {
+          "basis": "22px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "15px",
+            "fontWeight": "700"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"State: \" + toStr({view.params.state})"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "expression": "if(indexOf(lower(toStr({view.params.state})), \"error\") >= 0, \"#b91c1c\", if(indexOf(lower(toStr({view.params.state})), \"hold\") >= 0, \"#b45309\", \"#166534\"))"
+              },
+              "type": "expr"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "Location"
+        },
+        "position": {
+          "basis": "42px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "14px",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.params.locationLabel"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "Id"
+        },
+        "position": {
+          "basis": "36px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"ID: \" + toStr({view.params.containerId})"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "borderRadius": "12px",
+        "boxShadow": "0 6px 18px rgba(0,0,0,0.08)",
+        "marginBottom": "16px",
+        "marginRight": "16px",
+        "minHeight": "160px",
+        "padding": "16px"
+      }
+    },
+    "type": "ia.container.flex",
+    "propConfig": {
+      "props.style.backgroundColor": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBg"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.border": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBorder"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.borderLeft": {
+        "binding": {
+          "config": {
+            "expression": "\"6px solid \" + if(indexOf(lower(toStr({view.params.state})), \"error\") >= 0, \"#b91c1c\", if(indexOf(lower(toStr({view.params.state})), \"hold\") >= 0, \"#b45309\", \"#166534\"))"
+          },
+          "type": "expr"
+        }
+      }
+    }
+  }
+}

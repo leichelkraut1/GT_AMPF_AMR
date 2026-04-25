@@ -1,0 +1,293 @@
+{
+  "custom": {
+    "themePrimaryText": "#111827",
+    "themeMutedText": "#6b7280"
+  },
+  "params": {},
+  "propConfig": {
+    "custom.themePrimaryText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeMutedText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#9ca3af\"\n\treturn \"#6b7280\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 1200,
+      "width": 1200
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "SystemStatusTitle"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "22px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "6px"
+          },
+          "text": "System Status"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "SummaryCards"
+        },
+        "position": {
+          "shrink": 0
+        },
+        "props": {
+          "path": "Page/Components/StatusSummaryCard",
+          "wrap": "wrap"
+        },
+        "type": "ia.display.flex-repeater",
+        "propConfig": {
+          "props.instances": {
+            "binding": {
+              "config": {
+                "expression": "now(2000)"
+              },
+              "transforms": [
+                {
+                  "code": "\timport MainController.State.StatusBoardStore\n\treturn MainController.State.StatusBoardStore.summaryCards()",
+                  "type": "script"
+                }
+              ],
+              "type": "expr"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "SubsystemTitle"
+        },
+        "position": {
+          "basis": "28px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "16px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "2px"
+          },
+          "text": "Subsystem Health"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "SubsystemCards"
+        },
+        "position": {
+          "shrink": 0
+        },
+        "props": {
+          "path": "Page/Components/SubsystemHealthChip",
+          "wrap": "wrap"
+        },
+        "type": "ia.display.flex-repeater",
+        "propConfig": {
+          "props.instances": {
+            "binding": {
+              "config": {
+                "expression": "now(4000)"
+              },
+              "transforms": [
+                {
+                  "code": "\timport MainController.State.StatusBoardStore\n\treturn MainController.State.StatusBoardStore.subsystemHealthCards()",
+                  "type": "script"
+                }
+              ],
+              "type": "expr"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "RobotsTitle"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "22px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "8px"
+          },
+          "text": "Robots"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "RobotCards"
+        },
+        "position": {
+          "shrink": 0
+        },
+        "props": {
+          "path": "Page/Components/RobotStatusCard",
+          "wrap": "wrap"
+        },
+        "type": "ia.display.flex-repeater",
+        "propConfig": {
+          "props.instances": {
+            "binding": {
+              "config": {
+                "expression": "now(2000)"
+              },
+              "transforms": [
+                {
+                  "code": "\timport MainController.State.StatusBoardStore\n\treturn MainController.State.StatusBoardStore.robotCards()",
+                  "type": "script"
+                }
+              ],
+              "type": "expr"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "ContainersTitle"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "22px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "8px"
+          },
+          "text": "Containers"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "ContainerCards"
+        },
+        "position": {
+          "shrink": 0
+        },
+        "props": {
+          "path": "Page/Components/ContainerStatusCard",
+          "wrap": "wrap"
+        },
+        "type": "ia.display.flex-repeater",
+        "propConfig": {
+          "props.instances": {
+            "binding": {
+              "config": {
+                "expression": "now(3000)"
+              },
+              "transforms": [
+                {
+                  "code": "\timport MainController.State.StatusBoardStore\n\treturn MainController.State.StatusBoardStore.containerCards()",
+                  "type": "script"
+                }
+              ],
+              "type": "expr"
+            }
+          }
+        }
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "paddingBottom": "12px",
+        "paddingLeft": "4px",
+        "paddingRight": "4px"
+      }
+    },
+    "type": "ia.container.flex"
+  }
+}

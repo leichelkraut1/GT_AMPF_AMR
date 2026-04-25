@@ -1,0 +1,240 @@
+{
+  "custom": {
+    "themePrimaryText": "#111827",
+    "themeMutedText": "#6b7280",
+    "themeSurfaceAltBg": "#f3f4f6",
+    "themeSurfaceBorder": "1px solid #d1d5db"
+  },
+  "params": {
+    "subsystem": "",
+    "status": "",
+    "message": ""
+  },
+  "propConfig": {
+    "params.subsystem": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.status": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.message": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "custom.themePrimaryText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeMutedText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#9ca3af\"\n\treturn \"#6b7280\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceAltBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#1f2937\"\n\treturn \"#f3f4f6\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 92,
+      "width": 220
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "Subsystem"
+        },
+        "position": {
+          "basis": "20px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "textTransform": "uppercase"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.params.subsystem"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "Status"
+        },
+        "position": {
+          "basis": "26px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "18px",
+            "fontWeight": "700"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.params.status"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.status} = \"Error\", \"#b91c1c\", if({view.params.status} = \"Warn\", \"#b45309\", if({view.params.status} = \"Healthy\", \"#166534\", if({view.params.status} = \"Idle\", \"#475569\", {view.custom.themePrimaryText}))))"
+              },
+              "type": "expr"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "Message"
+        },
+        "position": {
+          "grow": 1
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.params.message"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "borderRadius": "10px",
+        "marginBottom": "12px",
+        "marginRight": "12px",
+        "minHeight": "92px",
+        "padding": "12px"
+      }
+    },
+    "type": "ia.container.flex",
+    "propConfig": {
+      "props.style.backgroundColor": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceAltBg"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.border": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBorder"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.borderLeft": {
+        "binding": {
+          "config": {
+            "expression": "\"5px solid \" + if({view.params.status} = \"Error\", \"#b91c1c\", if({view.params.status} = \"Warn\", \"#b45309\", if({view.params.status} = \"Healthy\", \"#166534\", if({view.params.status} = \"Idle\", \"#475569\", \"#2563eb\"))))"
+          },
+          "type": "expr"
+        }
+      }
+    }
+  }
+}
