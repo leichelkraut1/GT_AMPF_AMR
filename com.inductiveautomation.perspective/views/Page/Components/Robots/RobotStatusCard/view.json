@@ -462,7 +462,8 @@
             },
             "props": {
               "style": {
-                "fontSize": "13px"
+                "fontSize": "13px",
+                "lineHeight": "1.2"
               },
               "text": "Place:"
             },
@@ -489,6 +490,7 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
+                "lineHeight": "1.2",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -541,7 +543,8 @@
             },
             "props": {
               "style": {
-                "fontSize": "13px"
+                "fontSize": "13px",
+                "lineHeight": "1.2"
               },
               "text": "Activity:"
             },
@@ -568,6 +571,7 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
+                "lineHeight": "1.2",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -620,7 +624,8 @@
             },
             "props": {
               "style": {
-                "fontSize": "13px"
+                "fontSize": "13px",
+                "lineHeight": "1.2"
               },
               "text": "System:"
             },
@@ -647,6 +652,7 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
+                "lineHeight": "1.2",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -729,7 +735,8 @@
             },
             "props": {
               "style": {
-                "fontSize": "13px"
+                "fontSize": "13px",
+                "lineHeight": "1.2"
               },
               "text": "Requested Workflow:"
             },
@@ -756,6 +763,7 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
+                "lineHeight": "1.2",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -808,7 +816,8 @@
             },
             "props": {
               "style": {
-                "fontSize": "13px"
+                "fontSize": "13px",
+                "lineHeight": "1.2"
               },
               "text": "Ready To Finalize:"
             },
@@ -835,6 +844,7 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
+                "lineHeight": "1.2",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
