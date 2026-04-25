@@ -26,17 +26,9 @@
     "custom.PlcRobotTagName": {
       "binding": {
         "config": {
-          "fallbackDelay": 2.5,
-          "mode": "direct",
-          "tagPath": "[Otto_FleetManager]PLC/FleetMapping/RobotTagNameMapping"
+          "expression": "runScript(\"MainController.State.PlcMappingStore.resolvePlcRobotTagName\", 0, {view.custom.RVTagName})"
         },
-        "transforms": [
-          {
-            "code": "\trobotName = \"AMPF_AMR_RV{}\".format(self.view.params.RVNum)\n\tresolved = \"\"\n\tif hasattr(value, \"getRowCount\"):\n\t\tfor rowIndex in range(value.getRowCount()):\n\t\t\tfleetRobotName = str(value.getValueAt(rowIndex, \"FleetRobotName\") or \"\").strip()\n\t\t\tif fleetRobotName != robotName:\n\t\t\t\tcontinue\n\t\t\tresolved = str(value.getValueAt(rowIndex, \"PlcTagName\") or \"\").strip()\n\t\t\tbreak\n\treturn resolved",
-            "type": "script"
-          }
-        ],
-        "type": "tag"
+        "type": "expr"
       },
       "persistent": true
     },

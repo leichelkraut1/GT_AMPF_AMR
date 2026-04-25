@@ -40,6 +40,20 @@ def buildPlaceTagNameMappingDataset():
     return _datasetWithHeaders(PLACE_TAG_NAME_MAPPING_HEADERS, [])
 
 
+def resolvePlcRobotTagName(fleetRobotName, mappingState=None):
+    """Resolve one Fleet robot name to its configured PLC robot tag name."""
+    fleetRobotName = normalizeTagValue(fleetRobotName)
+    if not fleetRobotName:
+        return ""
+
+    if mappingState is None:
+        mappingState = readPlcMappings()
+    mappingState = dict(mappingState or {})
+    return normalizeTagValue(
+        dict(mappingState.get("robot_name_to_plc_tag") or {}).get(fleetRobotName)
+    )
+
+
 def ensurePlcMappingTags():
     """Ensure the mapping datasets and their PLC/Fleet sync folders exist."""
     ensureFolder(PLC_ROBOTS_BASE)
