@@ -191,25 +191,83 @@
           "basis": "35px",
           "shrink": 0
         },
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "if(len(trim(toStr({view.params.locationLabel}))) \u003d 0, \"Location: Unassigned\", toStr({view.params.locationLabel}))"
+        "props": {
+          "alignItems": "baseline",
+          "direction": "row",
+          "style": {
+            "columnGap": "4px"
+          }
+        },
+        "type": "ia.container.flex",
+        "children": [
+          {
+            "meta": {
+              "name": "LocationLabel"
+            },
+            "position": {
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themeMutedText"
+                  },
+                  "type": "property"
+                }
               },
-              "type": "expr"
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "if(len(trim(toStr({view.params.locationLabel}))) = 0, \"Location:\", if(indexOf(toStr({view.params.locationLabel}), \":\") >= 0, left(toStr({view.params.locationLabel}), indexOf(toStr({view.params.locationLabel}), \":\") + 1), \"Location:\"))"
+                  },
+                  "type": "expr"
+                }
+              }
+            }
+          },
+          {
+            "meta": {
+              "name": "LocationValue"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "fontWeight": "700",
+                "whiteSpace": "normal",
+                "wordBreak": "break-word"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              },
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "if(len(trim(toStr({view.params.locationLabel}))) = 0, \"Unassigned\", if(indexOf(toStr({view.params.locationLabel}), \":\") >= 0, trim(right(toStr({view.params.locationLabel}), len(toStr({view.params.locationLabel})) - indexOf(toStr({view.params.locationLabel}), \":\") - 1)), toStr({view.params.locationLabel})))"
+                  },
+                  "type": "expr"
+                }
+              }
             }
           }
-        },
-        "props": {
-          "alignVertical": "bottom",
-          "style": {
-            "fontSize": "13px",
-            "whiteSpace": "normal",
-            "wordBreak": "break-all"
-          }
-        },
-        "type": "ia.display.label"
+        ]
       },
       {
         "meta": {

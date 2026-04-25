@@ -347,14 +347,109 @@
       },
       {
         "meta": {
+          "name": "MissionStateRow"
+        },
+        "position": {
+          "basis": "20px",
+          "shrink": 0,
+          "display": true
+        },
+        "props": {
+          "alignItems": "baseline",
+          "direction": "row",
+          "style": {
+            "columnGap": "4px",
+            "marginTop": "-1px"
+          }
+        },
+        "type": "ia.container.flex",
+        "propConfig": {
+          "position.display": {
+            "binding": {
+              "config": {
+                "expression": "!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "children": [
+          {
+            "meta": {
+              "name": "MissionStateLabel"
+            },
+            "position": {
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
+              },
+              "text": "State:"
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themeMutedText"
+                  },
+                  "type": "property"
+                }
+              }
+            }
+          },
+          {
+            "meta": {
+              "name": "MissionStateValue"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "fontWeight": "600",
+                "whiteSpace": "normal",
+                "wordBreak": "break-word"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "if(len(trim(toStr({view.params.currentMissionStatus}))) = 0 || lower(trim(toStr({view.params.currentMissionStatus}))) = \"null\", \"-\", toStr({view.params.currentMissionStatus}))"
+                  },
+                  "type": "expr"
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "meta": {
           "name": "PlaceRow"
         },
         "position": {
-          "basis": "42px",
+          "basis": "22px",
           "shrink": 0
         },
         "props": {
-          "direction": "column"
+          "alignItems": "baseline",
+          "direction": "row",
+          "style": {
+            "columnGap": "4px"
+          }
         },
         "type": "ia.container.flex",
         "children": [
@@ -369,7 +464,7 @@
               "style": {
                 "fontSize": "13px"
               },
-              "text": "Place Name:"
+              "text": "Place:"
             },
             "type": "ia.display.label",
             "propConfig": {
@@ -394,7 +489,6 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
-                "marginLeft": "10px",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -449,7 +543,7 @@
               "style": {
                 "fontSize": "13px"
               },
-              "text": "Activity State:"
+              "text": "Activity:"
             },
             "type": "ia.display.label",
             "propConfig": {
@@ -528,7 +622,7 @@
               "style": {
                 "fontSize": "13px"
               },
-              "text": "System State:"
+              "text": "System:"
             },
             "type": "ia.display.label",
             "propConfig": {
