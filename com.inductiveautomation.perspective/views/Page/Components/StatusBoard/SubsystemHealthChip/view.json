@@ -86,7 +86,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 102,
+      "height": 80,
       "width": 214
     }
   },
@@ -160,41 +160,6 @@
             }
           }
         }
-      },
-      {
-        "meta": {
-          "name": "Message"
-        },
-        "position": {
-          "grow": 1
-        },
-        "props": {
-          "style": {
-            "fontSize": "12px",
-            "lineHeight": "1.25",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
-          }
-        },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "path": "view.params.message"
-              },
-              "type": "property"
-            }
-          },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
-            }
-          }
-        }
       }
     ],
     "meta": {
@@ -204,10 +169,10 @@
       "direction": "column",
       "style": {
         "borderRadius": "10px",
-        "marginBottom": "12px",
+        "marginBottom": "10px",
         "marginRight": "12px",
-        "minHeight": "98px",
-        "padding": "12px"
+        "minHeight": "76px",
+        "padding": "10px"
       }
     },
     "type": "ia.container.flex",

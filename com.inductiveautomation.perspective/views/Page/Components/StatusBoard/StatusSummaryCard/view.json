@@ -91,7 +91,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 112,
+      "height": 82,
       "width": 214
     }
   },
@@ -137,7 +137,7 @@
           "name": "Value"
         },
         "position": {
-          "basis": "28px",
+          "basis": "26px",
           "shrink": 0
         },
         "props": {
@@ -167,41 +167,6 @@
             }
           }
         }
-      },
-      {
-        "meta": {
-          "name": "Detail"
-        },
-        "position": {
-          "grow": 1
-        },
-        "props": {
-          "style": {
-            "fontSize": "12px",
-            "lineHeight": "1.2",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
-          }
-        },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "path": "view.params.detail"
-              },
-              "type": "property"
-            }
-          },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
-              },
-              "type": "property"
-            }
-          }
-        }
       }
     ],
     "meta": {
@@ -212,10 +177,10 @@
       "style": {
         "borderRadius": "12px",
         "boxShadow": "0 10px 24px rgba(0,0,0,0.08)",
-        "marginBottom": "12px",
+        "marginBottom": "10px",
         "marginRight": "14px",
-        "minHeight": "106px",
-        "padding": "12px"
+        "minHeight": "78px",
+        "padding": "10px"
       }
     },
     "type": "ia.container.flex",
