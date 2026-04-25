@@ -275,7 +275,7 @@
           "name": "PrimaryStatusLine"
         },
         "position": {
-          "basis": "32px",
+          "basis": "28px",
           "shrink": 0
         },
         "props": {
@@ -312,13 +312,15 @@
           "name": "SecondaryStatusLine"
         },
         "position": {
-          "basis": "24px",
+          "basis": "20px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "12px",
-            "lineHeight": "1.3",
+            "fontSize": "14px",
+            "fontWeight": "600",
+            "lineHeight": "1.15",
+            "marginTop": "-2px",
             "whiteSpace": "normal",
             "wordBreak": "break-word"
           }
@@ -336,7 +338,7 @@
           "props.style.color": {
             "binding": {
               "config": {
-                "path": "view.custom.themeMutedText"
+                "path": "view.custom.themePrimaryText"
               },
               "type": "property"
             }
