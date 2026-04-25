@@ -158,6 +158,11 @@ def summaryCards():
 
 
 def subsystemHealthCards():
+    hiddenSubsystems = {
+        "interlock sync",
+        "main plc comms",
+        "main loop",
+    }
     return [
         {
             "subsystem": str(row.get("Subsystem") or ""),
@@ -165,6 +170,7 @@ def subsystemHealthCards():
             "message": str(row.get("Message") or ""),
         }
         for row in list(phaseHealthRows() or [])
+        if str(row.get("Subsystem") or "").strip().lower() not in hiddenSubsystems
     ]
 
 

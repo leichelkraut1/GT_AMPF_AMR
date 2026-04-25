@@ -141,7 +141,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 488,
+      "height": 400,
       "width": 324
     }
   },
@@ -158,7 +158,7 @@
             },
             "props": {
               "style": {
-                "fontSize": "24px",
+                "fontSize": "22px",
                 "fontWeight": "700"
               }
             },
@@ -187,16 +187,16 @@
               "name": "ChargeBadge"
             },
             "position": {
-              "basis": "54px",
+              "basis": "44px",
               "shrink": 0
             },
             "props": {
               "style": {
                 "borderRadius": "999px",
-                "fontSize": "13px",
+                "fontSize": "12px",
                 "fontWeight": "700",
-                "paddingBottom": "4px",
-                "paddingTop": "4px",
+                "paddingBottom": "3px",
+                "paddingTop": "3px",
                 "textAlign": "center"
               }
             },
@@ -233,14 +233,14 @@
           "name": "HeaderRow"
         },
         "position": {
-          "basis": "44px",
+          "basis": "38px",
           "shrink": 0
         },
         "props": {
           "alignItems": "center",
           "justify": "space-between",
           "style": {
-            "paddingBottom": "8px"
+            "paddingBottom": "4px"
           }
         },
         "type": "ia.container.flex"
@@ -286,7 +286,7 @@
           "name": "Reason"
         },
         "position": {
-          "basis": "34px",
+          "basis": "30px",
           "shrink": 0
         },
         "props": {
@@ -351,12 +351,12 @@
           "name": "MissionName"
         },
         "position": {
-          "basis": "82px",
+          "basis": "64px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "18px",
+            "fontSize": "15px",
             "fontWeight": "700",
             "lineHeight": "1.2",
             "whiteSpace": "normal",
@@ -529,114 +529,6 @@
       },
       {
         "meta": {
-          "name": "SubSystemState"
-        },
-        "position": {
-          "basis": "22px",
-          "shrink": 0
-        },
-        "props": {
-          "style": {
-            "fontSize": "13px",
-            "lineHeight": "1.3",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
-          }
-        },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"Sub System State: \" + toStr({view.params.subSystemState})"
-              },
-              "type": "expr"
-            }
-          },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
-              },
-              "type": "property"
-            }
-          }
-        }
-      },
-      {
-        "meta": {
-          "name": "ChargeLevel"
-        },
-        "position": {
-          "basis": "22px",
-          "shrink": 0
-        },
-        "props": {
-          "style": {
-            "fontSize": "13px",
-            "lineHeight": "1.3",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
-          }
-        },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"Charge Level: \" + if(isNull({view.params.chargeLevel}), \"-\", toStr({view.params.chargeLevel}))"
-              },
-              "type": "expr"
-            }
-          },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
-              },
-              "type": "property"
-            }
-          }
-        }
-      },
-      {
-        "meta": {
-          "name": "ActiveCount"
-        },
-        "position": {
-          "basis": "22px",
-          "shrink": 0
-        },
-        "props": {
-          "style": {
-            "fontSize": "13px",
-            "lineHeight": "1.3",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
-          }
-        },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"Active Mission Count: \" + toStr({view.params.activeMissionCount})"
-              },
-              "type": "expr"
-            }
-          },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
-              },
-              "type": "property"
-            }
-          }
-        }
-      },
-      {
-        "meta": {
           "name": "MissionControlLabel"
         },
         "position": {
@@ -648,7 +540,7 @@
             "fontSize": "11px",
             "fontWeight": "700",
             "letterSpacing": "0.08em",
-            "marginTop": "6px",
+            "marginTop": "4px",
             "textTransform": "uppercase"
           },
           "text": "Mission Control"
@@ -784,8 +676,8 @@
         "boxShadow": "0 8px 22px rgba(0,0,0,0.08)",
         "marginBottom": "20px",
         "marginRight": "18px",
-        "minHeight": "488px",
-        "padding": "16px"
+        "minHeight": "400px",
+        "padding": "12px"
       }
     },
     "type": "ia.container.flex",
