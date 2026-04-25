@@ -86,8 +86,8 @@
   },
   "props": {
     "defaultSize": {
-      "height": 92,
-      "width": 220
+      "height": 74,
+      "width": 198
     }
   },
   "root": {
@@ -97,12 +97,12 @@
           "name": "Subsystem"
         },
         "position": {
-          "basis": "20px",
+          "basis": "16px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "12px",
+            "fontSize": "10px",
             "fontWeight": "700",
             "textTransform": "uppercase"
           }
@@ -132,12 +132,12 @@
           "name": "Status"
         },
         "position": {
-          "basis": "26px",
+          "basis": "20px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "18px",
+            "fontSize": "14px",
             "fontWeight": "700"
           }
         },
@@ -170,7 +170,8 @@
         },
         "props": {
           "style": {
-            "fontSize": "12px",
+            "fontSize": "10px",
+            "lineHeight": "1.25",
             "whiteSpace": "normal",
             "wordBreak": "break-word"
           }
@@ -188,7 +189,7 @@
           "props.style.color": {
             "binding": {
               "config": {
-                "path": "view.custom.themePrimaryText"
+                "path": "view.custom.themeMutedText"
               },
               "type": "property"
             }
@@ -203,10 +204,10 @@
       "direction": "column",
       "style": {
         "borderRadius": "10px",
-        "marginBottom": "12px",
-        "marginRight": "12px",
-        "minHeight": "92px",
-        "padding": "12px"
+        "marginBottom": "8px",
+        "marginRight": "8px",
+        "minHeight": "72px",
+        "padding": "9px"
       }
     },
     "type": "ia.container.flex",
@@ -230,7 +231,7 @@
       "props.style.borderLeft": {
         "binding": {
           "config": {
-            "expression": "\"5px solid \" + if({view.params.status} = \"Error\", \"#b91c1c\", if({view.params.status} = \"Warn\", \"#b45309\", if({view.params.status} = \"Healthy\", \"#166534\", if({view.params.status} = \"Idle\", \"#475569\", \"#2563eb\"))))"
+            "expression": "\"4px solid \" + if({view.params.status} = \"Error\", \"#b91c1c\", if({view.params.status} = \"Warn\", \"#b45309\", if({view.params.status} = \"Healthy\", \"#166534\", if({view.params.status} = \"Idle\", \"#475569\", \"#2563eb\"))))"
           },
           "type": "expr"
         }

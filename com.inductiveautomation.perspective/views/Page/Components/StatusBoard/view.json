@@ -49,15 +49,15 @@
           "name": "SystemStatusTitle"
         },
         "position": {
-          "basis": "34px",
+          "basis": "46px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "22px",
+            "fontSize": "26px",
             "fontWeight": "700",
             "paddingLeft": "4px",
-            "paddingTop": "6px"
+            "paddingTop": "10px"
           },
           "text": "System Status"
         },
@@ -82,6 +82,9 @@
         },
         "props": {
           "path": "Page/Components/StatusSummaryCard",
+          "style": {
+            "paddingBottom": "18px"
+          },
           "wrap": "wrap"
         },
         "type": "ia.display.flex-repeater",
@@ -107,15 +110,15 @@
           "name": "SubsystemTitle"
         },
         "position": {
-          "basis": "28px",
+          "basis": "24px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "16px",
+            "fontSize": "14px",
             "fontWeight": "700",
             "paddingLeft": "4px",
-            "paddingTop": "2px"
+            "paddingTop": "4px"
           },
           "text": "Subsystem Health"
         },
@@ -140,6 +143,9 @@
         },
         "props": {
           "path": "Page/Components/SubsystemHealthChip",
+          "style": {
+            "paddingBottom": "24px"
+          },
           "wrap": "wrap"
         },
         "type": "ia.display.flex-repeater",
@@ -165,15 +171,15 @@
           "name": "RobotsTitle"
         },
         "position": {
-          "basis": "34px",
+          "basis": "48px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "22px",
+            "fontSize": "26px",
             "fontWeight": "700",
             "paddingLeft": "4px",
-            "paddingTop": "8px"
+            "paddingTop": "16px"
           },
           "text": "Robots"
         },
@@ -198,6 +204,9 @@
         },
         "props": {
           "path": "Page/Components/RobotStatusCard",
+          "style": {
+            "paddingBottom": "10px"
+          },
           "wrap": "wrap"
         },
         "type": "ia.display.flex-repeater",
@@ -223,15 +232,15 @@
           "name": "ContainersTitle"
         },
         "position": {
-          "basis": "34px",
+          "basis": "48px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "22px",
+            "fontSize": "26px",
             "fontWeight": "700",
             "paddingLeft": "4px",
-            "paddingTop": "8px"
+            "paddingTop": "18px"
           },
           "text": "Containers"
         },
@@ -283,9 +292,10 @@
     "props": {
       "direction": "column",
       "style": {
-        "paddingBottom": "12px",
-        "paddingLeft": "4px",
-        "paddingRight": "4px"
+        "paddingBottom": "28px",
+        "paddingLeft": "12px",
+        "paddingRight": "12px",
+        "paddingTop": "4px"
       }
     },
     "type": "ia.container.flex"
