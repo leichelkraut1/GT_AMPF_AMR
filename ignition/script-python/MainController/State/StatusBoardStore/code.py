@@ -67,6 +67,13 @@ def _normalizeRequestedWorkflow(value):
     return number
 
 
+def _shortRobotName(robotName):
+    robotName = normalizeTagValue(robotName)
+    if robotName.startswith("AMPF_AMR_"):
+        return robotName.replace("AMPF_AMR_", "", 1)
+    return robotName or "-"
+
+
 def summaryCards():
     runtime = runtimePaths()
     paths = [
@@ -173,8 +180,11 @@ def robotCards():
         mainBase = mainControlRobotsBase + "/" + robotName
         plcTagName = normalizeTagValue(robotNameToPlcTag.get(robotName))
         requestedWorkflowPath = None
+        finalizeOkPath = None
         if plcTagName:
-            requestedWorkflowPath = plcRobotPaths(plcTagName).get("requested_workflow_number")
+            plcPaths = plcRobotPaths(plcTagName)
+            requestedWorkflowPath = plcPaths.get("requested_workflow_number")
+            finalizeOkPath = plcPaths.get("finalize_ok")
 
         paths = [
             fleetBase + "/AvailableForWork",
@@ -187,11 +197,15 @@ def robotCards():
             fleetBase + "/ActiveMissionCount",
             mainBase + "/CurrentMissionName",
             mainBase + "/CurrentMissionStatus",
+            mainBase + "/LastResult",
         ]
-        defaults = [False, "", "", "", "", None, "", 0, "", ""]
+        defaults = [False, "", "", "", "", None, "", 0, "", "", ""]
         if requestedWorkflowPath:
             paths.append(requestedWorkflowPath)
             defaults.append(None)
+        if finalizeOkPath:
+            paths.append(finalizeOkPath)
+            defaults.append(False)
 
         values = readOptionalTagValues(paths, defaultValues=defaults, allowEmptyString=True)
         availableForWork = bool(values[0])
@@ -204,10 +218,14 @@ def robotCards():
         activeMissionCount = _normalizeCount(values[7])
         currentMissionName = normalizeTagValue(values[8])
         currentMissionStatus = normalizeTagValue(values[9])
-        requestedWorkflowNumber = _normalizeRequestedWorkflow(values[10]) if len(values) > 10 else None
+        missionControlStatus = normalizeTagValue(values[10])
+        nextIndex = 11
+        requestedWorkflowNumber = _normalizeRequestedWorkflow(values[nextIndex]) if len(values) > nextIndex else None
+        nextIndex += 1
+        readyToFinalize = bool(values[nextIndex]) if len(values) > nextIndex else False
 
         cards.append({
-            "robotName": robotName,
+            "robotName": _shortRobotName(robotName),
             "availableForWork": availableForWork,
             "notReadyReason": notReadyReason,
             "systemState": systemState or "-",
@@ -219,6 +237,8 @@ def robotCards():
             "currentMissionStatus": currentMissionStatus or "-",
             "activeMissionCount": activeMissionCount,
             "requestedWorkflowNumber": requestedWorkflowNumber,
+            "missionControlStatus": missionControlStatus or "-",
+            "readyToFinalize": readyToFinalize,
             "plcTagName": plcTagName,
         })
 

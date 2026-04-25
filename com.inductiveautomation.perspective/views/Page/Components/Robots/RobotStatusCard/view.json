@@ -17,7 +17,9 @@
     "currentMissionName": "",
     "currentMissionStatus": "",
     "activeMissionCount": 0,
-    "requestedWorkflowNumber": null
+    "requestedWorkflowNumber": null,
+    "missionControlStatus": "",
+    "readyToFinalize": false
   },
   "propConfig": {
     "params.robotName": {
@@ -65,6 +67,14 @@
       "persistent": true
     },
     "params.requestedWorkflowNumber": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.missionControlStatus": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.readyToFinalize": {
       "paramDirection": "input",
       "persistent": true
     },
@@ -131,7 +141,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 454,
+      "height": 488,
       "width": 324
     }
   },
@@ -148,7 +158,7 @@
             },
             "props": {
               "style": {
-                "fontSize": "22px",
+                "fontSize": "24px",
                 "fontWeight": "700"
               }
             },
@@ -177,16 +187,16 @@
               "name": "ChargeBadge"
             },
             "position": {
-              "basis": "64px",
+              "basis": "54px",
               "shrink": 0
             },
             "props": {
               "style": {
                 "borderRadius": "999px",
-                "fontSize": "14px",
+                "fontSize": "13px",
                 "fontWeight": "700",
-                "paddingBottom": "5px",
-                "paddingTop": "5px",
+                "paddingBottom": "4px",
+                "paddingTop": "4px",
                 "textAlign": "center"
               }
             },
@@ -223,7 +233,7 @@
           "name": "HeaderRow"
         },
         "position": {
-          "basis": "48px",
+          "basis": "44px",
           "shrink": 0
         },
         "props": {
@@ -237,48 +247,18 @@
       },
       {
         "meta": {
-          "name": "ReadinessLabel"
-        },
-        "position": {
-          "basis": "18px",
-          "shrink": 0
-        },
-        "props": {
-          "style": {
-            "fontSize": "11px",
-            "fontWeight": "700",
-            "letterSpacing": "0.08em",
-            "textTransform": "uppercase"
-          }
-        },
-        "type": "ia.display.label",
-        "props": {
-          "text": "AMR Mission Readiness"
-        },
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
-            }
-          }
-        }
-      },
-      {
-        "meta": {
           "name": "Availability"
         },
         "position": {
-          "basis": "28px",
+          "basis": "22px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "17px",
-            "fontWeight": "700",
-            "lineHeight": "1.2"
+            "fontSize": "13px",
+            "lineHeight": "1.3",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
           }
         },
         "type": "ia.display.label",
@@ -286,7 +266,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if({view.params.availableForWork}, \"Ready\", \"Not Ready\")"
+                "expression": "\"AMR Mission Readiness: \" + if({view.params.availableForWork}, \"Ready\", \"Not Ready\")"
               },
               "type": "expr"
             }
@@ -303,39 +283,10 @@
       },
       {
         "meta": {
-          "name": "ReasonLabel"
-        },
-        "position": {
-          "basis": "18px",
-          "shrink": 0
-        },
-        "props": {
-          "style": {
-            "fontSize": "11px",
-            "fontWeight": "700",
-            "letterSpacing": "0.08em",
-            "textTransform": "uppercase"
-          },
-          "text": "Why"
-        },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
-            }
-          }
-        }
-      },
-      {
-        "meta": {
           "name": "Reason"
         },
         "position": {
-          "basis": "42px",
+          "basis": "34px",
           "shrink": 0
         },
         "props": {
@@ -351,7 +302,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if({view.params.availableForWork}, \"Ready for work\", if(len(trim(toStr({view.params.notReadyReason}))) = 0, \"No reason provided\", toStr({view.params.notReadyReason})))"
+                "expression": "\"Why: \" + if({view.params.availableForWork}, \"Ready for work\", if(len(trim(toStr({view.params.notReadyReason}))) = 0, \"-\", toStr({view.params.notReadyReason})))"
               },
               "type": "expr"
             }
@@ -400,7 +351,7 @@
           "name": "MissionName"
         },
         "position": {
-          "basis": "72px",
+          "basis": "82px",
           "shrink": 0
         },
         "props": {
@@ -433,290 +384,298 @@
         }
       },
       {
-        "children": [
-          {
-            "meta": {
-              "name": "MissionStatus"
-            },
-            "position": {
-              "grow": 1
-            },
-            "props": {
-              "style": {
-                "fontSize": "13px",
-                "fontWeight": "500",
-                "lineHeight": "1.3",
-                "minWidth": "0px",
-                "paddingRight": "10px",
-                "whiteSpace": "normal",
-                "wordBreak": "break-word"
-              }
-            },
-            "type": "ia.display.label",
-            "propConfig": {
-              "props.text": {
-                "binding": {
-                  "config": {
-                    "expression": "\"Mission Status: \" + toStr({view.params.currentMissionStatus})"
-                  },
-                  "type": "expr"
-                }
-              },
-              "props.style.color": {
-                "binding": {
-                  "config": {
-                    "path": "view.custom.themePrimaryText"
-                  },
-                  "type": "property"
-                }
-              }
-            }
-          },
-          {
-            "meta": {
-              "name": "Place"
-            },
-            "position": {
-              "grow": 1
-            },
-            "props": {
-              "style": {
-                "fontSize": "13px",
-                "fontWeight": "500",
-                "lineHeight": "1.3",
-                "minWidth": "0px",
-                "whiteSpace": "normal",
-                "wordBreak": "break-word"
-              }
-            },
-            "type": "ia.display.label",
-            "propConfig": {
-              "props.text": {
-                "binding": {
-                  "config": {
-                    "expression": "\"Place: \" + toStr({view.params.placeName})"
-                  },
-                  "type": "expr"
-                }
-              },
-              "props.style.color": {
-                "binding": {
-                  "config": {
-                    "path": "view.custom.themePrimaryText"
-                  },
-                  "type": "property"
-                }
-              }
-            }
-          }
-        ],
         "meta": {
-          "name": "RowOne"
+          "name": "MissionStatus"
         },
         "position": {
-          "basis": "44px",
+          "basis": "22px",
           "shrink": 0
         },
         "props": {
-          "alignItems": "flex-start",
-          "style": {}
+          "style": {
+            "fontSize": "13px",
+            "lineHeight": "1.3",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
         },
-        "type": "ia.container.flex"
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"Mission Status: \" + toStr({view.params.currentMissionStatus})"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
       },
       {
-        "children": [
-          {
-            "meta": {
-              "name": "Activity"
-            },
-            "position": {
-              "grow": 1
-            },
-            "props": {
-              "style": {
-                "fontSize": "13px",
-                "fontWeight": "500",
-                "lineHeight": "1.3",
-                "minWidth": "0px",
-                "paddingRight": "10px",
-                "whiteSpace": "normal",
-                "wordBreak": "break-word"
-              }
-            },
-            "type": "ia.display.label",
-            "propConfig": {
-              "props.text": {
-                "binding": {
-                  "config": {
-                    "expression": "\"Activity: \" + toStr({view.params.activityState})"
-                  },
-                  "type": "expr"
-                }
-              },
-              "props.style.color": {
-                "binding": {
-                  "config": {
-                    "path": "view.custom.themePrimaryText"
-                  },
-                  "type": "property"
-                }
-              }
-            }
-          },
-          {
-            "meta": {
-              "name": "ActiveCount"
-            },
-            "position": {
-              "grow": 1
-            },
-            "props": {
-              "style": {
-                "fontSize": "13px",
-                "fontWeight": "500",
-                "lineHeight": "1.3",
-                "minWidth": "0px",
-                "whiteSpace": "normal",
-                "wordBreak": "break-word"
-              }
-            },
-            "type": "ia.display.label",
-            "propConfig": {
-              "props.text": {
-                "binding": {
-                  "config": {
-                    "expression": "\"Active Missions: \" + toStr({view.params.activeMissionCount})"
-                  },
-                  "type": "expr"
-                }
-              },
-              "props.style.color": {
-                "binding": {
-                  "config": {
-                    "path": "view.custom.themePrimaryText"
-                  },
-                  "type": "property"
-                }
-              }
-            }
-          }
-        ],
         "meta": {
-          "name": "RowTwo"
+          "name": "Place"
         },
         "position": {
-          "basis": "44px",
+          "basis": "22px",
           "shrink": 0
         },
         "props": {
-          "alignItems": "flex-start",
-          "style": {}
+          "style": {
+            "fontSize": "13px",
+            "lineHeight": "1.3",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
         },
-        "type": "ia.container.flex"
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"Place Name: \" + toStr({view.params.placeName})"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
       },
       {
-        "children": [
-          {
-            "meta": {
-              "name": "SystemState"
-            },
-            "position": {
-              "grow": 1
-            },
-            "props": {
-              "style": {
-                "fontSize": "13px",
-                "fontWeight": "500",
-                "lineHeight": "1.3",
-                "minWidth": "0px",
-                "paddingRight": "10px",
-                "whiteSpace": "normal",
-                "wordBreak": "break-word"
-              }
-            },
-            "type": "ia.display.label",
-            "propConfig": {
-              "props.text": {
-                "binding": {
-                  "config": {
-                    "expression": "\"System: \" + toStr({view.params.systemState})"
-                  },
-                  "type": "expr"
-                }
-              },
-              "props.style.color": {
-                "binding": {
-                  "config": {
-                    "path": "view.custom.themePrimaryText"
-                  },
-                  "type": "property"
-                }
-              }
-            }
-          },
-          {
-            "meta": {
-              "name": "SubSystemState"
-            },
-            "position": {
-              "grow": 1
-            },
-            "props": {
-              "style": {
-                "fontSize": "13px",
-                "fontWeight": "500",
-                "lineHeight": "1.3",
-                "minWidth": "0px",
-                "whiteSpace": "normal",
-                "wordBreak": "break-word"
-              }
-            },
-            "type": "ia.display.label",
-            "propConfig": {
-              "props.text": {
-                "binding": {
-                  "config": {
-                    "expression": "\"Sub-System: \" + toStr({view.params.subSystemState})"
-                  },
-                  "type": "expr"
-                }
-              },
-              "props.style.color": {
-                "binding": {
-                  "config": {
-                    "path": "view.custom.themePrimaryText"
-                  },
-                  "type": "property"
-                }
-              }
-            }
-          }
-        ],
         "meta": {
-          "name": "RowThree"
+          "name": "Activity"
         },
         "position": {
-          "basis": "44px",
+          "basis": "22px",
           "shrink": 0
         },
         "props": {
-          "alignItems": "flex-start",
-          "style": {}
+          "style": {
+            "fontSize": "13px",
+            "lineHeight": "1.3",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
         },
-        "type": "ia.container.flex"
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"Activity State: \" + toStr({view.params.activityState})"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "SystemState"
+        },
+        "position": {
+          "basis": "22px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "lineHeight": "1.3",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"System State: \" + toStr({view.params.systemState})"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "SubSystemState"
+        },
+        "position": {
+          "basis": "22px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "lineHeight": "1.3",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"Sub System State: \" + toStr({view.params.subSystemState})"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "ChargeLevel"
+        },
+        "position": {
+          "basis": "22px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "lineHeight": "1.3",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"Charge Level: \" + if(isNull({view.params.chargeLevel}), \"-\", toStr({view.params.chargeLevel}))"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "ActiveCount"
+        },
+        "position": {
+          "basis": "22px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "lineHeight": "1.3",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"Active Mission Count: \" + toStr({view.params.activeMissionCount})"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "MissionControlLabel"
+        },
+        "position": {
+          "basis": "20px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "11px",
+            "fontWeight": "700",
+            "letterSpacing": "0.08em",
+            "marginTop": "6px",
+            "textTransform": "uppercase"
+          },
+          "text": "Mission Control"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": {
           "name": "RequestedWorkflow"
         },
         "position": {
-          "basis": "30px",
+          "basis": "22px",
           "shrink": 0
         },
         "props": {
           "style": {
             "fontSize": "13px",
-            "fontWeight": "500",
             "lineHeight": "1.3",
             "whiteSpace": "normal",
             "wordBreak": "break-word"
@@ -728,6 +687,78 @@
             "binding": {
               "config": {
                 "expression": "\"Requested Workflow: \" + if(isNull({view.params.requestedWorkflowNumber}), \"-\", toStr({view.params.requestedWorkflowNumber}))"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "ReadyToFinalize"
+        },
+        "position": {
+          "basis": "22px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "lineHeight": "1.3",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"Ready To Finalize: \" + if({view.params.readyToFinalize}, \"Yes\", \"No\")"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "MissionControlStatus"
+        },
+        "position": {
+          "basis": "50px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "lineHeight": "1.3",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"Mission Control Status: \" + toStr({view.params.missionControlStatus})"
               },
               "type": "expr"
             }
@@ -753,7 +784,7 @@
         "boxShadow": "0 8px 22px rgba(0,0,0,0.08)",
         "marginBottom": "20px",
         "marginRight": "18px",
-        "minHeight": "454px",
+        "minHeight": "488px",
         "padding": "16px"
       }
     },
