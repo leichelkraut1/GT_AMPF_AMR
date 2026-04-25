@@ -29,11 +29,11 @@
       "title": "",
       "viewPath": "Page/History/RobotHistory"
     },
-    "/statuspage": {
-      "viewPath": "Page/StatusPage"
-    },
     "/statusboard": {
       "viewPath": "Page/StatusBoardPage"
+    },
+    "/statuspage": {
+      "viewPath": "Page/StatusPage"
     }
   },
   "sharedDocks": {

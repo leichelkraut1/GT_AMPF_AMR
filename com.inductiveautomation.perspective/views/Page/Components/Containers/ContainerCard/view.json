@@ -1,49 +1,21 @@
 {
-  "custom": {
-    "themePrimaryText": "#111827",
-    "themeMutedText": "#6b7280",
-    "themeSurfaceBg": "#f9fafb",
-    "themeSurfaceAltBg": "#f3f4f6",
-    "themeSurfaceBorder": "1px solid #d1d5db",
-    "themeDividerBorder": "1px solid #d1d5db",
-    "themeTableDividerBorder": "1px solid #9ca3af"
-  },
+  "custom": {},
   "params": {
     "containerId": "",
     "containerType": "",
     "locationLabel": "Location: Unassigned",
     "state": "",
-    "viewOnly": false
+    "viewOnly": true
   },
   "propConfig": {
-    "params.containerId": {
-      "paramDirection": "input",
-      "persistent": true
-    },
-    "params.containerType": {
-      "paramDirection": "input",
-      "persistent": true
-    },
-    "params.locationLabel": {
-      "paramDirection": "input",
-      "persistent": true
-    },
-    "params.state": {
-      "paramDirection": "input",
-      "persistent": true
-    },
-    "params.viewOnly": {
-      "paramDirection": "input",
-      "persistent": true
-    },
-    "custom.themePrimaryText": {
+    "custom.themeDividerBorder": {
       "binding": {
         "config": {
           "path": "session.props.theme"
         },
         "transforms": [
           {
-            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
             "type": "script"
           }
         ],
@@ -66,14 +38,14 @@
       },
       "persistent": false
     },
-    "custom.themeSurfaceBg": {
+    "custom.themePrimaryText": {
       "binding": {
         "config": {
           "path": "session.props.theme"
         },
         "transforms": [
           {
-            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
             "type": "script"
           }
         ],
@@ -96,14 +68,14 @@
       },
       "persistent": false
     },
-    "custom.themeSurfaceBorder": {
+    "custom.themeSurfaceBg": {
       "binding": {
         "config": {
           "path": "session.props.theme"
         },
         "transforms": [
           {
-            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
             "type": "script"
           }
         ],
@@ -111,7 +83,7 @@
       },
       "persistent": false
     },
-    "custom.themeDividerBorder": {
+    "custom.themeSurfaceBorder": {
       "binding": {
         "config": {
           "path": "session.props.theme"
@@ -140,12 +112,39 @@
         "type": "property"
       },
       "persistent": false
+    },
+    "params.containerId": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.containerType": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.locationLabel": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.state": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.viewOnly": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "props.defaultSize.height": {
+      "binding": {
+        "config": {
+          "expression": "if({view.params.viewOnly},135,212)"
+        },
+        "type": "expr"
+      }
     }
   },
   "props": {
     "defaultSize": {
-      "height": 212,
-      "width": 244
+      "width": 228
     }
   },
   "root": {
@@ -159,14 +158,6 @@
           "shrink": 0
         },
         "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "if(len(trim(toStr({view.params.containerType}))) = 0, \"Container Type: -\", \"Container Type: \" + toStr({view.params.containerType}))"
-              },
-              "type": "expr"
-            }
-          },
           "props.style.color": {
             "binding": {
               "config": {
@@ -174,29 +165,11 @@
               },
               "type": "property"
             }
-          }
-        },
-        "props": {
-          "style": {
-            "fontSize": "15px",
-            "fontWeight": "700"
-          }
-        },
-        "type": "ia.display.label"
-      },
-      {
-        "meta": {
-          "name": "State"
-        },
-        "position": {
-          "basis": "24px",
-          "shrink": 0
-        },
-        "propConfig": {
+          },
           "props.text": {
             "binding": {
               "config": {
-                "expression": "\"State: \" + if(len(trim(toStr({view.params.state}))) = 0, \"-\", toStr({view.params.state}))"
+                "expression": "if(len(trim(toStr({view.params.containerType}))) \u003d 0, \"Container Type: -\", \"Container Type: \" + toStr({view.params.containerType}))"
               },
               "type": "expr"
             }
@@ -204,7 +177,8 @@
         },
         "props": {
           "style": {
-            "fontSize": "13px"
+            "fontSize": "15px",
+            "fontWeight": "700"
           }
         },
         "type": "ia.display.label"
@@ -221,7 +195,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if(len(trim(toStr({view.params.locationLabel}))) = 0, \"Location: Unassigned\", toStr({view.params.locationLabel}))"
+                "expression": "if(len(trim(toStr({view.params.locationLabel}))) \u003d 0, \"Location: Unassigned\", toStr({view.params.locationLabel}))"
               },
               "type": "expr"
             }
@@ -238,17 +212,49 @@
       },
       {
         "meta": {
-          "name": "ContainerId"
+          "name": "State"
         },
         "position": {
-          "basis": "42px",
+          "basis": "24px",
           "shrink": 0
         },
         "propConfig": {
           "props.text": {
             "binding": {
               "config": {
-                "expression": "\"ID: \" + if(len(trim(toStr({view.params.containerId}))) = 0, \"-\", toStr({view.params.containerId}))"
+                "expression": "\"State: \" + if(len(trim(toStr({view.params.state}))) \u003d 0, \"-\", toStr({view.params.state}))"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ContainerId"
+        },
+        "position": {
+          "shrink": 0
+        },
+        "propConfig": {
+          "position.basis": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.viewOnly}, \"0px\", \"42px\")"
+              },
+              "type": "expr"
+            }
+          },
+          "position.display": {
+            "binding": {
+              "config": {
+                "expression": "!{view.params.viewOnly}"
               },
               "type": "expr"
             }
@@ -261,18 +267,18 @@
               "type": "property"
             }
           },
-          "position.basis": {
-            "binding": {
-              "config": {
-                "expression": "if({view.params.viewOnly}, \"0px\", \"42px\")"
-              },
-              "type": "expr"
-            }
-          },
           "props.style.display": {
             "binding": {
               "config": {
                 "expression": "if({view.params.viewOnly}, \"none\", \"block\")"
+              },
+              "type": "expr"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"ID: \" + if(len(trim(toStr({view.params.containerId}))) \u003d 0, \"-\", toStr({view.params.containerId}))"
               },
               "type": "expr"
             }
@@ -282,7 +288,7 @@
           "style": {
             "fontSize": "12px",
             "whiteSpace": "normal",
-            "wordBreak": "break-word"
+            "wordBreak": "break-all"
           }
         },
         "type": "ia.display.label"
@@ -292,7 +298,7 @@
           "dom": {
             "onClick": {
               "config": {
-                "script": "\tpopupId = \"delete-container-{}\".format(str(self.view.params.containerId or \"unknown\"))\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/Dialogs/ContainerDeletePopup\",\n\t\tparams={\n\t\t\t\"containerId\": self.view.params.containerId,\n\t\t\t\"locationLabel\": self.view.params.locationLabel,\n\t\t\t\"popupId\": popupId,\n\t\t},\n\t\ttitle=\"Delete Container\",\n\t\tmodal=True,\n\t\toverlayDismiss=False,\n\t\tshowCloseIcon=False,\n\t\tdraggable=False,\n\t)\n"
+                "script": "\tpopupId \u003d \"delete-container-{}\".format(str(self.view.params.containerId or \"unknown\"))\n\tsystem.perspective.openPopup(\n\t\tid\u003dpopupId,\n\t\tview\u003d\"Page/Components/Dialogs/ContainerDeletePopup\",\n\t\tparams\u003d{\n\t\t\t\"containerId\": self.view.params.containerId,\n\t\t\t\"locationLabel\": self.view.params.locationLabel,\n\t\t\t\"popupId\": popupId,\n\t\t},\n\t\ttitle\u003d\"Delete Container\",\n\t\tmodal\u003dTrue,\n\t\toverlayDismiss\u003dFalse,\n\t\tshowCloseIcon\u003dFalse,\n\t\tdraggable\u003dFalse,\n\t)\n"
               },
               "scope": "G",
               "type": "script"
@@ -300,21 +306,16 @@
           }
         },
         "meta": {
-          "name": "DeleteButton"
+          "name": "DeleteButton",
+          "tooltip": {
+            "style": {
+              "paddingTop": "5px"
+            }
+          }
         },
         "position": {
-          "basis": "34px",
           "shrink": 0
         },
-        "props": {
-          "style": {
-            "backgroundColor": "#fef2f2",
-            "borderColor": "#fca5a5",
-            "color": "#b91c1c"
-          },
-          "text": "Delete"
-        },
-        "type": "ia.input.button",
         "propConfig": {
           "position.basis": {
             "binding": {
@@ -324,40 +325,31 @@
               "type": "expr"
             }
           },
-          "props.style.display": {
+          "position.display": {
             "binding": {
               "config": {
-                "expression": "if({view.params.viewOnly}, \"none\", \"block\")"
+                "expression": "!{view.params.viewOnly}"
               },
               "type": "expr"
             }
           }
-        }
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#fef2f2",
+            "borderColor": "#fca5a5",
+            "color": "#b91c1c",
+            "marginTop": "6px"
+          },
+          "text": "Delete"
+        },
+        "type": "ia.input.button"
       }
     ],
     "meta": {
       "name": "root"
     },
-    "props": {
-      "direction": "column",
-      "style": {
-        "borderRadius": "8px",
-        "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
-        "marginBottom": "16px",
-        "marginRight": "16px",
-        "padding": "12px"
-      }
-    },
-    "type": "ia.container.flex",
     "propConfig": {
-      "props.style.color": {
-        "binding": {
-          "config": {
-            "path": "view.custom.themePrimaryText"
-          },
-          "type": "property"
-        }
-      },
       "props.style.backgroundColor": {
         "binding": {
           "config": {
@@ -373,7 +365,26 @@
           },
           "type": "property"
         }
+      },
+      "props.style.color": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themePrimaryText"
+          },
+          "type": "property"
+        }
       }
-    }
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "borderRadius": "8px",
+        "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
+        "marginBottom": "16px",
+        "marginRight": "16px",
+        "padding": "12px"
+      }
+    },
+    "type": "ia.container.flex"
   }
 }
