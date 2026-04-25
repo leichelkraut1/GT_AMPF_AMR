@@ -335,111 +335,240 @@
       },
       {
         "meta": {
-          "name": "Place"
+          "name": "PlaceRow"
         },
         "position": {
           "basis": "22px",
           "shrink": 0
         },
         "props": {
+          "alignItems": "baseline",
+          "direction": "row",
           "style": {
-            "fontSize": "13px",
-            "lineHeight": "1.3",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
+            "columnGap": "4px"
           }
         },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"Place Name: \" + toStr({view.params.placeName})"
+        "type": "ia.container.flex",
+        "children": [
+          {
+            "meta": {
+              "name": "PlaceLabel"
+            },
+            "position": {
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
               },
-              "type": "expr"
+              "text": "Place Name:"
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themeMutedText"
+                  },
+                  "type": "property"
+                }
+              }
             }
           },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
+          {
+            "meta": {
+              "name": "PlaceValue"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "fontWeight": "600",
+                "whiteSpace": "normal",
+                "wordBreak": "break-word"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "toStr({view.params.placeName})"
+                  },
+                  "type": "expr"
+                }
               },
-              "type": "property"
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
             }
           }
-        }
+        ]
       },
       {
         "meta": {
-          "name": "Activity"
+          "name": "ActivityRow"
         },
         "position": {
           "basis": "22px",
           "shrink": 0
         },
         "props": {
+          "alignItems": "baseline",
+          "direction": "row",
           "style": {
-            "fontSize": "13px",
-            "lineHeight": "1.3",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
+            "columnGap": "4px"
           }
         },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"Activity State: \" + toStr({view.params.activityState})"
+        "type": "ia.container.flex",
+        "children": [
+          {
+            "meta": {
+              "name": "ActivityLabel"
+            },
+            "position": {
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
               },
-              "type": "expr"
+              "text": "Activity State:"
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themeMutedText"
+                  },
+                  "type": "property"
+                }
+              }
             }
           },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
+          {
+            "meta": {
+              "name": "ActivityValue"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "fontWeight": "600",
+                "whiteSpace": "normal",
+                "wordBreak": "break-word"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "toStr({view.params.activityState})"
+                  },
+                  "type": "expr"
+                }
               },
-              "type": "property"
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
             }
           }
-        }
+        ]
       },
       {
         "meta": {
-          "name": "SystemState"
+          "name": "SystemStateRow"
         },
         "position": {
           "basis": "22px",
           "shrink": 0
         },
         "props": {
+          "alignItems": "baseline",
+          "direction": "row",
           "style": {
-            "fontSize": "13px",
-            "lineHeight": "1.3",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
+            "columnGap": "4px"
           }
         },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"System State: \" + toStr({view.params.systemState})"
+        "type": "ia.container.flex",
+        "children": [
+          {
+            "meta": {
+              "name": "SystemStateLabel"
+            },
+            "position": {
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
               },
-              "type": "expr"
+              "text": "System State:"
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themeMutedText"
+                  },
+                  "type": "property"
+                }
+              }
             }
           },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
+          {
+            "meta": {
+              "name": "SystemStateValue"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "fontWeight": "600",
+                "whiteSpace": "normal",
+                "wordBreak": "break-word"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "toStr({view.params.systemState})"
+                  },
+                  "type": "expr"
+                }
               },
-              "type": "property"
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
             }
           }
-        }
+        ]
       },
       {
         "meta": {
@@ -473,75 +602,161 @@
       },
       {
         "meta": {
-          "name": "RequestedWorkflow"
+          "name": "RequestedWorkflowRow"
         },
         "position": {
           "basis": "22px",
           "shrink": 0
         },
         "props": {
+          "alignItems": "baseline",
+          "direction": "row",
           "style": {
-            "fontSize": "13px",
-            "lineHeight": "1.3",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
+            "columnGap": "4px"
           }
         },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"Requested Workflow: \" + if(isNull({view.params.requestedWorkflowNumber}), \"-\", toStr({view.params.requestedWorkflowNumber}))"
+        "type": "ia.container.flex",
+        "children": [
+          {
+            "meta": {
+              "name": "RequestedWorkflowLabel"
+            },
+            "position": {
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
               },
-              "type": "expr"
+              "text": "Requested Workflow:"
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themeMutedText"
+                  },
+                  "type": "property"
+                }
+              }
             }
           },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
+          {
+            "meta": {
+              "name": "RequestedWorkflowValue"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "fontWeight": "600",
+                "whiteSpace": "normal",
+                "wordBreak": "break-word"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "if(isNull({view.params.requestedWorkflowNumber}), \"-\", toStr({view.params.requestedWorkflowNumber}))"
+                  },
+                  "type": "expr"
+                }
               },
-              "type": "property"
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
             }
           }
-        }
+        ]
       },
       {
         "meta": {
-          "name": "ReadyToFinalize"
+          "name": "ReadyToFinalizeRow"
         },
         "position": {
           "basis": "22px",
           "shrink": 0
         },
         "props": {
+          "alignItems": "baseline",
+          "direction": "row",
           "style": {
-            "fontSize": "13px",
-            "lineHeight": "1.3",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
+            "columnGap": "4px"
           }
         },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"Ready To Finalize: \" + if({view.params.readyToFinalize}, \"Yes\", \"No\")"
+        "type": "ia.container.flex",
+        "children": [
+          {
+            "meta": {
+              "name": "ReadyToFinalizeLabel"
+            },
+            "position": {
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
               },
-              "type": "expr"
+              "text": "Ready To Finalize:"
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themeMutedText"
+                  },
+                  "type": "property"
+                }
+              }
             }
           },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
+          {
+            "meta": {
+              "name": "ReadyToFinalizeValue"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "fontWeight": "600",
+                "whiteSpace": "normal",
+                "wordBreak": "break-word"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "if({view.params.readyToFinalize}, \"Yes\", \"No\")"
+                  },
+                  "type": "expr"
+                }
               },
-              "type": "property"
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              }
             }
           }
-        }
+        ]
       },
       {
         "meta": {
