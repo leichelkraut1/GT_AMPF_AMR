@@ -40,7 +40,7 @@
           "shrink": 0
         },
         "props": {
-          "path": "Page/Components/FleetStatus"
+          "path": "Page/Components/Status/FleetStatus"
         },
         "type": "ia.display.view"
       }

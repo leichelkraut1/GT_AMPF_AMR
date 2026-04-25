@@ -81,7 +81,7 @@
           "shrink": 0
         },
         "props": {
-          "path": "Page/Components/StatusSummaryCard",
+          "path": "Page/Components/StatusBoard/StatusSummaryCard",
           "style": {
             "paddingBottom": "18px"
           },
@@ -142,7 +142,7 @@
           "shrink": 0
         },
         "props": {
-          "path": "Page/Components/SubsystemHealthChip",
+          "path": "Page/Components/StatusBoard/SubsystemHealthChip",
           "style": {
             "paddingBottom": "24px"
           },
@@ -203,7 +203,7 @@
           "shrink": 0
         },
         "props": {
-          "path": "Page/Components/RobotStatusCard",
+          "path": "Page/Components/Robots/RobotStatusCard",
           "style": {
             "paddingBottom": "10px"
           },
@@ -264,7 +264,7 @@
           "shrink": 0
         },
         "props": {
-          "path": "Page/Components/ContainerStatusCard",
+          "path": "Page/Components/Containers/ContainerStatusCard",
           "wrap": "wrap"
         },
         "type": "ia.display.flex-repeater",
