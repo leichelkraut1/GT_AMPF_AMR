@@ -414,11 +414,15 @@
           "name": "ActivityRow"
         },
         "position": {
-          "basis": "34px",
+          "basis": "22px",
           "shrink": 0
         },
         "props": {
-          "direction": "column"
+          "alignItems": "baseline",
+          "direction": "row",
+          "style": {
+            "columnGap": "4px"
+          }
         },
         "type": "ia.container.flex",
         "children": [
@@ -458,7 +462,6 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
-                "marginLeft": "10px",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -490,11 +493,15 @@
           "name": "SystemStateRow"
         },
         "position": {
-          "basis": "34px",
+          "basis": "22px",
           "shrink": 0
         },
         "props": {
-          "direction": "column"
+          "alignItems": "baseline",
+          "direction": "row",
+          "style": {
+            "columnGap": "4px"
+          }
         },
         "type": "ia.container.flex",
         "children": [
@@ -534,7 +541,6 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
-                "marginLeft": "10px",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -596,11 +602,15 @@
           "name": "RequestedWorkflowRow"
         },
         "position": {
-          "basis": "34px",
+          "basis": "22px",
           "shrink": 0
         },
         "props": {
-          "direction": "column"
+          "alignItems": "baseline",
+          "direction": "row",
+          "style": {
+            "columnGap": "4px"
+          }
         },
         "type": "ia.container.flex",
         "children": [
@@ -640,7 +650,6 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
-                "marginLeft": "10px",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -672,11 +681,15 @@
           "name": "ReadyToFinalizeRow"
         },
         "position": {
-          "basis": "34px",
+          "basis": "22px",
           "shrink": 0
         },
         "props": {
-          "direction": "column"
+          "alignItems": "baseline",
+          "direction": "row",
+          "style": {
+            "columnGap": "4px"
+          }
         },
         "type": "ia.container.flex",
         "children": [
@@ -716,7 +729,6 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
-                "marginLeft": "10px",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
