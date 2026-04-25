@@ -166,7 +166,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 324,
+      "height": 318,
       "width": 304
     }
   },
@@ -432,6 +432,36 @@
             }
           }
         ]
+      },
+      {
+        "meta": {
+          "name": "VehicleStatusLabel"
+        },
+        "position": {
+          "basis": "20px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "11px",
+            "fontWeight": "700",
+            "letterSpacing": "0.08em",
+            "marginTop": "8px",
+            "textTransform": "uppercase"
+          },
+          "text": "Vehicle Status"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": {
@@ -956,7 +986,7 @@
         "boxShadow": "0 8px 22px rgba(0,0,0,0.08)",
         "marginBottom": "20px",
         "marginRight": "18px",
-        "minHeight": "324px",
+        "minHeight": "318px",
         "padding": "12px"
       }
     },
