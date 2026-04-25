@@ -166,7 +166,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 336,
+      "height": 324,
       "width": 304
     }
   },
@@ -350,29 +350,18 @@
           "name": "MissionStateRow"
         },
         "position": {
-          "basis": "18px",
-          "shrink": 0,
-          "display": true
+          "basis": "20px",
+          "shrink": 0
         },
         "props": {
           "alignItems": "baseline",
           "direction": "row",
           "style": {
             "columnGap": "4px",
-            "marginTop": "-4px"
+            "marginTop": "2px"
           }
         },
         "type": "ia.container.flex",
-        "propConfig": {
-          "position.display": {
-            "binding": {
-              "config": {
-                "expression": "!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0"
-              },
-              "type": "expr"
-            }
-          }
-        },
         "children": [
           {
             "meta": {
@@ -389,6 +378,14 @@
             },
             "type": "ia.display.label",
             "propConfig": {
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "if(!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0, \"State:\", \"\")"
+                  },
+                  "type": "expr"
+                }
+              },
               "props.style.color": {
                 "binding": {
                   "config": {
@@ -419,7 +416,7 @@
               "props.text": {
                 "binding": {
                   "config": {
-                    "expression": "if(len(trim(toStr({view.params.currentMissionStatus}))) = 0 || lower(trim(toStr({view.params.currentMissionStatus}))) = \"null\", \"-\", toStr({view.params.currentMissionStatus}))"
+                    "expression": "if(!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0, if(len(trim(toStr({view.params.currentMissionStatus}))) = 0 || lower(trim(toStr({view.params.currentMissionStatus}))) = \"null\", \"-\", toStr({view.params.currentMissionStatus})), \"\")"
                   },
                   "type": "expr"
                 }
@@ -959,7 +956,7 @@
         "boxShadow": "0 8px 22px rgba(0,0,0,0.08)",
         "marginBottom": "20px",
         "marginRight": "18px",
-        "minHeight": "336px",
+        "minHeight": "324px",
         "padding": "12px"
       }
     },
