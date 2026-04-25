@@ -188,7 +188,7 @@
           "name": "Location"
         },
         "position": {
-          "basis": "40px",
+          "basis": "35px",
           "shrink": 0
         },
         "propConfig": {
@@ -202,10 +202,11 @@
           }
         },
         "props": {
+          "alignVertical": "bottom",
           "style": {
             "fontSize": "13px",
             "whiteSpace": "normal",
-            "wordBreak": "break-word"
+            "wordBreak": "break-all"
           }
         },
         "type": "ia.display.label"
@@ -229,6 +230,7 @@
           }
         },
         "props": {
+          "alignVertical": "bottom",
           "style": {
             "fontSize": "13px"
           }
