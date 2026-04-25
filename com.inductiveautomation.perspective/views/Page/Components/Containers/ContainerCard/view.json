@@ -154,34 +154,77 @@
           "name": "ContainerType"
         },
         "position": {
-          "basis": "26px",
+          "basis": "42px",
           "shrink": 0
         },
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
+        "props": {
+          "direction": "column"
+        },
+        "type": "ia.container.flex",
+        "children": [
+          {
+            "meta": {
+              "name": "ContainerTypeLabel"
+            },
+            "position": {
+              "basis": "16px",
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px"
               },
-              "type": "property"
+              "text": "Container Type:"
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themeMutedText"
+                  },
+                  "type": "property"
+                }
+              }
             }
           },
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "if(len(trim(toStr({view.params.containerType}))) \u003d 0, \"Container Type: -\", \"Container Type: \" + toStr({view.params.containerType}))"
+          {
+            "meta": {
+              "name": "ContainerTypeValue"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "style": {
+                "fontSize": "15px",
+                "fontWeight": "700",
+                "lineHeight": "1.15",
+                "whiteSpace": "normal",
+                "wordBreak": "break-word"
+              }
+            },
+            "type": "ia.display.label",
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
               },
-              "type": "expr"
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "if(len(trim(toStr({view.params.containerType}))) = 0, \"-\", toStr({view.params.containerType}))"
+                  },
+                  "type": "expr"
+                }
+              }
             }
           }
-        },
-        "props": {
-          "style": {
-            "fontSize": "15px",
-            "fontWeight": "700"
-          }
-        },
-        "type": "ia.display.label"
+        ]
       },
       {
         "meta": {
