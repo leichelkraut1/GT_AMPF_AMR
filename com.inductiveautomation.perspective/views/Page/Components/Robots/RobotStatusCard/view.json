@@ -19,6 +19,8 @@
     "activeMissionCount": 0,
     "requestedWorkflowNumber": null,
     "activeWorkflowNumber": null,
+    "resolvedMissionType": "",
+    "resolvedNotReadyReason": "",
     "missionControlStatus": "",
     "readyToFinalize": false,
     "workflowConfig": null,
@@ -74,6 +76,14 @@
       "persistent": true
     },
     "params.activeWorkflowNumber": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.resolvedMissionType": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.resolvedNotReadyReason": {
       "paramDirection": "input",
       "persistent": true
     },
@@ -318,7 +328,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if(!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0,\n\tif(isNull(try(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4), \"\")) || len(trim(toStr(try(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4), \"\")))) = 0 || lower(trim(toStr(try(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4), \"\")))) = \"null\", \"\", toStr(try(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4), \"\"))),\n\tif({view.params.availableForWork}, \"for Mission\", \"Because: \" + if(len(trim(toStr({view.params.notReadyReason}))) = 0 || lower(trim(toStr({view.params.notReadyReason}))) = \"null\", \"-\", if(isNull(try(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1), \"\")) || len(trim(toStr(try(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1), \"\")))) = 0 || lower(trim(toStr(try(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1), \"\")))) = \"null\", toStr({view.params.notReadyReason}), toStr(try(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1), \"\")))))"
+                "expression": "if(!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0,\n\tif(len(trim(toStr({view.params.resolvedMissionType}))) = 0 || lower(trim(toStr({view.params.resolvedMissionType}))) = \"null\", \"\", toStr({view.params.resolvedMissionType})),\n\tif({view.params.availableForWork}, \"for Mission\", \"Because: \" + if(len(trim(toStr({view.params.resolvedNotReadyReason}))) = 0 || lower(trim(toStr({view.params.resolvedNotReadyReason}))) = \"null\", \"-\", toStr({view.params.resolvedNotReadyReason}))))"
               },
               "type": "expr"
             }
