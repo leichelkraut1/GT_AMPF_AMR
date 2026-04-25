@@ -318,7 +318,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if(!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0,\n\ttry(if(isNull(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4)) || len(trim(toStr(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4)))) = 0 || lower(trim(toStr(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4)))) = \"null\", \"\", toStr(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4))), \"\"),\n\tif({view.params.availableForWork}, \"for Mission\", \"Because: \" + if(len(trim(toStr({view.params.notReadyReason}))) = 0 || lower(trim(toStr({view.params.notReadyReason}))) = \"null\", \"-\", try(if(isNull(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1)) || len(trim(toStr(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1)))) = 0 || lower(trim(toStr(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1)))) = \"null\", toStr({view.params.notReadyReason}), toStr(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1))), toStr({view.params.notReadyReason}))))"
+                "expression": "if(!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0,\n\tif(isNull(try(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4), \"\")) || len(trim(toStr(try(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4), \"\")))) = 0 || lower(trim(toStr(try(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4), \"\")))) = \"null\", \"\", toStr(try(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, \"\", 0, 4), \"\"))),\n\tif({view.params.availableForWork}, \"for Mission\", \"Because: \" + if(len(trim(toStr({view.params.notReadyReason}))) = 0 || lower(trim(toStr({view.params.notReadyReason}))) = \"null\", \"-\", if(isNull(try(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1), \"\")) || len(trim(toStr(try(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1), \"\")))) = 0 || lower(trim(toStr(try(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1), \"\")))) = \"null\", toStr({view.params.notReadyReason}), toStr(try(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), \"\", 0, 1), \"\")))))"
               },
               "type": "expr"
             }
@@ -338,15 +338,11 @@
           "name": "PlaceRow"
         },
         "position": {
-          "basis": "22px",
+          "basis": "34px",
           "shrink": 0
         },
         "props": {
-          "alignItems": "baseline",
-          "direction": "row",
-          "style": {
-            "columnGap": "4px"
-          }
+          "direction": "column"
         },
         "type": "ia.container.flex",
         "children": [
@@ -386,6 +382,7 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
+                "marginLeft": "10px",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -417,15 +414,11 @@
           "name": "ActivityRow"
         },
         "position": {
-          "basis": "22px",
+          "basis": "34px",
           "shrink": 0
         },
         "props": {
-          "alignItems": "baseline",
-          "direction": "row",
-          "style": {
-            "columnGap": "4px"
-          }
+          "direction": "column"
         },
         "type": "ia.container.flex",
         "children": [
@@ -465,6 +458,7 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
+                "marginLeft": "10px",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -496,15 +490,11 @@
           "name": "SystemStateRow"
         },
         "position": {
-          "basis": "22px",
+          "basis": "34px",
           "shrink": 0
         },
         "props": {
-          "alignItems": "baseline",
-          "direction": "row",
-          "style": {
-            "columnGap": "4px"
-          }
+          "direction": "column"
         },
         "type": "ia.container.flex",
         "children": [
@@ -544,6 +534,7 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
+                "marginLeft": "10px",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -605,15 +596,11 @@
           "name": "RequestedWorkflowRow"
         },
         "position": {
-          "basis": "22px",
+          "basis": "34px",
           "shrink": 0
         },
         "props": {
-          "alignItems": "baseline",
-          "direction": "row",
-          "style": {
-            "columnGap": "4px"
-          }
+          "direction": "column"
         },
         "type": "ia.container.flex",
         "children": [
@@ -653,6 +640,7 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
+                "marginLeft": "10px",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
@@ -684,15 +672,11 @@
           "name": "ReadyToFinalizeRow"
         },
         "position": {
-          "basis": "22px",
+          "basis": "34px",
           "shrink": 0
         },
         "props": {
-          "alignItems": "baseline",
-          "direction": "row",
-          "style": {
-            "columnGap": "4px"
-          }
+          "direction": "column"
         },
         "type": "ia.container.flex",
         "children": [
@@ -732,6 +716,7 @@
               "style": {
                 "fontSize": "13px",
                 "fontWeight": "600",
+                "marginLeft": "10px",
                 "whiteSpace": "normal",
                 "wordBreak": "break-word"
               }
