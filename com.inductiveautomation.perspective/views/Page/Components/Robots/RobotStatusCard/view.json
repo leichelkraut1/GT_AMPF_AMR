@@ -18,8 +18,11 @@
     "currentMissionStatus": "",
     "activeMissionCount": 0,
     "requestedWorkflowNumber": null,
+    "activeWorkflowNumber": null,
     "missionControlStatus": "",
-    "readyToFinalize": false
+    "readyToFinalize": false,
+    "workflowConfig": null,
+    "notReadyReasonLookup": null
   },
   "propConfig": {
     "params.robotName": {
@@ -70,11 +73,23 @@
       "paramDirection": "input",
       "persistent": true
     },
+    "params.activeWorkflowNumber": {
+      "paramDirection": "input",
+      "persistent": true
+    },
     "params.missionControlStatus": {
       "paramDirection": "input",
       "persistent": true
     },
     "params.readyToFinalize": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.workflowConfig": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.notReadyReasonLookup": {
       "paramDirection": "input",
       "persistent": true
     },
@@ -283,42 +298,6 @@
       },
       {
         "meta": {
-          "name": "Reason"
-        },
-        "position": {
-          "basis": "30px",
-          "shrink": 0
-        },
-        "props": {
-          "style": {
-            "fontSize": "13px",
-            "lineHeight": "1.3",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
-          }
-        },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"Why: \" + if({view.params.availableForWork}, \"Ready for work\", if(len(trim(toStr({view.params.notReadyReason}))) = 0, \"-\", toStr({view.params.notReadyReason})))"
-              },
-              "type": "expr"
-            }
-          },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
-            }
-          }
-        }
-      },
-      {
-        "meta": {
           "name": "MissionLabel"
         },
         "position": {
@@ -331,11 +310,18 @@
             "fontWeight": "700",
             "letterSpacing": "0.08em",
             "textTransform": "uppercase"
-          },
-          "text": "Current Mission"
+          }
         },
         "type": "ia.display.label",
         "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "if(!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0, \"Current Mission\", if({view.params.availableForWork}, \"Current Mission\", \"Not Ready Because\"))"
+              },
+              "type": "expr"
+            }
+          },
           "props.style.color": {
             "binding": {
               "config": {
@@ -368,9 +354,9 @@
           "props.text": {
             "binding": {
               "config": {
-                "path": "view.params.currentMissionName"
+                "expression": "if(!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0,\n\tif(isNull(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, 0, 2)), toStr({view.params.currentMissionName}), toStr(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, 0, 2))),\n\tif({view.params.availableForWork}, \"Ready for Mission\", if(len(trim(toStr({view.params.notReadyReason}))) = 0, \"-\", if(isNull(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), 0, 1)), toStr({view.params.notReadyReason}), toStr(lookup({view.params.notReadyReasonLookup}, toStr({view.params.notReadyReason}), 0, 1))))))"
               },
-              "type": "property"
+              "type": "expr"
             }
           },
           "props.style.color": {
@@ -404,7 +390,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "\"Mission Status: \" + toStr({view.params.currentMissionStatus})"
+                "expression": "if(!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0,\n\tif(isNull(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, 0, 4)), \"\", \"Mission Type: \" + toStr(lookup({view.params.workflowConfig}, {view.params.activeWorkflowNumber}, 0, 4))),\n\tif({view.params.availableForWork}, \"\", \"Reason Code: \" + if(len(trim(toStr({view.params.notReadyReason}))) = 0, \"-\", toStr({view.params.notReadyReason}))))"
               },
               "type": "expr"
             }

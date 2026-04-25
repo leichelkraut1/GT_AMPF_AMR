@@ -1,7 +1,9 @@
 {
   "custom": {
     "themePrimaryText": "#111827",
-    "themeMutedText": "#6b7280"
+    "themeMutedText": "#6b7280",
+    "workflowConfig": null,
+    "notReadyReasonLookup": null
   },
   "params": {},
   "propConfig": {
@@ -34,6 +36,26 @@
         "type": "property"
       },
       "persistent": false
+    },
+    "custom.workflowConfig": {
+      "binding": {
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "direct",
+          "tagPath": "[Otto_FleetManager]Fleet/Config/WorkflowConfig"
+        },
+        "type": "tag"
+      },
+      "persistent": false
+    },
+    "custom.notReadyReasonLookup": {
+      "binding": {
+        "config": {
+          "expression": "runScript(\"MainController.State.StatusBoardStore.notReadyReasonLookupDataset\", 0)"
+        },
+        "type": "expr"
+      },
+      "persistent": false
     }
   },
   "props": {
@@ -49,7 +71,7 @@
           "name": "SystemStatusTitle"
         },
         "position": {
-          "basis": "42px",
+          "basis": "34px",
           "shrink": 0
         },
         "props": {
@@ -57,7 +79,7 @@
             "fontSize": "26px",
             "fontWeight": "700",
             "paddingLeft": "4px",
-            "paddingTop": "8px"
+            "paddingTop": "2px"
           },
           "text": "System Status"
         },
@@ -83,7 +105,7 @@
         "props": {
           "path": "Page/Components/StatusBoard/StatusSummaryCard",
           "style": {
-            "paddingBottom": "12px"
+            "paddingBottom": "4px"
           },
           "wrap": "wrap"
         },
@@ -110,7 +132,7 @@
           "name": "SubsystemTitle"
         },
         "position": {
-          "basis": "42px",
+          "basis": "32px",
           "shrink": 0
         },
         "props": {
@@ -118,7 +140,7 @@
             "fontSize": "26px",
             "fontWeight": "700",
             "paddingLeft": "4px",
-            "paddingTop": "8px"
+            "paddingTop": "0px"
           },
           "text": "Subsystem Health"
         },
@@ -144,7 +166,7 @@
         "props": {
           "path": "Page/Components/StatusBoard/SubsystemHealthChip",
           "style": {
-            "paddingBottom": "20px"
+            "paddingBottom": "6px"
           },
           "wrap": "wrap"
         },
@@ -171,7 +193,7 @@
           "name": "RobotsTitle"
         },
         "position": {
-          "basis": "48px",
+          "basis": "34px",
           "shrink": 0
         },
         "props": {
@@ -179,7 +201,7 @@
             "fontSize": "26px",
             "fontWeight": "700",
             "paddingLeft": "4px",
-            "paddingTop": "16px"
+            "paddingTop": "0px"
           },
           "text": "Robots"
         },
@@ -205,7 +227,7 @@
         "props": {
           "path": "Page/Components/Robots/RobotStatusCard",
           "style": {
-            "paddingBottom": "10px"
+            "paddingBottom": "4px"
           },
           "wrap": "wrap"
         },
@@ -218,7 +240,7 @@
               },
               "transforms": [
                 {
-                  "code": "\timport MainController.State.StatusBoardStore\n\treturn MainController.State.StatusBoardStore.robotCards()",
+                  "code": "\timport MainController.State.StatusBoardStore\n\tcards = MainController.State.StatusBoardStore.robotCards()\n\tworkflowConfig = self.view.custom.workflowConfig\n\tnotReadyReasonLookup = self.view.custom.notReadyReasonLookup\n\tfor card in list(cards or []):\n\t\tcard[\"workflowConfig\"] = workflowConfig\n\t\tcard[\"notReadyReasonLookup\"] = notReadyReasonLookup\n\treturn cards",
                   "type": "script"
                 }
               ],
@@ -232,7 +254,7 @@
           "name": "ContainersTitle"
         },
         "position": {
-          "basis": "48px",
+          "basis": "34px",
           "shrink": 0
         },
         "props": {
@@ -240,7 +262,7 @@
             "fontSize": "26px",
             "fontWeight": "700",
             "paddingLeft": "4px",
-            "paddingTop": "18px"
+            "paddingTop": "0px"
           },
           "text": "Containers"
         },

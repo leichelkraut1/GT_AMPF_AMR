@@ -74,6 +74,29 @@ def _shortRobotName(robotName):
     return robotName or "-"
 
 
+def notReadyReasonLookupDataset():
+    return system.dataset.toDataSet(
+        ["ReasonCode", "DisplayText"],
+        [
+            ["invalid_robot_id", "Robot ID is missing or invalid in Fleet data"],
+            ["min_charge_missing", "Minimum charge setting is missing"],
+            ["system_state_missing", "System state is unavailable"],
+            ["activity_state_missing", "Activity state is unavailable"],
+            ["charge_level_missing", "Charge level is unavailable"],
+            ["mission_data_not_successful", "Mission data is stale or not successful"],
+            ["mission_data_missing_timestamp", "Mission data timestamp is missing"],
+            ["system_state_not_run", "Robot system is not in RUN"],
+            ["activity_state_not_allowed", "Robot activity is not in an allowed idle state"],
+            ["charge_below_minimum", "Battery is below the minimum charge threshold"],
+            ["recently_charging", "Robot is still in charging cooldown"],
+            ["active_mission_count_missing", "Active mission count is unavailable"],
+            ["active_missions_present", "Robot still has an active mission assigned"],
+            ["failed_mission_count_missing", "Failed mission count is unavailable"],
+            ["failed_missions_present", "Robot has failed missions that need attention"],
+        ],
+    )
+
+
 def summaryCards():
     runtime = runtimePaths()
     paths = [
@@ -158,20 +181,20 @@ def summaryCards():
 
 
 def subsystemHealthCards():
-    hiddenSubsystems = {
-        "interlock sync",
-        "main plc comms",
-        "main loop",
-    }
-    return [
-        {
-            "subsystem": str(row.get("Subsystem") or ""),
+    cards = []
+    for row in list(phaseHealthRows() or []):
+        subsystem = str(row.get("Subsystem") or "").strip()
+        normalized = subsystem.lower()
+        if normalized in {"main plc comms", "main loop"}:
+            continue
+        if "interlock" in normalized:
+            continue
+        cards.append({
+            "subsystem": subsystem,
             "status": str(row.get("Status") or ""),
             "message": str(row.get("Message") or ""),
-        }
-        for row in list(phaseHealthRows() or [])
-        if str(row.get("Subsystem") or "").strip().lower() not in hiddenSubsystems
-    ]
+        })
+    return cards
 
 
 def robotCards():
@@ -186,10 +209,12 @@ def robotCards():
         mainBase = mainControlRobotsBase + "/" + robotName
         plcTagName = normalizeTagValue(robotNameToPlcTag.get(robotName))
         requestedWorkflowPath = None
+        activeWorkflowPath = None
         finalizeOkPath = None
         if plcTagName:
             plcPaths = plcRobotPaths(plcTagName)
             requestedWorkflowPath = plcPaths.get("requested_workflow_number")
+            activeWorkflowPath = plcPaths.get("active_workflow_number")
             finalizeOkPath = plcPaths.get("finalize_ok")
 
         paths = [
@@ -208,6 +233,9 @@ def robotCards():
         defaults = [False, "", "", "", "", None, "", 0, "", "", ""]
         if requestedWorkflowPath:
             paths.append(requestedWorkflowPath)
+            defaults.append(None)
+        if activeWorkflowPath:
+            paths.append(activeWorkflowPath)
             defaults.append(None)
         if finalizeOkPath:
             paths.append(finalizeOkPath)
@@ -228,6 +256,8 @@ def robotCards():
         nextIndex = 11
         requestedWorkflowNumber = _normalizeRequestedWorkflow(values[nextIndex]) if len(values) > nextIndex else None
         nextIndex += 1
+        activeWorkflowNumber = _normalizeRequestedWorkflow(values[nextIndex]) if len(values) > nextIndex else None
+        nextIndex += 1
         readyToFinalize = bool(values[nextIndex]) if len(values) > nextIndex else False
 
         cards.append({
@@ -243,6 +273,7 @@ def robotCards():
             "currentMissionStatus": currentMissionStatus or "-",
             "activeMissionCount": activeMissionCount,
             "requestedWorkflowNumber": requestedWorkflowNumber,
+            "activeWorkflowNumber": activeWorkflowNumber,
             "missionControlStatus": missionControlStatus or "-",
             "readyToFinalize": readyToFinalize,
             "plcTagName": plcTagName,
