@@ -1,8 +1,6 @@
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Common.TagIO import readRequiredTagValue
-from Otto_API.Common.TagIO import writeTagValueAsync
 from Otto_API.Common.TagPaths import getFleetMapsPath
-from Otto_API.Common.TagPaths import getSystemLastResponsePath
 from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import fetchListResource
 from Otto_API.Workflows.Apply import applyWorkflowSync
@@ -19,7 +17,6 @@ def updateWorkflows():
     baseUrl = getApiBaseUrl() + "/maps/mission_templates/?offset=0&map="
     mapUuid = readRequiredTagValue(getFleetMapsPath() + "/ActiveMapID", "Active map ID")
     url = baseUrl + str(mapUuid)
-    responseTag = getSystemLastResponsePath()
     ottoLogger = _log()
 
     ottoLogger.info("Otto API - Updating /Workflows/")
@@ -28,7 +25,6 @@ def updateWorkflows():
             url,
             ottoLogger,
             "Workflows",
-            responseWriter=lambda responseText: writeTagValueAsync(responseTag, responseText),
             parseErrorLabel="Workflow"
         )
         if errorResult is not None:

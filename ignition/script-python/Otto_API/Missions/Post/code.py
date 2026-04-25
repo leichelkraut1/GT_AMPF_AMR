@@ -1,9 +1,8 @@
 from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.OperationHelpers import buildDataResult
-from Otto_API.Common.OperationHelpers import logAndWriteOperationResult
+from Otto_API.Common.OperationHelpers import logOperationResult
 from Otto_API.Common.TagIO import getOttoOperationsUrl
 from Otto_API.Common.TagIO import readRequiredTagValue
-from Otto_API.Common.TagIO import writeLastTriggerResponse
 from Otto_API.Common.TagPaths import getFleetMissionsPath
 from Otto_API.Missions.MissionActions import buildCancelMissionPayload
 from Otto_API.Missions.MissionActions import buildCreateMissionPayload
@@ -61,7 +60,7 @@ def _writeAndLogMissionResult(result, logger):
 	"""
 	Write response/message side effects and log one structured mission result.
 	"""
-	return logAndWriteOperationResult(result, logger)
+	return logOperationResult(result, logger)
 
 
 def _runMissionCommandFromInputs(actionName, missionId, fleetManagerURL, postFunc):
@@ -347,7 +346,6 @@ def createMission(templateTagPath, robotTagPath, missionName):
 		except ValueError as e:
 			msg = str(e)
 			ottoLogger.error(msg)
-			writeLastTriggerResponse(msg, asyncWrite=True)
 			return _buildResult(ok=False, level="error", message=msg)
 
 		try:
@@ -355,7 +353,6 @@ def createMission(templateTagPath, robotTagPath, missionName):
 		except ValueError as e:
 			msg = "Invalid template: {}".format(str(e))
 			ottoLogger.error(msg)
-			writeLastTriggerResponse(msg, asyncWrite=True)
 			return _buildResult(ok=False, level="error", message=msg)
 
 		if not isinstance(template.get("tasks", []), list):
@@ -373,7 +370,6 @@ def createMission(templateTagPath, robotTagPath, missionName):
 	except Exception as e:
 		msg = "Error posting mission: {}".format(str(e))
 		ottoLogger.error(msg)
-		writeLastTriggerResponse(msg, asyncWrite=True)
 		return _buildResult(ok=False, level="error", message=msg)
 
 def finalizeMissionId(missionId):
@@ -434,7 +430,6 @@ def cancelAllActiveMissions():
 	except Exception as e:
 		msg = "Error canceling all active missions: {}".format(str(e))
 		ottoLogger.error(msg)
-		writeLastTriggerResponse(msg, asyncWrite=True)
 		return _buildResult(ok=False, level="error", message=msg)
 
 
@@ -467,5 +462,4 @@ def cancelAllFailedMissions():
 	except Exception as e:
 		msg = "Error canceling all failed missions: {}".format(str(e))
 		ottoLogger.error(msg)
-		writeLastTriggerResponse(msg, asyncWrite=True)
 		return _buildResult(ok=False, level="error", message=msg)

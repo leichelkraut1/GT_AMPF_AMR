@@ -1,6 +1,4 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Common.TagIO import writeLastSystemResponse
-from Otto_API.Common.TagIO import writeLastTriggerResponse
 
 
 def buildDataResult(ok, level, message, **data):
@@ -13,18 +11,9 @@ def buildDataResult(ok, level, message, **data):
     )
 
 
-def logAndWriteOperationResult(result, logger):
-    """Write shared response side effects and log one operation result."""
+def logOperationResult(result, logger):
+    """Log one operation result and return it unchanged."""
     result = dict(result or {})
-    data = dict(result.get("data") or {})
-    responseText = data.get("response_text")
-    responseTexts = list(data.get("response_texts") or [])
-    if responseText is None and responseTexts:
-        responseText = responseTexts[-1]
-
-    if responseText is not None:
-        writeLastSystemResponse(responseText, asyncWrite=True)
-
     level = str(result.get("level") or "").lower()
     message = str(result.get("message") or "")
     if level == "info":
@@ -34,5 +23,4 @@ def logAndWriteOperationResult(result, logger):
     else:
         logger.error(message)
 
-    writeLastTriggerResponse(message, asyncWrite=True)
     return result

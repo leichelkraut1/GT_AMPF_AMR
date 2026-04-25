@@ -2,13 +2,11 @@ import uuid
 
 from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.OperationHelpers import buildDataResult
-from Otto_API.Common.OperationHelpers import logAndWriteOperationResult
+from Otto_API.Common.OperationHelpers import logOperationResult
 from Otto_API.Common.TagIO import browseTagResults
 from Otto_API.Common.TagIO import getOttoOperationsUrl
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import readRequiredTagValues
-from Otto_API.Common.TagIO import writeLastSystemResponse
-from Otto_API.Common.TagIO import writeLastTriggerResponse
 from Otto_API.Common.TagPaths import getFleetContainersPath
 from Otto_API.Common.TagPaths import getFleetContainersVerboseCleanupLoggingPath
 from Otto_API.Containers.Actions import buildCreateContainerPayload
@@ -83,7 +81,7 @@ def _resultWithDefaults(defaultFields=None, defaultExtraData=None):
 
 
 def _writeResponseAndLogResult(result, logger):
-    return logAndWriteOperationResult(result, logger)
+    return logOperationResult(result, logger)
 
 
 def _runCreateFromTagPath(containerTagPath, targetLabel, targetId, createFunc):
@@ -97,7 +95,6 @@ def _runCreateFromTagPath(containerTagPath, targetLabel, targetId, createFunc):
     except Exception as e:
         msg = "Error reading container fields from [{}]: {}".format(containerTagPath, str(e))
         ottoLogger.error(msg)
-        writeLastTriggerResponse(msg, asyncWrite=True)
         return _buildResult(False, "error", msg)
 
     result = createFunc(containerFields, targetId, fleetManagerURL, httpPost)
@@ -634,9 +631,6 @@ def cleanupContainersWithoutLocation():
     result = deleteContainersWithoutLocationFromInputs(fleetManagerURL, httpPost)
 
     resultData = dict(result.get("data") or {})
-    if resultData.get("response_text") is not None:
-        writeLastSystemResponse(resultData.get("response_text"), asyncWrite=True)
-
     if result["ok"] and resultData.get("deleted_container_ids"):
         ottoLogger.info(result["message"])
     elif not result["ok"] and result["level"] == "warn":
@@ -644,6 +638,4 @@ def cleanupContainersWithoutLocation():
             ottoLogger.warn(result["message"])
     elif result["level"] == "error":
         ottoLogger.error(result["message"])
-
-    writeLastTriggerResponse(result["message"], asyncWrite=True)
     return result

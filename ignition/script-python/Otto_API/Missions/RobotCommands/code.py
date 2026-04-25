@@ -1,6 +1,5 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagIO import readRequiredTagValue
-from Otto_API.Common.TagIO import writeLastTriggerResponse
 from Otto_API.Common.TagPaths import getFleetMissionsPath
 from Otto_API.Common.TagPaths import getFleetRobotsPath
 from Otto_API.Missions import Post
@@ -42,7 +41,6 @@ def finalizeActiveMissionForRobot(robotName, finalizeMissionId=None):
 	if not robotId:
 		message = "Robot [{}] has no valid id tag".format(robotName)
 		ottoLogger.warn(message)
-		writeLastTriggerResponse(message, asyncWrite=True)
 		return _warnResult(message)
 
 	missionRecords = readMissionRobotAwareRecords(ACTIVE_MISSIONS_ROOT)
@@ -53,7 +51,6 @@ def finalizeActiveMissionForRobot(robotName, finalizeMissionId=None):
 	if not missionId:
 		message = "No active mission found for robot [{}] (robot_id={})".format(robotName, robotId)
 		ottoLogger.info(message)
-		writeLastTriggerResponse(message, asyncWrite=True)
 		return _warnResult(message)
 
 	if finalizeMissionId is None:
@@ -68,7 +65,6 @@ def cancelActiveMissionsForRobot(robotName, cancelMissionIds=None):
 	if not robotId:
 		message = "Robot [{}] has no valid id tag".format(robotName)
 		ottoLogger.warn(message)
-		writeLastTriggerResponse(message, asyncWrite=True)
 		return _warnResult(message)
 
 	missionRecords = readMissionRobotAwareRecords(ACTIVE_MISSIONS_ROOT)
@@ -79,7 +75,6 @@ def cancelActiveMissionsForRobot(robotName, cancelMissionIds=None):
 	if not missionIds:
 		message = "No active missions found for robot [{}] (robot_id={})".format(robotName, robotId)
 		ottoLogger.info(message)
-		writeLastTriggerResponse(message, asyncWrite=True)
 		return _warnResult(message)
 
 	if cancelMissionIds is None:

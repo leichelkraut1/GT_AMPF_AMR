@@ -1,7 +1,6 @@
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import fetchListResource
-from Otto_API.Common.TagIO import writeLastSystemResponse
 from Otto_API.Containers.Apply import applyContainerSync
 
 
@@ -21,7 +20,6 @@ def updateContainers():
             url,
             ottoLogger,
             "Containers",
-            responseWriter=writeLastSystemResponse,
             parseErrorLabel="Containers"
         )
         if errorResult is not None:

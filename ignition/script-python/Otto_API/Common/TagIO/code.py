@@ -5,8 +5,6 @@ except NameError:
 
 from Otto_API.Common.TagPaths import getApiBaseUrlPath
 from Otto_API.Common.TagPaths import getMainCycleEndpointsPath
-from Otto_API.Common.TagPaths import getMissionTriggerLastResponsePath
-from Otto_API.Common.TagPaths import getSystemLastResponsePath
 
 
 def _normalizeTagLabel(label, tagPath):
@@ -244,20 +242,6 @@ def writeTagValueAsync(tagPath, value):
 def writeTagValuesAsync(tagPaths, values):
     """Write multiple tag values asynchronously."""
     return system.tag.writeAsync(list(tagPaths), list(values))
-
-
-def writeLastSystemResponse(value, asyncWrite=False):
-    """Write the shared system lastResponse tag."""
-    if asyncWrite:
-        return writeTagValueAsync(getSystemLastResponsePath(), value)
-    return writeTagValue(getSystemLastResponsePath(), value)
-
-
-def writeLastTriggerResponse(value, asyncWrite=False):
-    """Write the shared mission trigger lastResponse tag."""
-    if asyncWrite:
-        return writeTagValueAsync(getMissionTriggerLastResponsePath(), value)
-    return writeTagValue(getMissionTriggerLastResponsePath(), value)
 
 
 def getApiBaseUrl():

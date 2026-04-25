@@ -105,7 +105,7 @@ def cleanupStaleUdtInstances(
         logger.warn(cleanupWarnPrefix + str(e))
 
 
-def fetchListResource(url, logger, resourceLabel, responseWriter=None, parseErrorLabel=None):
+def fetchListResource(url, logger, resourceLabel, parseErrorLabel=None):
     """
     Fetch and parse a standard OTTO list payload.
 
@@ -114,8 +114,6 @@ def fetchListResource(url, logger, resourceLabel, responseWriter=None, parseErro
     - (responseTextOrNone, None, errorResult) on failure
     """
     response = httpGet(url=url, headerValues=jsonHeaders())
-    if responseWriter is not None:
-        responseWriter(response)
 
     if not response:
         logger.error("Otto API - HTTP GET failed for /{}/".format(resourceLabel))

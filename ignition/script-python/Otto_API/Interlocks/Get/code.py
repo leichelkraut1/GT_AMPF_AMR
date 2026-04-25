@@ -4,7 +4,6 @@ from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ParseHelpers import parseJsonResponse
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import getApiBaseUrl
-from Otto_API.Common.TagIO import writeLastSystemResponse
 from Otto_API.Interlocks.Helpers import buildInterlockInstanceMap
 
 
@@ -67,7 +66,6 @@ def getInterlocks():
 
     try:
         response = httpGet(url=url, headerValues=jsonHeaders())
-        writeLastSystemResponse(response)
         if not response:
             logger.error("Otto API - HTTP GET failed for /Interlocks/")
             return buildSyncResult(
@@ -127,6 +125,10 @@ def getInterlocks():
                 ))
                 reportedCount = None
 
+        # Warn here because "count" is the total matching interlock count across OTTO,
+        # while this request only asks for the first page up to INTERLOCK_FETCH_LIMIT.
+        # When count exceeds the requested limit, more matching records may exist than
+        # what we actually fetched in this response.
         if reportedCount is not None and reportedCount > INTERLOCK_FETCH_LIMIT:
             warning = "Interlocks response count [{}] exceeds supported limit [{}]; results are truncated".format(
                 reportedCount,

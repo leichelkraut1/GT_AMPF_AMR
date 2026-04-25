@@ -14,7 +14,6 @@ from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import readRequiredTagValue
 from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagIO import tagExists
-from Otto_API.Common.TagIO import writeLastSystemResponse
 from Otto_API.Common.TagPaths import getFleetRobotsPath
 from Otto_API.Common.TagPaths import getMissionLastUpdateSuccessPath
 from Otto_API.Common.TagPaths import getMissionLastUpdateTsPath
@@ -39,7 +38,7 @@ def _log():
     return system.util.getLogger("Otto_API.Robots.Get")
 
 
-def _fetch_json_results(url, failureMessage, logger, writeLastResponseValue=False):
+def _fetch_json_results(url, failureMessage, logger):
     issueSuffix = str(url or "").split("/")[-1].split("?")[0] or "unknown"
     response = httpGet(url=url, headerValues=jsonHeaders())
     if not response:
@@ -57,9 +56,6 @@ def _fetch_json_results(url, failureMessage, logger, writeLastResponseValue=Fals
                 )
             ],
         )
-
-    if writeLastResponseValue:
-        writeLastSystemResponse(response)
 
     try:
         data = json.loads(response)
@@ -172,7 +168,6 @@ def updateRobots():
             url,
             "HTTP GET failed for /Robots/",
             ottoLogger,
-            writeLastResponseValue=True
         )
         if errorResult is not None:
             return errorResult
