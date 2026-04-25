@@ -12,7 +12,8 @@
     "containerId": "",
     "containerType": "",
     "locationLabel": "Location: Unassigned",
-    "state": ""
+    "state": "",
+    "viewOnly": false
   },
   "propConfig": {
     "params.containerId": {
@@ -28,6 +29,10 @@
       "persistent": true
     },
     "params.state": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.viewOnly": {
       "paramDirection": "input",
       "persistent": true
     },
@@ -255,6 +260,22 @@
               },
               "type": "property"
             }
+          },
+          "position.basis": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.viewOnly}, \"0px\", \"42px\")"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.display": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.viewOnly}, \"none\", \"block\")"
+              },
+              "type": "expr"
+            }
           }
         },
         "props": {
@@ -271,7 +292,7 @@
           "dom": {
             "onClick": {
               "config": {
-                "script": "\tpopupId = \"delete-container-{}\".format(str(self.view.params.containerId or \"unknown\"))\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/ContainerDeletePopup\",\n\t\tparams={\n\t\t\t\"containerId\": self.view.params.containerId,\n\t\t\t\"locationLabel\": self.view.params.locationLabel,\n\t\t\t\"popupId\": popupId,\n\t\t},\n\t\ttitle=\"Delete Container\",\n\t\tmodal=True,\n\t\toverlayDismiss=False,\n\t\tshowCloseIcon=False,\n\t\tdraggable=False,\n\t)\n"
+                "script": "\tpopupId = \"delete-container-{}\".format(str(self.view.params.containerId or \"unknown\"))\n\tsystem.perspective.openPopup(\n\t\tid=popupId,\n\t\tview=\"Page/Components/Dialogs/ContainerDeletePopup\",\n\t\tparams={\n\t\t\t\"containerId\": self.view.params.containerId,\n\t\t\t\"locationLabel\": self.view.params.locationLabel,\n\t\t\t\"popupId\": popupId,\n\t\t},\n\t\ttitle=\"Delete Container\",\n\t\tmodal=True,\n\t\toverlayDismiss=False,\n\t\tshowCloseIcon=False,\n\t\tdraggable=False,\n\t)\n"
               },
               "scope": "G",
               "type": "script"
@@ -294,7 +315,24 @@
           "text": "Delete"
         },
         "type": "ia.input.button",
-        "propConfig": {}
+        "propConfig": {
+          "position.basis": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.viewOnly}, \"0px\", \"34px\")"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.display": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.viewOnly}, \"none\", \"block\")"
+              },
+              "type": "expr"
+            }
+          }
+        }
       }
     ],
     "meta": {
