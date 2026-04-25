@@ -166,7 +166,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 344,
+      "height": 336,
       "width": 304
     }
   },
@@ -330,7 +330,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if(!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0,\n\tif(len(trim(toStr({view.params.resolvedMissionType}))) = 0 || lower(trim(toStr({view.params.resolvedMissionType}))) = \"null\", \"\", toStr({view.params.resolvedMissionType})),\n\tif({view.params.availableForWork}, \"for Mission\", \"Because: \" + if(len(trim(toStr({view.params.resolvedNotReadyReason}))) = 0 || lower(trim(toStr({view.params.resolvedNotReadyReason}))) = \"null\", \"-\", toStr({view.params.resolvedNotReadyReason}))))"
+                "expression": "if(!isNull({view.params.activeWorkflowNumber}) && toInt({view.params.activeWorkflowNumber}) > 0,\n\tif(len(trim(toStr({view.params.resolvedMissionType}))) = 0 || lower(trim(toStr({view.params.resolvedMissionType}))) = \"null\", \"\", toStr({view.params.resolvedMissionType})),\n\tif({view.params.availableForWork}, \"for Mission\", if(len(trim(toStr({view.params.resolvedNotReadyReason}))) = 0 || lower(trim(toStr({view.params.resolvedNotReadyReason}))) = \"null\", \"-\", toStr({view.params.resolvedNotReadyReason}))))"
               },
               "type": "expr"
             }
@@ -350,7 +350,7 @@
           "name": "PlaceRow"
         },
         "position": {
-          "basis": "34px",
+          "basis": "42px",
           "shrink": 0
         },
         "props": {
@@ -853,7 +853,7 @@
         "boxShadow": "0 8px 22px rgba(0,0,0,0.08)",
         "marginBottom": "20px",
         "marginRight": "18px",
-        "minHeight": "344px",
+        "minHeight": "336px",
         "padding": "12px"
       }
     },

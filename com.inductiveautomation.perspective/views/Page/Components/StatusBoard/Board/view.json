@@ -68,128 +68,6 @@
     "children": [
       {
         "meta": {
-          "name": "SystemStatusTitle"
-        },
-        "position": {
-          "basis": "34px",
-          "shrink": 0
-        },
-        "props": {
-          "style": {
-            "fontSize": "26px",
-            "fontWeight": "700",
-            "paddingLeft": "4px",
-            "paddingTop": "2px"
-          },
-          "text": "System Status"
-        },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
-              },
-              "type": "property"
-            }
-          }
-        }
-      },
-      {
-        "meta": {
-          "name": "SummaryCards"
-        },
-        "position": {
-          "shrink": 0
-        },
-        "props": {
-          "path": "Page/Components/StatusBoard/StatusSummaryCard",
-          "style": {
-            "paddingBottom": "4px"
-          },
-          "wrap": "wrap"
-        },
-        "type": "ia.display.flex-repeater",
-        "propConfig": {
-          "props.instances": {
-            "binding": {
-              "config": {
-                "expression": "now(2000)"
-              },
-              "transforms": [
-                {
-                  "code": "\timport MainController.State.StatusBoardStore\n\treturn MainController.State.StatusBoardStore.summaryCards()",
-                  "type": "script"
-                }
-              ],
-              "type": "expr"
-            }
-          }
-        }
-      },
-      {
-        "meta": {
-          "name": "SubsystemTitle"
-        },
-        "position": {
-          "basis": "32px",
-          "shrink": 0
-        },
-        "props": {
-          "style": {
-            "fontSize": "26px",
-            "fontWeight": "700",
-            "paddingLeft": "4px",
-            "paddingTop": "0px"
-          },
-          "text": "Subsystem Health"
-        },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
-              },
-              "type": "property"
-            }
-          }
-        }
-      },
-      {
-        "meta": {
-          "name": "SubsystemCards"
-        },
-        "position": {
-          "shrink": 0
-        },
-        "props": {
-          "path": "Page/Components/StatusBoard/SubsystemHealthChip",
-          "style": {
-            "paddingBottom": "6px"
-          },
-          "wrap": "wrap"
-        },
-        "type": "ia.display.flex-repeater",
-        "propConfig": {
-          "props.instances": {
-            "binding": {
-              "config": {
-                "expression": "now(4000)"
-              },
-              "transforms": [
-                {
-                  "code": "\timport MainController.State.StatusBoardStore\n\treturn MainController.State.StatusBoardStore.subsystemHealthCards()",
-                  "type": "script"
-                }
-              ],
-              "type": "expr"
-            }
-          }
-        }
-      },
-      {
-        "meta": {
           "name": "RobotsTitle"
         },
         "position": {
@@ -299,6 +177,128 @@
               "transforms": [
                 {
                   "code": "\tdef _rowseq(path):\n\t\treturn system.tag.browse(path).getResults()\n\n\tdef _rowseq_val(row, key, default=None):\n\t\tif isinstance(row, dict):\n\t\t\treturn row.get(key, default)\n\t\tgetter = getattr(row, \"get\", None)\n\t\tif getter is not None:\n\t\t\ttry:\n\t\t\t\treturn getter(key)\n\t\t\texcept Exception:\n\t\t\t\tpass\n\t\treturn getattr(row, key, default)\n\n\tdef _is_udt(row):\n\t\ttag_type = str(_rowseq_val(row, \"tagType\", \"\") or \"\").lower()\n\t\treturn \"udtinstance\" in tag_type\n\n\tdef _fullpath(row):\n\t\treturn str(_rowseq_val(row, \"fullPath\", \"\") or \"\")\n\n\tplace_rows = [row for row in _rowseq(\"[Otto_FleetManager]Fleet/Places\") if _is_udt(row)]\n\trobot_rows = [row for row in _rowseq(\"[Otto_FleetManager]Fleet/Robots\") if _is_udt(row)]\n\tcontainer_rows = [row for row in _rowseq(\"[Otto_FleetManager]Fleet/Containers\") if _is_udt(row)]\n\n\tplace_reads = []\n\tfor row in place_rows:\n\t\tpath = _fullpath(row)\n\t\tplace_reads.extend([path + \"/ID\", path + \"/Name\"])\n\tplace_values = system.tag.readBlocking(place_reads) if place_reads else []\n\tplace_by_id = {}\n\tfor index, row in enumerate(place_rows):\n\t\toffset = index * 2\n\t\tplace_id = str(place_values[offset].value or \"\") if offset < len(place_values) and place_values[offset].quality.isGood() else \"\"\n\t\tplace_name = str(place_values[offset + 1].value or \"\") if offset + 1 < len(place_values) and place_values[offset + 1].quality.isGood() else \"\"\n\t\tif place_id:\n\t\t\tplace_by_id[place_id] = place_name or place_id\n\n\trobot_reads = []\n\tfor row in robot_rows:\n\t\tpath = _fullpath(row)\n\t\trobot_reads.append(path + \"/ID\")\n\trobot_values = system.tag.readBlocking(robot_reads) if robot_reads else []\n\trobot_by_id = {}\n\tfor index, row in enumerate(robot_rows):\n\t\trobot_id = str(robot_values[index].value or \"\") if index < len(robot_values) and robot_values[index].quality.isGood() else \"\"\n\t\trobot_name = str(_rowseq_val(row, \"name\", \"\") or \"\")\n\t\tif robot_id:\n\t\t\trobot_by_id[robot_id] = robot_name or robot_id\n\n\tcontainer_reads = []\n\tfor row in container_rows:\n\t\tpath = _fullpath(row)\n\t\tcontainer_reads.extend([\n\t\t\tpath + \"/ID\",\n\t\t\tpath + \"/ContainerType\",\n\t\t\tpath + \"/State\",\n\t\t\tpath + \"/Place\",\n\t\t\tpath + \"/Robot\",\n\t\t])\n\tcontainer_values = system.tag.readBlocking(container_reads) if container_reads else []\n\n\tinstances = []\n\tfor index, row in enumerate(container_rows):\n\t\toffset = index * 5\n\t\tcontainer_id = str(container_values[offset].value or \"\") if offset < len(container_values) and container_values[offset].quality.isGood() else \"\"\n\t\tcontainer_type = str(container_values[offset + 1].value or \"\") if offset + 1 < len(container_values) and container_values[offset + 1].quality.isGood() else \"\"\n\t\tstate = str(container_values[offset + 2].value or \"\") if offset + 2 < len(container_values) and container_values[offset + 2].quality.isGood() else \"\"\n\t\tplace_id = str(container_values[offset + 3].value or \"\") if offset + 3 < len(container_values) and container_values[offset + 3].quality.isGood() else \"\"\n\t\trobot_id = str(container_values[offset + 4].value or \"\") if offset + 4 < len(container_values) and container_values[offset + 4].quality.isGood() else \"\"\n\n\t\tif place_id and place_id in place_by_id:\n\t\t\tlocation_label = \"Place: {}\".format(place_by_id[place_id])\n\t\telif place_id:\n\t\t\tlocation_label = \"Place: {}\".format(place_id)\n\t\telif robot_id and robot_id in robot_by_id:\n\t\t\tlocation_label = \"Robot: {}\".format(robot_by_id[robot_id])\n\t\telif robot_id:\n\t\t\tlocation_label = \"Robot: {}\".format(robot_id)\n\t\telse:\n\t\t\tlocation_label = \"Location: Unassigned\"\n\n\t\tinstances.append({\n\t\t\t\"containerId\": container_id,\n\t\t\t\"containerType\": container_type,\n\t\t\t\"state\": state,\n\t\t\t\"locationLabel\": location_label,\n\t\t\t\"viewOnly\": True,\n\t\t})\n\n\tinstances.sort(key=lambda row: (str(row.get(\"containerType\") or \"\"), str(row.get(\"containerId\") or \"\")))\n\treturn instances",
+                  "type": "script"
+                }
+              ],
+              "type": "expr"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "SystemStatusTitle"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "26px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "6px"
+          },
+          "text": "System Status"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "SummaryCards"
+        },
+        "position": {
+          "shrink": 0
+        },
+        "props": {
+          "path": "Page/Components/StatusBoard/StatusSummaryCard",
+          "style": {
+            "paddingBottom": "4px"
+          },
+          "wrap": "wrap"
+        },
+        "type": "ia.display.flex-repeater",
+        "propConfig": {
+          "props.instances": {
+            "binding": {
+              "config": {
+                "expression": "now(2000)"
+              },
+              "transforms": [
+                {
+                  "code": "\timport MainController.State.StatusBoardStore\n\treturn MainController.State.StatusBoardStore.summaryCards()",
+                  "type": "script"
+                }
+              ],
+              "type": "expr"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "SubsystemTitle"
+        },
+        "position": {
+          "basis": "32px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "26px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "0px"
+          },
+          "text": "Subsystem Health"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "SubsystemCards"
+        },
+        "position": {
+          "shrink": 0
+        },
+        "props": {
+          "path": "Page/Components/StatusBoard/SubsystemHealthChip",
+          "style": {
+            "paddingBottom": "6px"
+          },
+          "wrap": "wrap"
+        },
+        "type": "ia.display.flex-repeater",
+        "propConfig": {
+          "props.instances": {
+            "binding": {
+              "config": {
+                "expression": "now(4000)"
+              },
+              "transforms": [
+                {
+                  "code": "\timport MainController.State.StatusBoardStore\n\treturn MainController.State.StatusBoardStore.subsystemHealthCards()",
                   "type": "script"
                 }
               ],
