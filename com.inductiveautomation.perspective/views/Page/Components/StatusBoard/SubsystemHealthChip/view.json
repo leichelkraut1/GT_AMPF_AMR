@@ -86,8 +86,8 @@
   },
   "props": {
     "defaultSize": {
-      "height": 74,
-      "width": 198
+      "height": 102,
+      "width": 214
     }
   },
   "root": {
@@ -97,12 +97,12 @@
           "name": "Subsystem"
         },
         "position": {
-          "basis": "16px",
+          "basis": "18px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "10px",
+            "fontSize": "11px",
             "fontWeight": "700",
             "textTransform": "uppercase"
           }
@@ -132,12 +132,12 @@
           "name": "Status"
         },
         "position": {
-          "basis": "20px",
+          "basis": "24px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "14px",
+            "fontSize": "17px",
             "fontWeight": "700"
           }
         },
@@ -170,7 +170,7 @@
         },
         "props": {
           "style": {
-            "fontSize": "10px",
+            "fontSize": "12px",
             "lineHeight": "1.25",
             "whiteSpace": "normal",
             "wordBreak": "break-word"
@@ -204,10 +204,10 @@
       "direction": "column",
       "style": {
         "borderRadius": "10px",
-        "marginBottom": "8px",
-        "marginRight": "8px",
-        "minHeight": "72px",
-        "padding": "9px"
+        "marginBottom": "12px",
+        "marginRight": "12px",
+        "minHeight": "98px",
+        "padding": "12px"
       }
     },
     "type": "ia.container.flex",

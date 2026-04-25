@@ -91,8 +91,8 @@
   },
   "props": {
     "defaultSize": {
-      "height": 176,
-      "width": 256
+      "height": 146,
+      "width": 228
     }
   },
   "root": {
@@ -102,12 +102,12 @@
           "name": "Title"
         },
         "position": {
-          "basis": "24px",
+          "basis": "20px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "12px",
+            "fontSize": "13px",
             "fontWeight": "700",
             "textTransform": "uppercase"
           }
@@ -137,12 +137,12 @@
           "name": "Value"
         },
         "position": {
-          "basis": "50px",
+          "basis": "34px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "32px",
+            "fontSize": "24px",
             "fontWeight": "700",
             "lineHeight": "1.1",
             "whiteSpace": "normal"
@@ -177,8 +177,8 @@
         },
         "props": {
           "style": {
-            "fontSize": "15px",
-            "lineHeight": "1.35",
+            "fontSize": "13px",
+            "lineHeight": "1.25",
             "whiteSpace": "normal",
             "wordBreak": "break-word"
           }
@@ -212,10 +212,10 @@
       "style": {
         "borderRadius": "12px",
         "boxShadow": "0 10px 24px rgba(0,0,0,0.08)",
-        "marginBottom": "20px",
-        "marginRight": "18px",
-        "minHeight": "168px",
-        "padding": "20px"
+        "marginBottom": "14px",
+        "marginRight": "14px",
+        "minHeight": "138px",
+        "padding": "14px"
       }
     },
     "type": "ia.container.flex",

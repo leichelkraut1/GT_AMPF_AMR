@@ -49,7 +49,7 @@
           "name": "SystemStatusTitle"
         },
         "position": {
-          "basis": "46px",
+          "basis": "42px",
           "shrink": 0
         },
         "props": {
@@ -57,7 +57,7 @@
             "fontSize": "26px",
             "fontWeight": "700",
             "paddingLeft": "4px",
-            "paddingTop": "10px"
+            "paddingTop": "8px"
           },
           "text": "System Status"
         },
@@ -83,7 +83,7 @@
         "props": {
           "path": "Page/Components/StatusBoard/StatusSummaryCard",
           "style": {
-            "paddingBottom": "18px"
+            "paddingBottom": "12px"
           },
           "wrap": "wrap"
         },
@@ -110,15 +110,15 @@
           "name": "SubsystemTitle"
         },
         "position": {
-          "basis": "24px",
+          "basis": "42px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "14px",
+            "fontSize": "26px",
             "fontWeight": "700",
             "paddingLeft": "4px",
-            "paddingTop": "4px"
+            "paddingTop": "8px"
           },
           "text": "Subsystem Health"
         },
@@ -144,7 +144,7 @@
         "props": {
           "path": "Page/Components/StatusBoard/SubsystemHealthChip",
           "style": {
-            "paddingBottom": "24px"
+            "paddingBottom": "20px"
           },
           "wrap": "wrap"
         },

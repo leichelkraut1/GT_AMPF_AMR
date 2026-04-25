@@ -19,7 +19,7 @@
           "params": {
             "RVNum": 1
           },
-          "path": "Page/Components/AMR_Control"
+          "path": "Page/Components/Robots/AMR_Control"
         },
         "type": "ia.display.view"
       },
@@ -34,7 +34,7 @@
           "params": {
             "RVNum": 2
           },
-          "path": "Page/Components/AMR_Control"
+          "path": "Page/Components/Robots/AMR_Control"
         },
         "type": "ia.display.view"
       },
@@ -49,7 +49,7 @@
           "params": {
             "RVNum": 3
           },
-          "path": "Page/Components/AMR_Control"
+          "path": "Page/Components/Robots/AMR_Control"
         },
         "type": "ia.display.view"
       },
@@ -64,7 +64,7 @@
           "params": {
             "RVNum": 4
           },
-          "path": "Page/Components/AMR_Control"
+          "path": "Page/Components/Robots/AMR_Control"
         },
         "type": "ia.display.view"
       },
@@ -79,7 +79,7 @@
           "params": {
             "RVNum": 5
           },
-          "path": "Page/Components/AMR_Control"
+          "path": "Page/Components/Robots/AMR_Control"
         },
         "type": "ia.display.view"
       }

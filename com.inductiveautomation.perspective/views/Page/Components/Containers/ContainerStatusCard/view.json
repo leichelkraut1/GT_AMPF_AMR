@@ -91,8 +91,8 @@
   },
   "props": {
     "defaultSize": {
-      "height": 170,
-      "width": 280
+      "height": 134,
+      "width": 248
     }
   },
   "root": {
@@ -102,7 +102,7 @@
           "name": "TypeLabel"
         },
         "position": {
-          "basis": "20px",
+          "basis": "18px",
           "shrink": 0
         },
         "props": {
@@ -130,12 +130,12 @@
           "name": "TypeValue"
         },
         "position": {
-          "basis": "34px",
+          "basis": "30px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "24px",
+            "fontSize": "18px",
             "fontWeight": "700",
             "whiteSpace": "normal"
           }
@@ -165,12 +165,12 @@
           "name": "State"
         },
         "position": {
-          "basis": "22px",
+          "basis": "20px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "15px",
+            "fontSize": "14px",
             "fontWeight": "700"
           }
         },
@@ -199,12 +199,12 @@
           "name": "Location"
         },
         "position": {
-          "basis": "42px",
+          "basis": "32px",
           "shrink": 0
         },
         "props": {
           "style": {
-            "fontSize": "14px",
+            "fontSize": "13px",
             "whiteSpace": "normal",
             "wordBreak": "break-word"
           }
@@ -229,41 +229,6 @@
           }
         }
       },
-      {
-        "meta": {
-          "name": "Id"
-        },
-        "position": {
-          "basis": "36px",
-          "shrink": 0
-        },
-        "props": {
-          "style": {
-            "fontSize": "12px",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
-          }
-        },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"ID: \" + toStr({view.params.containerId})"
-              },
-              "type": "expr"
-            }
-          },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
-            }
-          }
-        }
-      }
     ],
     "meta": {
       "name": "root"
@@ -273,10 +238,10 @@
       "style": {
         "borderRadius": "12px",
         "boxShadow": "0 6px 18px rgba(0,0,0,0.08)",
-        "marginBottom": "16px",
-        "marginRight": "16px",
-        "minHeight": "160px",
-        "padding": "16px"
+        "marginBottom": "14px",
+        "marginRight": "14px",
+        "minHeight": "128px",
+        "padding": "14px"
       }
     },
     "type": "ia.container.flex",

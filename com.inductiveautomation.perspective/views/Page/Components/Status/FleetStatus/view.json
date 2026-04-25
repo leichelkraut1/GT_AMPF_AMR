@@ -1204,7 +1204,7 @@
               "dom": {
                 "onClick": {
                   "config": {
-                    "script": "\tpopup_id = \"runtime-issues\"\n\tsystem.perspective.openPopup(\n\t\tpopup_id,\n\t\t\"Page/Components/RuntimeIssuesPopup\",\n\t\tparams={\n\t\t\t\"popupId\": popup_id,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]MainControl/Runtime/RuntimeIssues\",\n\t\t\t\"title\": \"Runtime Issues\",\n\t\t},\n\t\tmodal=False,\n\t\tdraggable=True,\n\t\tresizable=True,\n\t\ttitle=\"Runtime Issues\",\n\t)\n\treturn"
+                    "script": "\tpopup_id = \"runtime-issues\"\n\tsystem.perspective.openPopup(\n\t\tpopup_id,\n\t\t\"Page/Components/Status/RuntimeIssuesPopup\",\n\t\tparams={\n\t\t\t\"popupId\": popup_id,\n\t\t\t\"tagPath\": \"[Otto_FleetManager]MainControl/Runtime/RuntimeIssues\",\n\t\t\t\"title\": \"Runtime Issues\",\n\t\t},\n\t\tmodal=False,\n\t\tdraggable=True,\n\t\tresizable=True,\n\t\ttitle=\"Runtime Issues\",\n\t)\n\treturn"
                   },
                   "scope": "G",
                   "type": "script"
@@ -1652,7 +1652,7 @@
           "shrink": 0
         },
         "props": {
-          "path": "Page/Components/RV_Control"
+          "path": "Page/Components/Robots/RV_Control"
         },
         "type": "ia.display.view"
       },
@@ -1790,7 +1790,7 @@
           }
         },
         "props": {
-          "path": "Page/Components/ContainerCard",
+          "path": "Page/Components/Containers/ContainerCard",
           "style": {
             "paddingBottom": "8px"
           },
