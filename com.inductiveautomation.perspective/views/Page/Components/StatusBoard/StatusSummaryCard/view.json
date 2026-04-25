@@ -91,7 +91,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 82,
+      "height": 88,
       "width": 214
     }
   },
@@ -179,7 +179,7 @@
         "boxShadow": "0 10px 24px rgba(0,0,0,0.08)",
         "marginBottom": "10px",
         "marginRight": "14px",
-        "minHeight": "78px",
+        "minHeight": "84px",
         "padding": "10px"
       }
     },
