@@ -39,7 +39,7 @@
           "shrink": 0
         },
         "props": {
-          "path": "Page/Components/StatusBoard"
+          "path": "Page/Components/StatusBoard/Board"
         },
         "type": "ia.display.view"
       }
