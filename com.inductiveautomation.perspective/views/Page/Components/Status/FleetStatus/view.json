@@ -1617,6 +1617,70 @@
       {
         "meta": {
           "hasDelegate": true,
+          "name": "InterlocksSectionTitle"
+        },
+        "position": {
+          "basis": "32px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "20px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "6px"
+          },
+          "text": "Interlocks"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "InterlockCards"
+        },
+        "position": {
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.instances": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]PLC/FleetMapping/InterlockMapping"
+              },
+              "transforms": [
+                {
+                  "code": "\tif value is None or not hasattr(value, \"getRowCount\"):\n\t\treturn []\n\n\tcolumn_names = []\n\tif hasattr(value, \"getColumnNames\"):\n\t\tcolumn_names = [str(name or \"\") for name in list(value.getColumnNames() or [])]\n\telse:\n\t\tfor column_index in range(value.getColumnCount()):\n\t\t\tcolumn_names.append(str(value.getColumnName(column_index) or \"\"))\n\n\tindex_by_name = {}\n\tfor index, name in enumerate(column_names):\n\t\tindex_by_name[str(name or \"\").strip().lower()] = index\n\n\tfleet_index = index_by_name.get(\"fleetname\")\n\tplc_index = index_by_name.get(\"plctagname\")\n\tif fleet_index is None:\n\t\treturn []\n\n\tcards_by_fleet = {}\n\tfor row_index in range(value.getRowCount()):\n\t\tfleet_name = str(value.getValueAt(row_index, fleet_index) or \"\").strip()\n\t\tplc_tag_name = \"\"\n\t\tif plc_index is not None:\n\t\t\tplc_tag_name = str(value.getValueAt(row_index, plc_index) or \"\").strip()\n\t\tif not fleet_name:\n\t\t\tcontinue\n\t\tcards_by_fleet[fleet_name] = {\n\t\t\t\"title\": fleet_name,\n\t\t\t\"fleetInstanceName\": fleet_name,\n\t\t\t\"plcTagName\": plc_tag_name,\n\t\t}\n\n\tcards = list(cards_by_fleet.values())\n\tcards.sort(key=lambda row: str(row.get(\"title\") or \"\"))\n\treturn cards",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "path": "Page/Components/Status/InterlockStatusCard",
+          "style": {
+            "paddingBottom": "8px"
+          },
+          "wrap": "wrap"
+        },
+        "type": "ia.display.flex-repeater"
+      },
+      {
+        "meta": {
+          "hasDelegate": true,
           "name": "AmrSectionTitle"
         },
         "position": {

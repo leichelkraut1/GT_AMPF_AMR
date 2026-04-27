@@ -1,0 +1,388 @@
+{
+  "custom": {},
+  "params": {
+    "fleetInstanceName": "",
+    "plcTagName": "",
+    "title": ""
+  },
+  "propConfig": {
+    "custom.themeMutedText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#9ca3af\"\n\treturn \"#6b7280\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themePrimaryText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "params.fleetInstanceName": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.plcTagName": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.title": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "props.style.backgroundColor": {
+      "binding": {
+        "config": {
+          "path": "view.custom.themeSurfaceBg"
+        },
+        "type": "property"
+      }
+    },
+    "props.style.border": {
+      "binding": {
+        "config": {
+          "path": "view.custom.themeSurfaceBorder"
+        },
+        "type": "property"
+      }
+    },
+    "props.style.borderLeft": {
+      "binding": {
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "1": "{view.params.fleetInstanceName}"
+          },
+          "tagPath": "[Otto_FleetManager]Fleet/Interlocks/{1}/State"
+        },
+        "transforms": [
+          {
+            "code": "\tif value is None:\n\t\treturn \"6px solid #64748b\"\n\ttry:\n\t\tstate = int(value)\n\texcept Exception:\n\t\treturn \"6px solid #64748b\"\n\tif state == 0:\n\t\treturn \"6px solid #166534\"\n\treturn \"6px solid #b45309\"",
+            "type": "script"
+          }
+        ],
+        "type": "tag"
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 168,
+      "width": 228
+    },
+    "direction": "column",
+    "style": {
+      "borderRadius": "8px",
+      "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
+      "marginBottom": "16px",
+      "marginRight": "16px",
+      "padding": "12px"
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "Title"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "if(len(trim(toStr({view.params.title}))) = 0, toStr({view.params.fleetInstanceName}), toStr({view.params.title}))"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "15px",
+            "fontWeight": "700",
+            "lineHeight": "1.2",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "StateLabel"
+        },
+        "position": {
+          "basis": "16px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "11px",
+            "fontWeight": "700",
+            "textTransform": "uppercase"
+          },
+          "text": "State"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "StateValue"
+        },
+        "position": {
+          "basis": "28px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.fleetInstanceName}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Interlocks/{1}/State"
+              },
+              "transforms": [
+                {
+                  "code": "\tif value is None:\n\t\treturn \"#64748b\"\n\ttry:\n\t\tstate = int(value)\n\texcept Exception:\n\t\treturn \"#64748b\"\n\tif state == 0:\n\t\treturn \"#166534\"\n\treturn \"#b45309\"",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.fleetInstanceName}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Interlocks/{1}/State"
+              },
+              "transforms": [
+                {
+                  "expression": "if(isNull({value}), \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "22px",
+            "fontWeight": "700"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "IdValue"
+        },
+        "position": {
+          "basis": "18px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.fleetInstanceName}"
+                },
+                "tagPath": "[Otto_FleetManager]Fleet/Interlocks/{1}/ID"
+              },
+              "transforms": [
+                {
+                  "expression": "if(isNull({value}) || len(trim(toStr({value}))) = 0, \"ID: -\", \"ID: \" + toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "whiteSpace": "normal",
+            "wordBreak": "break-all"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "PlcValue"
+        },
+        "position": {
+          "basis": "18px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"PLC: \" + if(len(trim(toStr({view.params.plcTagName}))) = 0, \"-\", toStr({view.params.plcTagName}))"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "whiteSpace": "normal",
+            "wordBreak": "break-word"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "events": {
+          "dom": {
+            "onClick": {
+              "config": {
+                "script": "\tplcTagName = str(self.view.params.plcTagName or \"\").strip()\n\tif not plcTagName:\n\t\treturn\n\tsystem.tag.writeBlocking([\"[Otto_FleetManager]PLC/Interlocks/%s/ResetIntlock_HMI_PB\" % plcTagName], [1])"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "meta": {
+          "name": "ClearInterlockButton"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.enabled": {
+            "binding": {
+              "config": {
+                "expression": "len(trim(toStr({view.params.plcTagName}))) > 0"
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "marginTop": "8px"
+          },
+          "text": "Clear Interlock"
+        },
+        "type": "ia.input.button"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "borderRadius": "8px",
+        "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
+        "marginBottom": "16px",
+        "marginRight": "16px",
+        "padding": "12px"
+      }
+    },
+    "type": "ia.container.flex"
+  }
+}

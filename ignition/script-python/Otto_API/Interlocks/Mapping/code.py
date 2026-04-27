@@ -228,3 +228,4 @@ def ensurePlcInterlockRow(rowPath):
     # the gateway-backed UDT instance will.
     ensureMemoryTag(rowPath + "/State", "Int4", 0)
     ensureMemoryTag(rowPath + "/ForceZero", "Boolean", False)
+    ensureMemoryTag(rowPath + "/ResetIntlock_HMI_PB", "Boolean", False)
