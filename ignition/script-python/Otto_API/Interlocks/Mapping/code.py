@@ -10,6 +10,7 @@ from Otto_API.Common.TagPaths import getPlcInterlocksPath
 from Otto_API.Common.TagProvisioning import ensureFolder
 from Otto_API.Common.TagProvisioning import ensureMemoryTag
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
+from Otto_API.Interlocks.Helpers import normalizeBool
 
 
 VALID_DIRECTIONS = ["FromFleet", "ToFleet"]
@@ -20,18 +21,6 @@ INTERLOCK_MAPPING_HEADERS = ["FleetName", "PlcTagName", "Direction", "WriteEnabl
 
 def _log():
     return system.util.getLogger("Otto_API.Interlocks.Mapping")
-
-
-def _normalizeBool(value, defaultValue=True):
-    if isinstance(value, bool):
-        return value
-
-    text = str(value or "").strip().lower()
-    if text in ["true", "1", "yes", "on"]:
-        return True
-    if text in ["false", "0", "no", "off"]:
-        return False
-    return bool(defaultValue)
 
 
 def _datasetWithHeaders(headers, rows=None):
@@ -96,7 +85,7 @@ def _normalizeMappingRows(configRows):
         fleetName = normalizeTagValue(row.get("FleetName"))
         plcTagName = normalizeTagValue(row.get("PlcTagName"))
         direction = normalizeTagValue(row.get("Direction"))
-        writeEnable = _normalizeBool(row.get("WriteEnable"), True)
+        writeEnable = normalizeBool(row.get("WriteEnable"), True)
 
         if not fleetName or not plcTagName or not direction:
             warning = "InterlockMapping row [{}] has blank FleetName, PlcTagName, or Direction".format(plcTagName or "<unknown>")
@@ -228,3 +217,4 @@ def ensurePlcInterlockRow(rowPath):
     # Keep the member explicit so the local test shim exposes State the same way
     # the gateway-backed UDT instance will.
     ensureMemoryTag(rowPath + "/State", "Int4", 0)
+    ensureMemoryTag(rowPath + "/ForceZero", "Boolean", False)

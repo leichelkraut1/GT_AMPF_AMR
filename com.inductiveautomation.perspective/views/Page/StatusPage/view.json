@@ -5,21 +5,64 @@
   "root": {
     "children": [
       {
+        "children": [
+          {
+            "meta": {
+              "name": "Title"
+            },
+            "position": {
+              "basis": "0px",
+              "grow": 1
+            },
+            "props": {
+              "params": {
+                "icon": "dashboard",
+                "text": "Status"
+              },
+              "path": "Page/Embedded/Title"
+            },
+            "type": "ia.display.view"
+          },
+          {
+            "events": {
+              "dom": {
+                "onClick": {
+                  "config": {
+                    "script": "\timport Otto_API.Fleet.Refresh\n\tlogger = system.util.getLogger(\"Perspective.StatusPage\")\n\tresult = Otto_API.Fleet.Refresh.refreshFleetData()\n\tlogger.info(\"Refresh Fleet Data - {}\".format(str(result.get(\"message\") or \"completed\")))\n\treturn"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            },
+            "meta": {
+              "name": "RefreshFleetDataButton"
+            },
+            "position": {
+              "basis": "170px",
+              "shrink": 0
+            },
+            "props": {
+              "style": {
+                "marginRight": "8px",
+                "marginTop": "8px"
+              },
+              "text": "Refresh Fleet Data"
+            },
+            "type": "ia.input.button"
+          }
+        ],
         "meta": {
-          "name": "Title"
+          "name": "TitleRow"
         },
         "position": {
           "basis": "56px",
           "shrink": 0
         },
         "props": {
-          "params": {
-            "icon": "dashboard",
-            "text": "Status"
-          },
-          "path": "Page/Embedded/Title"
+          "alignItems": "center"
         },
-        "type": "ia.display.view"
+        "type": "ia.container.flex"
       },
       {
         "meta": {

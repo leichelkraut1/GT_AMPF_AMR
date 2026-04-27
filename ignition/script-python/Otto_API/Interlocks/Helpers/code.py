@@ -9,6 +9,18 @@ def buildInterlockInstanceName(rawName):
     return sanitizeTagName(rawName)
 
 
+def normalizeBool(value, defaultValue=False):
+    if isinstance(value, bool):
+        return value
+
+    text = str(value or "").strip().lower()
+    if text in ["true", "1", "yes", "on"]:
+        return True
+    if text in ["false", "0", "no", "off"]:
+        return False
+    return bool(defaultValue)
+
+
 def childRowNames(basePath):
     """
     Return child folder or UDT-instance names under one collection path.

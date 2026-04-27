@@ -3,12 +3,14 @@ import time
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagIO import readOptionalTagValue
+from Otto_API.Common.TagIO import readOptionalTagValues
 from Otto_API.Common.TagIO import writeObservedTagValue
 from Otto_API.Common.TagPaths import getFleetInterlocksPath
 from Otto_API.Common.TagPaths import getInterlockWritebackRetryMsPath
 from Otto_API.Common.TagPaths import getPlcInterlocksPath
 from Otto_API.Interlocks.Apply import applyInterlockSync
 from Otto_API.Interlocks.Get import getInterlocks
+from Otto_API.Interlocks.Helpers import normalizeBool
 from Otto_API.Interlocks.Mapping import DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS
 from Otto_API.Interlocks.Mapping import readInterlockMappings
 from Otto_API.Interlocks.Post import setInterlockState
@@ -65,6 +67,38 @@ def _clearPendingState(rowPath, logger):
     writeObservedTagValue(rowPath + "/PendingWriteStartedMs", 0, label="Interlock pending-write sync", logger=logger)
 
 
+def _readPlcSnapshot(rows):
+    snapshotByPlcTagName = {}
+    plcTagNames = []
+    tagPaths = []
+    defaultValues = []
+
+    for row in list(rows or []):
+        plcTagName = str(row.get("PlcTagName") or "").strip()
+        if not plcTagName or plcTagName in snapshotByPlcTagName:
+            continue
+
+        snapshotByPlcTagName[plcTagName] = None
+        plcTagNames.append(plcTagName)
+        rowPath = getPlcInterlocksPath() + "/" + plcTagName
+        tagPaths.extend([
+            rowPath + "/State",
+            rowPath + "/ForceZero",
+        ])
+        defaultValues.extend([None, False])
+
+    values = readOptionalTagValues(tagPaths, defaultValues)
+    for index, plcTagName in enumerate(plcTagNames):
+        stateValue = values[(index * 2)] if (index * 2) < len(values) else None
+        forceZeroValue = values[(index * 2) + 1] if ((index * 2) + 1) < len(values) else False
+        snapshotByPlcTagName[plcTagName] = {
+            "state": _toIntOrNone(stateValue),
+            "force_zero": normalizeBool(forceZeroValue, False),
+        }
+
+    return snapshotByPlcTagName
+
+
 def _applyFromFleet(row, instanceNameByRawName, logger):
     fleetName = row.get("FleetName")
     plcTagName = row.get("PlcTagName")
@@ -112,15 +146,27 @@ def _applyFromFleet(row, instanceNameByRawName, logger):
     }
 
 
-def _applyToFleet(row, recordsByName, instanceNameByRawName, duplicateInfoByName, logger):
+def _applyToFleet(
+    row,
+    recordsByName,
+    instanceNameByRawName,
+    duplicateInfoByName,
+    logger,
+    desiredState=None,
+    actionKey="tofleet",
+    actionLabel="ToFleet",
+    ignoreWriteEnable=False,
+    forceZeroActive=False,
+    plcStateOverride=None,
+):
     fleetName = row.get("FleetName")
     plcTagName = row.get("PlcTagName")
     writeEnabled = bool(row.get("WriteEnable", True))
-    if not writeEnabled:
+    if not ignoreWriteEnable and not writeEnabled:
         return {
             "ok": True,
             "level": "info",
-            "message": "ToFleet disabled [{}] because WriteEnable is false".format(fleetName),
+            "message": "{} disabled [{}] because WriteEnable is false".format(actionLabel, fleetName),
             "issues": [],
         }
 
@@ -129,13 +175,16 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, duplicateInfoByName
     fleetState = _toIntOrNone(record.get("state"))
     fleetRowPath = _fleetInterlockRowPath(fleetName, instanceNameByRawName)
     plcStatePath = getPlcInterlocksPath() + "/" + plcTagName + "/State"
-    plcState = _toIntOrNone(readOptionalTagValue(plcStatePath, None))
+    plcState = plcStateOverride
+    if plcState is None and desiredState is None:
+        plcState = _toIntOrNone(readOptionalTagValue(plcStatePath, None))
     nowEpochMs = _nowEpochMs()
     retryMs = _readRetryMs()
+    targetState = desiredState if desiredState is not None else plcState
 
     if not interlockId:
         duplicateInfo = dict(dict(duplicateInfoByName or {}).get(fleetName) or {})
-        message = "ToFleet skipped [{}] because no OTTO interlock record was available".format(fleetName)
+        message = "{} skipped [{}] because no OTTO interlock record was available".format(actionLabel, fleetName)
         if duplicateInfo:
             message += "; Duplicate Interlock Mapping is also present and the later row [{} / {}] won".format(
                 duplicateInfo.get("winning_plc_tag_name"),
@@ -147,7 +196,7 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, duplicateInfoByName
             "message": message,
             "issues": [
                 buildRuntimeIssue(
-                    "interlocks.sync.tofleet.missing_interlock_id.{}".format(fleetName),
+                    "interlocks.sync.{}.missing_interlock_id.{}".format(actionKey, fleetName),
                     "Otto_API.Interlocks.Sync",
                     "warn",
                     message,
@@ -155,14 +204,14 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, duplicateInfoByName
             ],
         }
     if not fleetRowPath:
-        message = "ToFleet skipped [{}] because the Fleet interlock row was not found".format(fleetName)
+        message = "{} skipped [{}] because the Fleet interlock row was not found".format(actionLabel, fleetName)
         return {
             "ok": False,
             "level": "warn",
             "message": message,
             "issues": [
                 buildRuntimeIssue(
-                    "interlocks.sync.tofleet.missing_row.{}".format(fleetName),
+                    "interlocks.sync.{}.missing_row.{}".format(actionKey, fleetName),
                     "Otto_API.Interlocks.Sync",
                     "warn",
                     message,
@@ -170,73 +219,76 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, duplicateInfoByName
             ],
         }
     if fleetState is None:
-        message = "ToFleet skipped [{}] because Fleet state is unreadable".format(fleetName)
+        message = "{} skipped [{}] because Fleet state is unreadable".format(actionLabel, fleetName)
         return {
             "ok": False,
             "level": "warn",
             "message": message,
             "issues": [
                 buildRuntimeIssue(
-                    "interlocks.sync.tofleet.unreadable_fleet_state.{}".format(fleetName),
+                    "interlocks.sync.{}.unreadable_fleet_state.{}".format(actionKey, fleetName),
                     "Otto_API.Interlocks.Sync",
                     "warn",
                     message,
                 )
             ],
         }
-    if plcState is None:
-        message = "ToFleet skipped [{}] because PLC state is unreadable".format(fleetName)
+    if targetState is None:
+        message = "{} skipped [{}] because PLC state is unreadable".format(actionLabel, fleetName)
         return {
             "ok": False,
             "level": "warn",
             "message": message,
             "issues": [
                 buildRuntimeIssue(
-                    "interlocks.sync.tofleet.unreadable_plc_state.{}".format(fleetName),
+                    "interlocks.sync.{}.unreadable_plc_state.{}".format(actionKey, fleetName),
                     "Otto_API.Interlocks.Sync",
                     "warn",
                     message,
                 )
             ],
         }
+
+    if forceZeroActive and plcState is not None and plcState != 0:
+        writeObservedTagValue(plcStatePath, 0, label="Interlock ForceZero PLC sync", logger=logger)
 
     pendingWrite = bool(readOptionalTagValue(fleetRowPath + "/PendingWriteToFleet", False))
     pendingWriteState = _toIntOrNone(readOptionalTagValue(fleetRowPath + "/PendingWriteState", 0))
     pendingWriteStartedMs = _toIntOrNone(readOptionalTagValue(fleetRowPath + "/PendingWriteStartedMs", 0)) or 0
     lastWriteAttemptMs = _toIntOrNone(readOptionalTagValue(fleetRowPath + "/LastWriteAttemptMs", 0)) or 0
 
-    if plcState == fleetState:
+    if targetState == fleetState:
         _clearPendingState(fleetRowPath, logger)
         return {
             "ok": True,
             "level": "info",
-            "message": "ToFleet no-op [{}]; PLC already matches Fleet".format(fleetName),
+            "message": "{} no-op [{}]; target already matches Fleet".format(actionLabel, fleetName),
             "issues": [],
         }
 
-    if pendingWrite and pendingWriteState == plcState and (nowEpochMs - lastWriteAttemptMs) < retryMs:
+    if pendingWrite and pendingWriteState == targetState and (nowEpochMs - lastWriteAttemptMs) < retryMs:
         return {
             "ok": True,
             "level": "info",
-            "message": "ToFleet waiting [{}] for retry backoff".format(fleetName),
+            "message": "{} waiting [{}] for retry backoff".format(actionLabel, fleetName),
             "issues": [],
         }
 
-    if not pendingWrite or pendingWriteState != plcState:
+    if not pendingWrite or pendingWriteState != targetState:
         pendingWriteStartedMs = nowEpochMs
 
-    postResult = setInterlockState(interlockId, plcState, mask=65535)
+    postResult = setInterlockState(interlockId, targetState, mask=65535)
     _writePendingState(
         fleetRowPath,
         True,
-        plcState,
+        targetState,
         pendingWriteStartedMs,
         nowEpochMs,
-        plcState,
+        targetState,
         nowEpochMs,
         logger,
     )
-    message = postResult.get("message") or "ToFleet posted [{}]".format(fleetName)
+    message = postResult.get("message") or "{} posted [{}]".format(actionLabel, fleetName)
     return {
         "ok": bool(postResult.get("ok")),
         "level": postResult.get("level"),
@@ -244,7 +296,7 @@ def _applyToFleet(row, recordsByName, instanceNameByRawName, duplicateInfoByName
         "post_result": postResult,
         "issues": [] if bool(postResult.get("ok")) else [
             buildRuntimeIssue(
-                "interlocks.sync.tofleet.post_failed.{}".format(fleetName),
+                "interlocks.sync.{}.post_failed.{}".format(actionKey, fleetName),
                 "Otto_API.Interlocks.Sync",
                 postResult.get("level"),
                 message,
@@ -274,6 +326,8 @@ def updateInterlocks():
     warnings.extend(list(getResult.get("warnings") or []))
     warnings.extend(list(mappingState.get("warnings") or []))
     duplicateInfoByName = dict(mappingState.get("duplicate_info_by_name") or {})
+    mappingRows = list(mappingState.get("rows") or [])
+    plcSnapshotByTagName = _readPlcSnapshot(mappingRows)
     issues = []
     issues.extend(list(getResult.get("issues") or []))
     issues.extend(list(mappingState.get("issues") or []))
@@ -287,12 +341,42 @@ def updateInterlocks():
         ))
 
     directionalResults = []
-    for row in list(mappingState.get("rows") or []):
+    for row in mappingRows:
         direction = str(row.get("Direction") or "").strip()
-        if direction == "FromFleet":
+        plcTagName = str(row.get("PlcTagName") or "").strip()
+        plcSnapshot = dict(plcSnapshotByTagName.get(plcTagName) or {})
+        plcState = _toIntOrNone(plcSnapshot.get("state"))
+        forceZeroActive = bool(plcSnapshot.get("force_zero"))
+
+        if forceZeroActive:
+            directionalResults.append(
+                _applyToFleet(
+                    row,
+                    recordsByName,
+                    instanceNameByRawName,
+                    duplicateInfoByName,
+                    logger,
+                    desiredState=0,
+                    actionKey="forcezero",
+                    actionLabel="ForceZero",
+                    ignoreWriteEnable=True,
+                    forceZeroActive=True,
+                    plcStateOverride=plcState,
+                )
+            )
+        elif direction == "FromFleet":
             directionalResults.append(_applyFromFleet(row, instanceNameByRawName, logger))
         elif direction == "ToFleet":
-            directionalResults.append(_applyToFleet(row, recordsByName, instanceNameByRawName, duplicateInfoByName, logger))
+            directionalResults.append(
+                _applyToFleet(
+                    row,
+                    recordsByName,
+                    instanceNameByRawName,
+                    duplicateInfoByName,
+                    logger,
+                    plcStateOverride=plcState,
+                )
+            )
 
     for directionalResult in list(directionalResults or []):
         if not directionalResult.get("ok"):
