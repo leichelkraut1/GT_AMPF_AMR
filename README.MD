@@ -388,6 +388,7 @@ formatted with:
 
 - `LF` line endings
 - tab-indented block lines inside `onTagChange.py`
+- no trailing blank line / no extra newline at end of file
 
 Normal library code under:
 
@@ -447,6 +448,17 @@ Get-ChildItem "ignition/tag-change" -Recurse -Filter "onTagChange.py" | ForEach-
         }
     }
     [System.IO.File]::WriteAllLines($_.FullName, $updated, (New-Object System.Text.UTF8Encoding($false)))
+}
+```
+
+If the tag-change scripts need the trailing blank line removed as well:
+
+```powershell
+Get-ChildItem "ignition/tag-change" -Recurse -Filter "onTagChange.py" | ForEach-Object {
+    $text = [System.IO.File]::ReadAllText($_.FullName)
+    $text = $text -replace "`r`n", "`n"
+    $text = $text -replace "(`n)+\z", ""
+    [System.IO.File]::WriteAllText($_.FullName, $text, (New-Object System.Text.UTF8Encoding($false)))
 }
 ```
 
