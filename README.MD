@@ -409,4 +409,45 @@ The submodule root now includes:
 
 to keep those formatting rules explicit.
 
+When working in this submodule on Windows, also make sure the local Git config
+does not fight the LF policy:
+
+```powershell
+git config core.autocrlf false
+git config core.eol lf
+```
+
+Recommended tag-change normalization flow from the `GT_AMPF_AMR` repo root:
+
+```powershell
+git config core.autocrlf false
+git config core.eol lf
+
+Get-ChildItem "ignition/tag-change" -Recurse -Filter "onTagChange.py" | ForEach-Object {
+    $text = [System.IO.File]::ReadAllText($_.FullName)
+    $text = $text -replace "`r`n", "`n"
+    [System.IO.File]::WriteAllText($_.FullName, $text, (New-Object System.Text.UTF8Encoding($false)))
+}
+```
+
+If tab indentation also needs to be restored for tag-change scripts:
+
+```powershell
+Get-ChildItem "ignition/tag-change" -Recurse -Filter "onTagChange.py" | ForEach-Object {
+    $lines = [System.IO.File]::ReadAllLines($_.FullName)
+    $updated = foreach ($line in $lines) {
+        if ($line -match '^( +)') {
+            $indent = $matches[1]
+            $rest = $line.Substring($indent.Length)
+            $tabs = "`t" * [int]($indent.Length / 4)
+            $spaces = " " * ($indent.Length % 4)
+            "$tabs$spaces$rest"
+        } else {
+            $line
+        }
+    }
+    [System.IO.File]::WriteAllLines($_.FullName, $updated, (New-Object System.Text.UTF8Encoding($false)))
+}
+```
+
 
