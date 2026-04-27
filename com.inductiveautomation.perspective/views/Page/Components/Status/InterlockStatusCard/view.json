@@ -116,16 +116,17 @@
   },
   "props": {
     "defaultSize": {
-      "height": 168,
-      "width": 228
+      "height": 174,
+      "width": 248
     },
     "direction": "column",
     "style": {
-      "borderRadius": "8px",
-      "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
-      "marginBottom": "16px",
-      "marginRight": "16px",
-      "padding": "12px"
+      "borderRadius": "12px",
+      "boxShadow": "0 6px 18px rgba(0,0,0,0.08)",
+      "marginBottom": "14px",
+      "marginRight": "14px",
+      "minHeight": "168px",
+      "padding": "14px"
     }
   },
   "root": {
@@ -135,7 +136,7 @@
           "name": "Title"
         },
         "position": {
-          "basis": "34px",
+          "basis": "40px",
           "shrink": 0
         },
         "propConfig": {
@@ -158,9 +159,9 @@
         },
         "props": {
           "style": {
-            "fontSize": "15px",
+            "fontSize": "18px",
             "fontWeight": "700",
-            "lineHeight": "1.2",
+            "lineHeight": "1.15",
             "whiteSpace": "normal",
             "wordBreak": "break-word"
           }
@@ -168,169 +169,277 @@
         "type": "ia.display.label"
       },
       {
+        "children": [
+          {
+            "meta": {
+              "name": "StateLabel"
+            },
+            "position": {
+              "shrink": 0
+            },
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themeMutedText"
+                  },
+                  "type": "property"
+                }
+              }
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "lineHeight": "1.2"
+              },
+              "text": "State:"
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "name": "StateValue"
+            },
+            "position": {
+              "grow": 1
+            },
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "fallbackDelay": 2.5,
+                    "mode": "indirect",
+                    "references": {
+                      "1": "{view.params.fleetInstanceName}"
+                    },
+                    "tagPath": "[Otto_FleetManager]Fleet/Interlocks/{1}/State"
+                  },
+                  "transforms": [
+                    {
+                      "code": "\tif value is None:\n\t\treturn \"#64748b\"\n\ttry:\n\t\tstate = int(value)\n\texcept Exception:\n\t\treturn \"#64748b\"\n\tif state == 0:\n\t\treturn \"#166534\"\n\treturn \"#b45309\"",
+                      "type": "script"
+                    }
+                  ],
+                  "type": "tag"
+                }
+              },
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "fallbackDelay": 2.5,
+                    "mode": "indirect",
+                    "references": {
+                      "1": "{view.params.fleetInstanceName}"
+                    },
+                    "tagPath": "[Otto_FleetManager]Fleet/Interlocks/{1}/State"
+                  },
+                  "transforms": [
+                    {
+                      "expression": "if(isNull({value}), \"-\", toStr({value}))",
+                      "type": "expression"
+                    }
+                  ],
+                  "type": "tag"
+                }
+              }
+            },
+            "props": {
+              "style": {
+                "fontSize": "30px",
+                "fontWeight": "700",
+                "lineHeight": "1"
+              }
+            },
+            "type": "ia.display.label"
+          }
+        ],
         "meta": {
-          "name": "StateLabel"
+          "name": "StateRow"
         },
         "position": {
-          "basis": "16px",
+          "basis": "38px",
           "shrink": 0
         },
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
-            }
+        "props": {
+          "alignItems": "baseline",
+          "style": {
+            "columnGap": "6px",
+            "marginTop": "2px"
           }
         },
-        "props": {
-          "style": {
-            "fontSize": "11px",
-            "fontWeight": "700",
-            "textTransform": "uppercase"
-          },
-          "text": "State"
-        },
-        "type": "ia.display.label"
+        "type": "ia.container.flex"
       },
       {
+        "children": [
+          {
+            "meta": {
+              "name": "IdLabel"
+            },
+            "position": {
+              "shrink": 0
+            },
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themeMutedText"
+                  },
+                  "type": "property"
+                }
+              }
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "lineHeight": "1.2"
+              },
+              "text": "ID:"
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "name": "IdValue"
+            },
+            "position": {
+              "grow": 1
+            },
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              },
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "fallbackDelay": 2.5,
+                    "mode": "indirect",
+                    "references": {
+                      "1": "{view.params.fleetInstanceName}"
+                    },
+                    "tagPath": "[Otto_FleetManager]Fleet/Interlocks/{1}/ID"
+                  },
+                  "transforms": [
+                    {
+                      "expression": "if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                      "type": "expression"
+                    }
+                  ],
+                  "type": "tag"
+                }
+              }
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "fontWeight": "600",
+                "lineHeight": "1.2",
+                "whiteSpace": "normal",
+                "wordBreak": "break-all"
+              }
+            },
+            "type": "ia.display.label"
+          }
+        ],
         "meta": {
-          "name": "StateValue"
+          "name": "IdRow"
         },
         "position": {
-          "basis": "28px",
+          "basis": "30px",
           "shrink": 0
         },
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "fallbackDelay": 2.5,
-                "mode": "indirect",
-                "references": {
-                  "1": "{view.params.fleetInstanceName}"
-                },
-                "tagPath": "[Otto_FleetManager]Fleet/Interlocks/{1}/State"
-              },
-              "transforms": [
-                {
-                  "code": "\tif value is None:\n\t\treturn \"#64748b\"\n\ttry:\n\t\tstate = int(value)\n\texcept Exception:\n\t\treturn \"#64748b\"\n\tif state == 0:\n\t\treturn \"#166534\"\n\treturn \"#b45309\"",
-                  "type": "script"
-                }
-              ],
-              "type": "tag"
-            }
-          },
-          "props.text": {
-            "binding": {
-              "config": {
-                "fallbackDelay": 2.5,
-                "mode": "indirect",
-                "references": {
-                  "1": "{view.params.fleetInstanceName}"
-                },
-                "tagPath": "[Otto_FleetManager]Fleet/Interlocks/{1}/State"
-              },
-              "transforms": [
-                {
-                  "expression": "if(isNull({value}), \"-\", toStr({value}))",
-                  "type": "expression"
-                }
-              ],
-              "type": "tag"
-            }
-          }
-        },
         "props": {
+          "alignItems": "baseline",
           "style": {
-            "fontSize": "22px",
-            "fontWeight": "700"
+            "columnGap": "4px",
+            "marginTop": "4px"
           }
         },
-        "type": "ia.display.label"
+        "type": "ia.container.flex"
       },
       {
-        "meta": {
-          "name": "IdValue"
-        },
-        "position": {
-          "basis": "18px",
-          "shrink": 0
-        },
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
-            }
-          },
-          "props.text": {
-            "binding": {
-              "config": {
-                "fallbackDelay": 2.5,
-                "mode": "indirect",
-                "references": {
-                  "1": "{view.params.fleetInstanceName}"
-                },
-                "tagPath": "[Otto_FleetManager]Fleet/Interlocks/{1}/ID"
-              },
-              "transforms": [
-                {
-                  "expression": "if(isNull({value}) || len(trim(toStr({value}))) = 0, \"ID: -\", \"ID: \" + toStr({value}))",
-                  "type": "expression"
+        "children": [
+          {
+            "meta": {
+              "name": "PlcLabel"
+            },
+            "position": {
+              "shrink": 0
+            },
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themeMutedText"
+                  },
+                  "type": "property"
                 }
-              ],
-              "type": "tag"
-            }
+              }
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "lineHeight": "1.2"
+              },
+              "text": "PLC:"
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "name": "PlcValue"
+            },
+            "position": {
+              "grow": 1
+            },
+            "propConfig": {
+              "props.style.color": {
+                "binding": {
+                  "config": {
+                    "path": "view.custom.themePrimaryText"
+                  },
+                  "type": "property"
+                }
+              },
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "if(len(trim(toStr({view.params.plcTagName}))) = 0, \"-\", toStr({view.params.plcTagName}))"
+                  },
+                  "type": "expr"
+                }
+              }
+            },
+            "props": {
+              "style": {
+                "fontSize": "13px",
+                "fontWeight": "600",
+                "lineHeight": "1.2",
+                "whiteSpace": "normal",
+                "wordBreak": "break-word"
+              }
+            },
+            "type": "ia.display.label"
           }
-        },
-        "props": {
-          "style": {
-            "fontSize": "12px",
-            "whiteSpace": "normal",
-            "wordBreak": "break-all"
-          }
-        },
-        "type": "ia.display.label"
-      },
-      {
+        ],
         "meta": {
-          "name": "PlcValue"
+          "name": "PlcRow"
         },
         "position": {
-          "basis": "18px",
+          "basis": "30px",
           "shrink": 0
         },
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
-            }
-          },
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"PLC: \" + if(len(trim(toStr({view.params.plcTagName}))) = 0, \"-\", toStr({view.params.plcTagName}))"
-              },
-              "type": "expr"
-            }
-          }
-        },
         "props": {
+          "alignItems": "baseline",
           "style": {
-            "fontSize": "12px",
-            "whiteSpace": "normal",
-            "wordBreak": "break-word"
+            "columnGap": "4px"
           }
         },
-        "type": "ia.display.label"
+        "type": "ia.container.flex"
       },
       {
         "events": {
@@ -363,7 +472,7 @@
         },
         "props": {
           "style": {
-            "marginTop": "8px"
+            "marginTop": "10px"
           },
           "text": "Clear Interlock"
         },
