@@ -69,7 +69,7 @@ def httpGet(url, headerValues=None):
     try:
         response = system.net.httpGet(
             url=url,
-            bypassCertValidation=True,
+            bypassCertValidation=False,
             headerValues=headerValues or jsonHeaders(),
         )
         _logHttpHistory("GET", url, "", response, True, startEpochMs)
@@ -87,7 +87,7 @@ def httpPost(url, postData, contentType="application/json", headerValues=None):
             postData=postData,
             contentType=contentType,
             headerValues=headerValues or {"Accept": "application/json"},
-            bypassCertValidation=True,
+            bypassCertValidation=False,
         )
         _logHttpHistory("POST", url, postData, response, True, startEpochMs)
         return response
