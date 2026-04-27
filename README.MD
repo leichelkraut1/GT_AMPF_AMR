@@ -378,4 +378,35 @@ in the same folder.
 Without it, the local repo may look fine but the Ignition gateway may not recognize
 the new module and imports will fail at runtime.
 
+## Tag-Change Script Formatting
+
+For this project, keep Ignition tag-change scripts under:
+
+- `ignition/tag-change/...`
+
+formatted with:
+
+- `LF` line endings
+- tab-indented block lines inside `onTagChange.py`
+
+Normal library code under:
+
+- `ignition/script-python/...`
+
+should stay on the regular project style:
+
+- `LF` line endings
+- 4-space indentation
+
+This is not just a style preference. The Ignition Designer has been observed to
+complain about some tag-change resources when they are saved with `CRLF` line
+endings or space-indented blocks, even when equivalent library scripts are fine.
+
+The submodule root now includes:
+
+- `.gitattributes`
+- `.editorconfig`
+
+to keep those formatting rules explicit.
+
 
