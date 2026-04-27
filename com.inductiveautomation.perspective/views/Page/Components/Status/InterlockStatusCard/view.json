@@ -116,17 +116,17 @@
   },
   "props": {
     "defaultSize": {
-      "height": 174,
+      "height": 188,
       "width": 248
     },
     "direction": "column",
     "style": {
-      "borderRadius": "12px",
-      "boxShadow": "0 6px 18px rgba(0,0,0,0.08)",
-      "marginBottom": "14px",
-      "marginRight": "14px",
-      "minHeight": "168px",
-      "padding": "14px"
+      "borderRadius": "14px",
+      "boxShadow": "0 8px 22px rgba(0,0,0,0.08)",
+      "marginBottom": "10px",
+      "marginRight": "18px",
+      "minHeight": "182px",
+      "padding": "12px"
     }
   },
   "root": {
@@ -257,11 +257,11 @@
           "name": "StateRow"
         },
         "position": {
-          "basis": "38px",
+          "basis": "42px",
           "shrink": 0
         },
         "props": {
-          "alignItems": "baseline",
+          "alignItems": "center",
           "style": {
             "columnGap": "6px",
             "marginTop": "2px"
