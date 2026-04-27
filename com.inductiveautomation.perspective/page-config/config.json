@@ -30,9 +30,11 @@
       "viewPath": "Page/History/RobotHistory"
     },
     "/statusboard": {
+      "title": "",
       "viewPath": "Page/StatusBoardPage"
     },
     "/statuspage": {
+      "title": "",
       "viewPath": "Page/StatusPage"
     }
   },
