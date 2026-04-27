@@ -81,7 +81,7 @@
     "props.style.backgroundColor": {
       "binding": {
         "config": {
-          "path": "view.custom.themeSurfaceBg"
+          "path": "view.custom.themeSurfaceBorder"
         },
         "type": "property"
       }
@@ -106,7 +106,7 @@
         },
         "transforms": [
           {
-            "code": "\tif value is None:\n\t\treturn \"6px solid #64748b\"\n\ttry:\n\t\tstate = int(value)\n\texcept Exception:\n\t\treturn \"6px solid #64748b\"\n\tif state == 0:\n\t\treturn \"6px solid #166534\"\n\treturn \"6px solid #b45309\"",
+            "code": "\tif value is None:\n\t\treturn \"6px solid #64748b\"\n\ttry:\n\t\tstate \u003d int(value)\n\texcept Exception:\n\t\treturn \"6px solid #64748b\"\n\tif state \u003d\u003d 0:\n\t\treturn \"6px solid #166534\"\n\treturn \"6px solid #b45309\"",
             "type": "script"
           }
         ],
@@ -116,8 +116,8 @@
   },
   "props": {
     "defaultSize": {
-      "height": 188,
-      "width": 248
+      "height": 235,
+      "width": 232
     },
     "direction": "column",
     "style": {
@@ -151,7 +151,7 @@
           "props.text": {
             "binding": {
               "config": {
-                "expression": "if(len(trim(toStr({view.params.title}))) = 0, toStr({view.params.fleetInstanceName}), toStr({view.params.title}))"
+                "expression": "if(len(trim(toStr({view.params.title}))) \u003d 0, toStr({view.params.fleetInstanceName}), toStr({view.params.title}))"
               },
               "type": "expr"
             }
@@ -216,7 +216,7 @@
                   },
                   "transforms": [
                     {
-                      "code": "\tif value is None:\n\t\treturn \"#64748b\"\n\ttry:\n\t\tstate = int(value)\n\texcept Exception:\n\t\treturn \"#64748b\"\n\tif state == 0:\n\t\treturn \"#166534\"\n\treturn \"#b45309\"",
+                      "code": "\tif value is None:\n\t\treturn \"#64748b\"\n\ttry:\n\t\tstate \u003d int(value)\n\texcept Exception:\n\t\treturn \"#64748b\"\n\tif state \u003d\u003d 0:\n\t\treturn \"#166534\"\n\treturn \"#b45309\"",
                       "type": "script"
                     }
                   ],
@@ -325,7 +325,7 @@
                   },
                   "transforms": [
                     {
-                      "expression": "if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                      "expression": "if(isNull({value}) || len(trim(toStr({value}))) \u003d 0, \"-\", toStr({value}))",
                       "type": "expression"
                     }
                   ],
@@ -408,7 +408,7 @@
               "props.text": {
                 "binding": {
                   "config": {
-                    "expression": "if(len(trim(toStr({view.params.plcTagName}))) = 0, \"-\", toStr({view.params.plcTagName}))"
+                    "expression": "if(len(trim(toStr({view.params.plcTagName}))) \u003d 0, \"-\", toStr({view.params.plcTagName}))"
                   },
                   "type": "expr"
                 }
@@ -446,7 +446,7 @@
           "dom": {
             "onClick": {
               "config": {
-                "script": "\tplcTagName = str(self.view.params.plcTagName or \"\").strip()\n\tif not plcTagName:\n\t\treturn\n\tsystem.tag.writeBlocking([\"[Otto_FleetManager]PLC/Interlocks/%s/ResetIntlock_HMI_PB\" % plcTagName], [1])"
+                "script": "\tplcTagName \u003d str(self.view.params.plcTagName or \"\").strip()\n\tif not plcTagName:\n\t\treturn\n\tsystem.tag.writeBlocking([\"[Otto_FleetManager]PLC/Interlocks/%s/ResetIntlock_HMI_PB\" % plcTagName], [1])"
               },
               "scope": "G",
               "type": "script"
@@ -464,7 +464,7 @@
           "props.enabled": {
             "binding": {
               "config": {
-                "expression": "len(trim(toStr({view.params.plcTagName}))) > 0"
+                "expression": "len(trim(toStr({view.params.plcTagName}))) \u003e 0"
               },
               "type": "expr"
             }
@@ -481,6 +481,32 @@
     ],
     "meta": {
       "name": "root"
+    },
+    "propConfig": {
+      "props.style.backgroundColor": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBg"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.border": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBorder"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.color": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themePrimaryText"
+          },
+          "type": "property"
+        }
+      }
     },
     "props": {
       "direction": "column",

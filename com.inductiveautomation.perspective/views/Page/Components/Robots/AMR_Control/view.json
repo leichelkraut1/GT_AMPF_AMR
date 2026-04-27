@@ -1,28 +1,12 @@
 {
   "custom": {
-    "RVTagName": "AMPF_AMR_RV1",
     "PlcRobotTagName": "AMPF_AMR_RV1",
-    "themePrimaryText": "#111827",
-    "themeMutedText": "#6b7280",
-    "themeSurfaceBg": "#f9fafb",
-    "themeSurfaceAltBg": "#f3f4f6",
-    "themeSurfaceBorder": "1px solid #d1d5db",
-    "themeDividerBorder": "1px solid #d1d5db",
-    "themeTableDividerBorder": "1px solid #9ca3af"
+    "RVTagName": "AMPF_AMR_RV1"
   },
   "params": {
     "RVNum": 1
   },
   "propConfig": {
-    "custom.RVTagName": {
-      "binding": {
-        "config": {
-          "expression": "\"AMPF_AMR_RV\"+{view.params.RVNum}"
-        },
-        "type": "expr"
-      },
-      "persistent": true
-    },
     "custom.PlcRobotTagName": {
       "binding": {
         "config": {
@@ -32,18 +16,23 @@
       },
       "persistent": true
     },
-    "params.RVNum": {
-      "paramDirection": "input",
+    "custom.RVTagName": {
+      "binding": {
+        "config": {
+          "expression": "\"AMPF_AMR_RV\"+{view.params.RVNum}"
+        },
+        "type": "expr"
+      },
       "persistent": true
     },
-    "custom.themePrimaryText": {
+    "custom.themeDividerBorder": {
       "binding": {
         "config": {
           "path": "session.props.theme"
         },
         "transforms": [
           {
-            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
             "type": "script"
           }
         ],
@@ -66,14 +55,14 @@
       },
       "persistent": false
     },
-    "custom.themeSurfaceBg": {
+    "custom.themePrimaryText": {
       "binding": {
         "config": {
           "path": "session.props.theme"
         },
         "transforms": [
           {
-            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
             "type": "script"
           }
         ],
@@ -96,14 +85,14 @@
       },
       "persistent": false
     },
-    "custom.themeSurfaceBorder": {
+    "custom.themeSurfaceBg": {
       "binding": {
         "config": {
           "path": "session.props.theme"
         },
         "transforms": [
           {
-            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
             "type": "script"
           }
         ],
@@ -111,7 +100,7 @@
       },
       "persistent": false
     },
-    "custom.themeDividerBorder": {
+    "custom.themeSurfaceBorder": {
       "binding": {
         "config": {
           "path": "session.props.theme"
@@ -140,6 +129,10 @@
         "type": "property"
       },
       "persistent": false
+    },
+    "params.RVNum": {
+      "paramDirection": "input",
+      "persistent": true
     }
   },
   "props": {
@@ -159,20 +152,20 @@
           "shrink": 0
         },
         "propConfig": {
-          "props.text": {
-            "binding": {
-              "config": {
-                "expression": "\"RV\"+{view.params.RVNum}"
-              },
-              "type": "expr"
-            }
-          },
           "props.style.color": {
             "binding": {
               "config": {
                 "path": "view.custom.themePrimaryText"
               },
               "type": "property"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"RV\"+{view.params.RVNum}"
+              },
+              "type": "expr"
             }
           }
         },
@@ -250,6 +243,14 @@
           "shrink": 0
         },
         "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          },
           "props.text": {
             "binding": {
               "config": {
@@ -262,19 +263,11 @@
               },
               "transforms": [
                 {
-                  "expression": "\"Not Ready Reason: \" + if(isNull({value}) || len(toStr({value})) = 0, \"-\", toStr({value}))",
+                  "expression": "\"Not Ready Reason: \" + if(isNull({value}) || len(toStr({value})) \u003d 0, \"-\", toStr({value}))",
                   "type": "expression"
                 }
               ],
               "type": "tag"
-            }
-          },
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
             }
           }
         },
@@ -480,7 +473,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"Place Name: \" + if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                  "expression": "\"Place Name: \" + if(isNull({value}) || len(trim(toStr({value}))) \u003d 0, \"-\", toStr({value}))",
                   "type": "expression"
                 }
               ],
@@ -575,6 +568,24 @@
           "basis": "28px",
           "shrink": 0
         },
+        "propConfig": {
+          "props.style.borderTop": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeDividerBorder"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        },
         "props": {
           "style": {
             "fontSize": "12px",
@@ -585,25 +596,7 @@
           },
           "text": "PLC Interlocks"
         },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
-            }
-          },
-          "props.style.borderTop": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeDividerBorder"
-              },
-              "type": "property"
-            }
-          }
-        }
+        "type": "ia.display.label"
       },
       {
         "meta": {
@@ -662,7 +655,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"Requested Workflow: \" + if(isNull({value}) || toInt({value}) <= 0, \"-\", toStr({value}))",
+                  "expression": "\"Requested Workflow: \" + if(isNull({value}) || toInt({value}) \u003c\u003d 0, \"-\", toStr({value}))",
                   "type": "expression"
                 }
               ],
@@ -698,7 +691,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"Active Workflow: \" + if(isNull({value}) || toInt({value}) <= 0, \"-\", toStr({value}))",
+                  "expression": "\"Active Workflow: \" + if(isNull({value}) || toInt({value}) \u003c\u003d 0, \"-\", toStr({value}))",
                   "type": "expression"
                 }
               ],
@@ -793,15 +786,6 @@
           "basis": "20px",
           "shrink": 0
         },
-        "props": {
-          "style": {
-            "fontSize": "12px",
-            "fontWeight": "700",
-            "paddingTop": "4px"
-          },
-          "text": "Mission Control Status"
-        },
-        "type": "ia.display.label",
         "propConfig": {
           "props.style.color": {
             "binding": {
@@ -811,7 +795,16 @@
               "type": "property"
             }
           }
-        }
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "paddingTop": "4px"
+          },
+          "text": "Mission Control Status"
+        },
+        "type": "ia.display.label"
       },
       {
         "meta": {
@@ -834,7 +827,7 @@
               },
               "transforms": [
                 {
-                  "expression": "if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                  "expression": "if(isNull({value}) || len(trim(toStr({value}))) \u003d 0, \"-\", toStr({value}))",
                   "type": "expression"
                 }
               ],
@@ -859,6 +852,24 @@
           "basis": "28px",
           "shrink": 0
         },
+        "propConfig": {
+          "props.style.borderTop": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeDividerBorder"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        },
         "props": {
           "style": {
             "fontSize": "12px",
@@ -869,25 +880,7 @@
           },
           "text": "Current Mission"
         },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
-            }
-          },
-          "props.style.borderTop": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeDividerBorder"
-              },
-              "type": "property"
-            }
-          }
-        }
+        "type": "ia.display.label"
       },
       {
         "meta": {
@@ -897,15 +890,6 @@
           "basis": "20px",
           "shrink": 0
         },
-        "props": {
-          "style": {
-            "fontSize": "12px",
-            "fontWeight": "700",
-            "paddingTop": "2px"
-          },
-          "text": "Mission Name"
-        },
-        "type": "ia.display.label",
         "propConfig": {
           "props.style.color": {
             "binding": {
@@ -915,7 +899,16 @@
               "type": "property"
             }
           }
-        }
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "paddingTop": "2px"
+          },
+          "text": "Mission Name"
+        },
+        "type": "ia.display.label"
       },
       {
         "meta": {
@@ -938,7 +931,7 @@
               },
               "transforms": [
                 {
-                  "expression": "if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                  "expression": "if(isNull({value}) || len(trim(toStr({value}))) \u003d 0, \"-\", toStr({value}))",
                   "type": "expression"
                 }
               ],
@@ -964,14 +957,6 @@
           "basis": "20px",
           "shrink": 0
         },
-        "props": {
-          "style": {
-            "fontSize": "12px",
-            "fontWeight": "700"
-          },
-          "text": "Mission Status"
-        },
-        "type": "ia.display.label",
         "propConfig": {
           "props.style.color": {
             "binding": {
@@ -981,7 +966,15 @@
               "type": "property"
             }
           }
-        }
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "fontWeight": "700"
+          },
+          "text": "Mission Status"
+        },
+        "type": "ia.display.label"
       },
       {
         "meta": {
@@ -1004,7 +997,7 @@
               },
               "transforms": [
                 {
-                  "expression": "if(isNull({value}) || len(trim(toStr({value}))) = 0, \"-\", toStr({value}))",
+                  "expression": "if(isNull({value}) || len(trim(toStr({value}))) \u003d 0, \"-\", toStr({value}))",
                   "type": "expression"
                 }
               ],
@@ -1027,6 +1020,24 @@
           "basis": "28px",
           "shrink": 0
         },
+        "propConfig": {
+          "props.style.borderTop": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeDividerBorder"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        },
         "props": {
           "style": {
             "fontSize": "12px",
@@ -1037,25 +1048,7 @@
           },
           "text": "Manual Workflow"
         },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeMutedText"
-              },
-              "type": "property"
-            }
-          },
-          "props.style.borderTop": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themeDividerBorder"
-              },
-              "type": "property"
-            }
-          }
-        }
+        "type": "ia.display.label"
       },
       {
         "meta": {
@@ -1104,7 +1097,7 @@
               },
               "transforms": [
                 {
-                  "code": "\toptions = [{\"value\": 0, \"label\": \"No manual workflow\"}]\n\toptionsByWorkflow = {}\n\trobotName = \"AMPF_AMR_RV{}\".format(self.view.params.RVNum)\n\tif hasattr(value, \"getRowCount\"):\n\t\tfor rowIndex in range(value.getRowCount()):\n\t\t\trowRobot = str(value.getValueAt(rowIndex, \"RobotName\") or \"\").strip()\n\t\t\tif rowRobot != robotName:\n\t\t\t\tcontinue\n\t\t\ttry:\n\t\t\t\tworkflowNumber = int(value.getValueAt(rowIndex, \"WorkflowNumber\"))\n\t\t\texcept Exception:\n\t\t\t\tcontinue\n\t\t\tif workflowNumber <= 0:\n\t\t\t\tcontinue\n\t\t\tmissionLabel = str(value.getValueAt(rowIndex, \"MissionLabel\") or \"\").strip()\n\t\t\toptionsByWorkflow[workflowNumber] = {\n\t\t\t\t\"value\": workflowNumber,\n\t\t\t\t\"label\": \"WF {} - {}\".format(workflowNumber, missionLabel or \"-\")\n\t\t\t}\n\tfor key in sorted(optionsByWorkflow.keys()):\n\t\toptions.append(optionsByWorkflow[key])\n\treturn options",
+                  "code": "\toptions \u003d [{\"value\": 0, \"label\": \"No manual workflow\"}]\n\toptionsByWorkflow \u003d {}\n\trobotName \u003d \"AMPF_AMR_RV{}\".format(self.view.params.RVNum)\n\tif hasattr(value, \"getRowCount\"):\n\t\tfor rowIndex in range(value.getRowCount()):\n\t\t\trowRobot \u003d str(value.getValueAt(rowIndex, \"RobotName\") or \"\").strip()\n\t\t\tif rowRobot !\u003d robotName:\n\t\t\t\tcontinue\n\t\t\ttry:\n\t\t\t\tworkflowNumber \u003d int(value.getValueAt(rowIndex, \"WorkflowNumber\"))\n\t\t\texcept Exception:\n\t\t\t\tcontinue\n\t\t\tif workflowNumber \u003c\u003d 0:\n\t\t\t\tcontinue\n\t\t\tmissionLabel \u003d str(value.getValueAt(rowIndex, \"MissionLabel\") or \"\").strip()\n\t\t\toptionsByWorkflow[workflowNumber] \u003d {\n\t\t\t\t\"value\": workflowNumber,\n\t\t\t\t\"label\": \"WF {} - {}\".format(workflowNumber, missionLabel or \"-\")\n\t\t\t}\n\tfor key in sorted(optionsByWorkflow.keys()):\n\t\toptions.append(optionsByWorkflow[key])\n\treturn options",
                   "type": "script"
                 }
               ],
@@ -1134,23 +1127,23 @@
         "type": "ia.input.dropdown"
       },
       {
+        "events": {
+          "dom": {
+            "onClick": {
+              "config": {
+                "script": "\tplcTagName \u003d str(self.view.custom.PlcRobotTagName or \"\").strip()\n\tif not plcTagName:\n\t\treturn\n\tsystem.tag.writeBlocking([\"[Otto_FleetManager]PLC/Robots/%s/HMI/WF_NumManual\" % plcTagName], [0])"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
         "meta": {
           "name": "ClearWFNumManualButton"
         },
         "position": {
           "basis": "34px",
           "shrink": 0
-        },
-        "events": {
-          "dom": {
-            "onClick": {
-              "config": {
-                "script": "\tplcTagName = str(self.view.custom.PlcRobotTagName or \"\").strip()\n\tif not plcTagName:\n\t\treturn\n\tsystem.tag.writeBlocking([\"[Otto_FleetManager]PLC/Robots/%s/HMI/WF_NumManual\" % plcTagName], [0])"
-              },
-              "scope": "G",
-              "type": "script"
-            }
-          }
         },
         "props": {
           "text": "Clear Mission Selection"
@@ -1219,26 +1212,7 @@
     "meta": {
       "name": "root"
     },
-    "props": {
-      "direction": "column",
-      "style": {
-        "borderRadius": "8px",
-        "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
-        "marginBottom": "16px",
-        "marginRight": "16px",
-        "padding": "12px"
-      }
-    },
-    "type": "ia.container.flex",
     "propConfig": {
-      "props.style.color": {
-        "binding": {
-          "config": {
-            "path": "view.custom.themePrimaryText"
-          },
-          "type": "property"
-        }
-      },
       "props.style.backgroundColor": {
         "binding": {
           "config": {
@@ -1254,7 +1228,26 @@
           },
           "type": "property"
         }
+      },
+      "props.style.color": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themePrimaryText"
+          },
+          "type": "property"
+        }
       }
-    }
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "borderRadius": "8px",
+        "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
+        "marginBottom": "16px",
+        "marginRight": "16px",
+        "padding": "12px"
+      }
+    },
+    "type": "ia.container.flex"
   }
 }
