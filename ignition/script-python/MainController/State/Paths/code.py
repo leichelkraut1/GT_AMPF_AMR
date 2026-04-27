@@ -126,6 +126,7 @@ def runtimePaths():
         "base": RUNTIME_BASE,
         "loop_is_running": RUNTIME_BASE + "/LoopIsRunning",
         "loop_last_start_ts": RUNTIME_BASE + "/LoopLastStartTs",
+        "loop_retry_after_ts": RUNTIME_BASE + "/LoopRetryAfterTs",
         "loop_last_end_ts": RUNTIME_BASE + "/LoopLastEndTs",
         "loop_last_duration_ms": RUNTIME_BASE + "/LoopLastDurationMs",
         "loop_last_result": RUNTIME_BASE + "/LoopLastResult",

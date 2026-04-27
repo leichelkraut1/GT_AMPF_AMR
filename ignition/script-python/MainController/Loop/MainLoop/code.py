@@ -19,10 +19,17 @@ def _isStaleRunningLoop(runtimeState, nowEpochMs):
     if not bool(dict(runtimeState or {}).get("loop_is_running")):
         return False
 
+    retryAfterText = str(dict(runtimeState or {}).get("loop_retry_after_ts") or "").strip()
+    if retryAfterText:
+        try:
+            retryAfterEpochMs = _parseRuntimeTimestampToEpochMillis(retryAfterText)
+            return int(nowEpochMs) >= retryAfterEpochMs
+        except Exception:
+            pass
+
     lastStartText = str(dict(runtimeState or {}).get("loop_last_start_ts") or "").strip()
     if not lastStartText:
         return True
-
     try:
         startEpochMs = _parseRuntimeTimestampToEpochMillis(lastStartText)
     except Exception:
@@ -45,6 +52,7 @@ def _resetStaleRunningLoop(runtimeState, nowEpochMs):
 
     writeRuntimeFields({
         "loop_is_running": False,
+        "loop_retry_after_ts": "",
         "loop_last_end_ts": timestampString(endEpochMs),
         "loop_last_duration_ms": durationMs,
         "loop_last_result": "stale_reset",
@@ -98,6 +106,7 @@ def runMainControllerCycle(
     writeRuntimeFields({
         "loop_is_running": True,
         "loop_last_start_ts": timestampString(startEpochMs),
+        "loop_retry_after_ts": timestampString(startEpochMs + STALE_LOOP_RESET_MS),
         "loop_last_result": "running",
     })
 
@@ -118,6 +127,7 @@ def runMainControllerCycle(
             lastResult = str(result.get("level", "info")) + ":" + str(result.get("message", ""))
         writeRuntimeFields({
             "loop_is_running": False,
+            "loop_retry_after_ts": "",
             "loop_last_end_ts": timestampString(endEpochMs),
             "loop_last_duration_ms": durationMs,
             "loop_last_result": lastResult,

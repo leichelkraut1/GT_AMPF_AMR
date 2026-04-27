@@ -89,6 +89,7 @@ def runtimePaths():
         "base": RUNTIME_BASE,
         "loop_is_running": RUNTIME_BASE + "/LoopIsRunning",
         "loop_last_start_ts": RUNTIME_BASE + "/LoopLastStartTs",
+        "loop_retry_after_ts": RUNTIME_BASE + "/LoopRetryAfterTs",
         "loop_last_end_ts": RUNTIME_BASE + "/LoopLastEndTs",
         "loop_last_duration_ms": RUNTIME_BASE + "/LoopLastDurationMs",
         "loop_last_result": RUNTIME_BASE + "/LoopLastResult",
@@ -131,6 +132,7 @@ def ensureRuntimeTags():
     ensureFolder(RUNTIME_BASE)
     ensureMemoryTag(paths["loop_is_running"], "Boolean", False)
     ensureMemoryTag(paths["loop_last_start_ts"], "String", "")
+    ensureMemoryTag(paths["loop_retry_after_ts"], "String", "")
     ensureMemoryTag(paths["loop_last_end_ts"], "String", "")
     ensureMemoryTag(paths["loop_last_duration_ms"], "Int4", 0)
     ensureMemoryTag(paths["loop_last_result"], "String", "")

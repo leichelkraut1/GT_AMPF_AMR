@@ -8,6 +8,8 @@ from Otto_API.Common.TagIO import readOptionalTagValues
 from Otto_API.Common.TagPaths import getDisableLogOfMainCycleHttpPath
 from Otto_API.Common.TagPaths import getMainCycleEndpointsPath
 
+HTTP_TIMEOUT_MS = 2000
+
 
 def jsonHeaders(extraHeaders=None):
     headers = {
@@ -69,6 +71,8 @@ def httpGet(url, headerValues=None):
     try:
         response = system.net.httpGet(
             url=url,
+            connectTimeout=HTTP_TIMEOUT_MS,
+            readTimeout=HTTP_TIMEOUT_MS,
             bypassCertValidation=False,
             headerValues=headerValues or jsonHeaders(),
         )
@@ -86,6 +90,8 @@ def httpPost(url, postData, contentType="application/json", headerValues=None):
             url=url,
             postData=postData,
             contentType=contentType,
+            connectTimeout=HTTP_TIMEOUT_MS,
+            readTimeout=HTTP_TIMEOUT_MS,
             headerValues=headerValues or {"Accept": "application/json"},
             bypassCertValidation=False,
         )
