@@ -10,11 +10,13 @@ def readRuntimeState():
     paths = runtimePaths()
     values = readTagValues([
         paths["loop_is_running"],
+        paths["loop_last_start_ts"],
         paths["loop_overlap_count"],
     ])
     return {
         "loop_is_running": toBool(values[0].value if values[0].quality.isGood() else False),
-        "loop_overlap_count": int(values[1].value or 0) if values[1].quality.isGood() else 0,
+        "loop_last_start_ts": str(values[1].value or "") if values[1].quality.isGood() else "",
+        "loop_overlap_count": int(values[2].value or 0) if values[2].quality.isGood() else 0,
     }
 
 
