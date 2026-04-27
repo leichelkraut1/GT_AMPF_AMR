@@ -15,7 +15,7 @@ def selectDominantSystemState(entries, logger=None):
     for entry in list(entries or []):
         if not isinstance(entry, RobotSystemStateEntry):
             entry = RobotSystemStateEntry.fromDict(entry)
-        priority = entry.get("priority", 9999)
+        priority = entry.priority
         createdValue = entry.createdSortValue(logger=logger)
 
         if bestEntry is None:
@@ -201,12 +201,13 @@ def buildInvalidRobotSyncWrites(robotPath):
 
 def buildRobotMetricWrites(robotIdToPath, metricRecords, robotKey, valueKey, targetSuffix):
     """
-    Match OTTO robot metric records to robot tag paths and build tag writes.
+    Match raw OTTO robot metric records to robot tag paths and build tag writes.
     """
     writes = []
     unmatchedRobotIds = []
 
     for record in list(metricRecords or []):
+        record = dict(record or {})
         robotId = record.get(robotKey)
         if robotId is None:
             continue
@@ -244,10 +245,15 @@ def normalizeChargePercentage(rawValue):
 def groupRecordsByRobot(records, robotKey="robot"):
     """
     Group records by robot identifier.
+
+    Accepts typed RobotSystemStateEntry objects or raw OTTO payload dicts.
     """
     grouped = {}
     for record in list(records or []):
-        robotId = record.get(robotKey)
+        if isinstance(record, RobotSystemStateEntry):
+            robotId = record.robot
+        else:
+            robotId = dict(record or {}).get(robotKey)
         if robotId is None:
             continue
         robotId = str(robotId).strip()

@@ -1,10 +1,10 @@
 class MappingRecordBase(object):
     """
-    Lightweight mapping-like base for internal record objects.
+    Lightweight base for internal typed record objects.
 
-    The OTTO API codebase still expects many values to behave like dicts.
-    These helpers let us move to explicit classes internally while keeping
-    enough mapping compatibility for existing helpers and tests.
+    Mapping-style compatibility was intentionally transitional. Production
+    callers should use direct attributes and only serialize with `toDict()`
+    at outward boundaries.
     """
 
     FIELDS = ()
@@ -22,34 +22,6 @@ class MappingRecordBase(object):
 
     def toDict(self):
         return self._fieldDict()
-
-    def get(self, key, default=None):
-        if key in self.__class__._fieldNames():
-            return getattr(self, key)
-        return default
-
-    def keys(self):
-        return list(self.__class__._fieldNames())
-
-    def items(self):
-        return list(self.toDict().items())
-
-    def values(self):
-        return list(self.toDict().values())
-
-    def __getitem__(self, key):
-        if key not in self.__class__._fieldNames():
-            raise KeyError(key)
-        return getattr(self, key)
-
-    def __iter__(self):
-        return iter(self.keys())
-
-    def __len__(self):
-        return len(self.keys())
-
-    def __contains__(self, key):
-        return key in self.__class__._fieldNames()
 
     def cloneWith(self, **overrides):
         fromDict = getattr(self.__class__, "fromDict", None)

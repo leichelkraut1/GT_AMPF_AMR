@@ -126,8 +126,8 @@ def _normalizeMappingRows(configRows):
         if existing is not None:
             warning = "Duplicate Interlock Mapping: FleetName [{}] is mapped more than once; replacing [{} / {}] with [{} / {}] and using the later row".format(
                 fleetName,
-                existing.get("PlcTagName"),
-                existing.get("Direction"),
+                existing.PlcTagName,
+                existing.Direction,
                 plcTagName,
                 direction,
             )
@@ -140,8 +140,8 @@ def _normalizeMappingRows(configRows):
             ))
             duplicateInfoByName[fleetName] = DuplicateInterlockMappingInfo(
                 fleetName,
-                existing.get("PlcTagName"),
-                existing.get("Direction"),
+                existing.PlcTagName,
+                existing.Direction,
                 plcTagName,
                 direction,
             )

@@ -22,6 +22,17 @@ ACTIVE_MISSION_STATUSES = set([
     "BLOCKED",
 ])
 
+ACTIVE_MISSION_STATUS_PRIORITY = {
+    "STARVED": 0,
+    "EXECUTING": 10,
+    "ASSIGNED": 20,
+    "BLOCKED": 30,
+    "CANCELLING": 40,
+    "REASSIGNED": 50,
+    "RESTARTING": 60,
+    "QUEUED": 100,
+}
+
 
 class MissionRecord(RawBackedRecordBase):
     FIELDS = (
@@ -34,7 +45,7 @@ class MissionRecord(RawBackedRecordBase):
     RAW_FIELD_ALIASES = {
         "name": ("mission_name",),
         "assigned_robot": ("Assigned_Robot",),
-        "force_robot": ("Force_Robot",),
+        "force_robot": ("forced_robot", "Force_Robot", "Forced_Robot"),
     }
 
     def __init__(self, missionId, name, missionStatus, assignedRobot=None, forceRobot=None, rawData=None):
@@ -53,7 +64,7 @@ class MissionRecord(RawBackedRecordBase):
             mission.get("name") or mission.get("mission_name"),
             mission.get("mission_status"),
             mission.get("assigned_robot") or mission.get("Assigned_Robot"),
-            mission.get("force_robot") or mission.get("Force_Robot"),
+            mission.get("force_robot") or mission.get("forced_robot") or mission.get("Force_Robot") or mission.get("Forced_Robot"),
             rawData=mission,
         )
 
@@ -68,6 +79,30 @@ class MissionRecord(RawBackedRecordBase):
             if str(value or "").strip():
                 return str(value).strip().lower()
         return None
+
+    def matchesRobotId(self, robotId):
+        normalizedRobotId = str(robotId or "").strip().lower()
+        if not normalizedRobotId:
+            return False
+        return self.assignedRobotId() == normalizedRobotId
+
+    def activeStatusPriority(self):
+        return ACTIVE_MISSION_STATUS_PRIORITY.get(self.mission_status, 90)
+
+    def activeSortKey(self):
+        return (
+            self.activeStatusPriority(),
+            str(self.get("path") or self.get("instance_path") or ""),
+            self.name,
+            self.id,
+        )
+
+    def currentMissionProjection(self):
+        return {
+            "current_mission_name": self.name,
+            "current_mission_id": self.id,
+            "current_mission_status": self.mission_status,
+        }
 
 
 class RobotMissionSummary(MappingRecordBase):
@@ -104,6 +139,26 @@ class RobotMissionSummary(MappingRecordBase):
     def setCurrentMission(self, missionRecord):
         if missionRecord is None:
             return
-        self.current_mission_name = str(missionRecord.get("name") or "")
-        self.current_mission_id = str(missionRecord.get("id") or "")
-        self.current_mission_status = str(missionRecord.get("mission_status") or "")
+        projection = missionRecord.currentMissionProjection()
+        self.current_mission_name = projection["current_mission_name"]
+        self.current_mission_id = projection["current_mission_id"]
+        self.current_mission_status = projection["current_mission_status"]
+
+    def fleetMissionCountValues(self):
+        return (
+            int(self.active_mission_count or 0),
+            int(self.failed_mission_count or 0),
+        )
+
+    def toFleetRobotMissionCountWrites(self, basePath):
+        activeMissionCount, failedMissionCount = self.fleetMissionCountValues()
+        return (
+            [
+                str(basePath or "") + "/ActiveMissionCount",
+                str(basePath or "") + "/FailedMissionCount",
+            ],
+            [
+                activeMissionCount,
+                failedMissionCount,
+            ],
+        )

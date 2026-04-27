@@ -145,7 +145,7 @@ def getInterlocks():
             if normalized is None:
                 continue
 
-            name = normalized["name"]
+            name = normalized.name
             if name in recordsByName:
                 warning = "Interlocks response duplicates name [{}]; using the later row".format(name)
                 warnings.append(warning)

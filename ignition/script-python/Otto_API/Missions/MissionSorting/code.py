@@ -10,7 +10,6 @@ from Otto_API.Common.TagPaths import getMissionLastUpdateSuccessPath
 from Otto_API.Common.TagPaths import getMissionLastUpdateTsPath
 from Otto_API.Common.TagPaths import getMissionMaxCompletedCountPath
 from Otto_API.Missions.Buckets import classify_mission_bucket
-from Otto_API.Missions.Buckets import make_instance_name
 from Otto_API.Missions.Buckets import readRobotFolderMappings
 from Otto_API.Missions.Buckets import resolve_mission_robot_folder
 from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
@@ -116,10 +115,7 @@ def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None
 def _serializeRobotSummaryByFolder(robotSummaryByFolder, robotMappings):
     serialized = {}
     for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
-        summary = robotSummaryByFolder.get(robotFolder)
-        if summary is None:
-            summary = RobotMissionSummary()
-        serialized[robotFolder] = summary.toDict()
+        serialized[robotFolder] = _summaryForRobot(robotSummaryByFolder, robotFolder).toDict()
     return serialized
 
 
@@ -183,20 +179,16 @@ def _writeMissionUpdateStatus(success, timestampValue, logger=None):
         raise _MissionSortingFailure("mission_sorting.update_status_write_failed", message)
 
 
-def _writeFleetRobotMissionCounts(robotSummaryByFolder, logger=None):
+def _writeFleetRobotMissionCounts(robotSummaryByFolder, robotMappings, logger=None):
     """Mirror mission-count metadata back onto Fleet/Robots without touching MainControl tags."""
     writePaths = []
     writeValues = []
-    for robotFolder, summary in sorted(dict(robotSummaryByFolder or {}).items()):
+    for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
+        summary = _summaryForRobot(robotSummaryByFolder, robotFolder)
         basePath = ROBOTS_PATH + "/" + str(robotFolder or "")
-        writePaths.extend([
-            basePath + "/ActiveMissionCount",
-            basePath + "/FailedMissionCount",
-        ])
-        writeValues.extend([
-            int(summary.get("active_mission_count", 0) or 0),
-            int(summary.get("failed_mission_count", 0) or 0),
-        ])
+        summaryPaths, summaryValues = summary.toFleetRobotMissionCountWrites(basePath)
+        writePaths.extend(summaryPaths)
+        writeValues.extend(summaryValues)
 
     if not writePaths:
         return
@@ -212,6 +204,49 @@ def _writeFleetRobotMissionCounts(robotSummaryByFolder, logger=None):
         if logger is not None:
             logger.error(message)
         raise _MissionSortingFailure("mission_sorting.robot_counts_write_failed", message)
+
+
+def _summaryForRobot(robotSummaryByFolder, robotFolder):
+    summary = robotSummaryByFolder.get(robotFolder)
+    if summary is None:
+        summary = RobotMissionSummary()
+        robotSummaryByFolder[robotFolder] = summary
+    return summary
+
+
+def _recordMissionSyncOutcome(
+    mission,
+    robotFolder,
+    bucket,
+    syncResult,
+    attachmentState,
+    activeWanted,
+    completedWanted,
+    failedWanted,
+    robotSummaryByFolder,
+    activeMissionsByFolder,
+):
+    if bucket == "completed":
+        completedWanted.add(syncResult["paths"]["completed"])
+        return
+
+    summary = _summaryForRobot(robotSummaryByFolder, robotFolder)
+    if bucket == "failed":
+        failedWanted.add(syncResult["paths"]["failed"])
+        summary.recordFailedMission(mission)
+        return
+
+    activeWanted.add(syncResult["paths"]["active"])
+    summary.recordActiveMission(mission, attachmentState)
+    activeMissionsByFolder.setdefault(robotFolder, []).append(mission)
+
+
+def _selectCurrentMissionsByRobot(robotSummaryByFolder, activeMissionsByFolder):
+    for robotFolder, robotMissions in list(activeMissionsByFolder.items()):
+        currentMission = selectCurrentActiveMissionRecord(robotMissions)
+        if currentMission is None:
+            continue
+        _summaryForRobot(robotSummaryByFolder, robotFolder).setCurrentMission(currentMission)
 
 
 def run():
@@ -262,7 +297,7 @@ def run():
         removed = []
 
         for mission in missions:
-            status = mission.get("mission_status", "")
+            status = mission.mission_status
             robotFolder = resolve_mission_robot_folder(
                 mission,
                 robotMappings=robotMappings,
@@ -284,28 +319,23 @@ def run():
                 debug=debug
             )
             removed.extend(syncResult["removed"])
+            _recordMissionSyncOutcome(
+                mission,
+                robotFolder,
+                bucket,
+                syncResult,
+                attachmentState,
+                activeWanted,
+                completedWanted,
+                failedWanted,
+                robotSummaryByFolder,
+                activeMissionsByFolder,
+            )
 
-            if bucket == "completed":
-                completedWanted.add(syncResult["paths"]["completed"])
-            elif bucket == "failed":
-                failedWanted.add(syncResult["paths"]["failed"])
-                robotSummaryByFolder.setdefault(robotFolder, RobotMissionSummary()).recordFailedMission(mission)
-            else:
-                activeWanted.add(syncResult["paths"]["active"])
-                robotSummaryByFolder.setdefault(robotFolder, RobotMissionSummary()).recordActiveMission(
-                    mission,
-                    attachmentState,
-                )
-                activeMissionsByFolder.setdefault(robotFolder, []).append(mission)
+        _selectCurrentMissionsByRobot(robotSummaryByFolder, activeMissionsByFolder)
 
-        for robotFolder, robotMissions in list(dict(activeMissionsByFolder or {}).items()):
-            currentMission = selectCurrentActiveMissionRecord(robotMissions)
-            if currentMission is None:
-                continue
-            robotSummaryByFolder.setdefault(robotFolder, RobotMissionSummary()).setCurrentMission(currentMission)
-
+        _writeFleetRobotMissionCounts(robotSummaryByFolder, robotMappings, logger)
         serializedRobotSummaryByFolder = _serializeRobotSummaryByFolder(robotSummaryByFolder, robotMappings)
-        _writeFleetRobotMissionCounts(serializedRobotSummaryByFolder, logger)
 
         removed.extend(
             cleanup_stale_bucket(

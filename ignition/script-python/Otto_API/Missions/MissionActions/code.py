@@ -2,38 +2,26 @@ import json
 import time
 import uuid
 
+from Otto_API.Missions.Records import MissionRecord
 from Otto_API.Common.SyncHelpers import sanitizeTagName
 
 
-ACTIVE_MISSION_STATUS_PRIORITY = {
-    "STARVED": 0,
-    "EXECUTING": 10,
-    "ASSIGNED": 20,
-    "BLOCKED": 30,
-    "CANCELLING": 40,
-    "REASSIGNED": 50,
-    "RESTARTING": 60,
-    "QUEUED": 100,
-}
+def _coerceMissionRecord(missionRecord):
+    if isinstance(missionRecord, MissionRecord):
+        return missionRecord
+    return MissionRecord.fromDict(missionRecord)
 
 
-def _recordValue(record, *keys):
-    if record is None:
-        return None
-    getter = getattr(record, "get", None)
-    if getter is not None:
-        for key in list(keys or ()):
-            value = getter(key)
-            if value is not None:
-                return value
-        return None
+def _coerceMissionRecords(missionRecords):
+    return [_coerceMissionRecord(missionRecord) for missionRecord in list(missionRecords or [])]
 
-    record = dict(record or {})
-    for key in list(keys or ()):
-        value = record.get(key)
-        if value is not None:
-            return value
-    return None
+
+def _matchingMissionRecordsForRobot(robotId, missionRecords):
+    return [
+        missionRecord
+        for missionRecord in _coerceMissionRecords(missionRecords)
+        if missionRecord.matchesRobotId(robotId)
+    ]
 
 
 def parseTemplateJson(templateJsonStr):
@@ -121,48 +109,23 @@ def resolveMissionRobotId(missionRecord):
     3. forced_robot
     Accepts either lowercase or title-cased tag-style keys.
     """
-    for key in [
-        "assigned_robot",
-        "Assigned_Robot",
-        "force_robot",
-        "Force_Robot",
-        "forced_robot",
-        "Forced_Robot",
-    ]:
-        value = _recordValue(missionRecord, key)
-        if value is None:
-            continue
-        value = str(value).strip().lower()
-        if value:
-            return value
-    return None
+    missionRecord = _coerceMissionRecord(missionRecord)
+    return missionRecord.assignedRobotId()
 
 
 def activeMissionStatusPriority(missionStatus):
     """
     Rank active mission statuses so true-active missions win over queued sidecars.
     """
-    return ACTIVE_MISSION_STATUS_PRIORITY.get(
-        str(missionStatus or "").strip().upper(),
-        90
-    )
+    missionRecord = MissionRecord.fromDict({"mission_status": missionStatus})
+    return missionRecord.activeStatusPriority()
 
 
 def sortActiveMissionRecords(missionRecords):
     """
     Return mission records in deterministic controller/finalize priority order.
     """
-    def sort_key(missionRecord):
-        return (
-            activeMissionStatusPriority(
-                _recordValue(missionRecord, "mission_status", "Mission_Status")
-            ),
-            str(_recordValue(missionRecord, "path", "instance_path") or ""),
-            str(_recordValue(missionRecord, "name", "Name") or ""),
-            str(_recordValue(missionRecord, "id", "ID") or ""),
-        )
-
-    return sorted(list(missionRecords or []), key=sort_key)
+    return sorted(_coerceMissionRecords(missionRecords), key=lambda missionRecord: missionRecord.activeSortKey())
 
 
 def selectCurrentActiveMissionRecord(missionRecords):
@@ -180,20 +143,8 @@ def findActiveMissionIdForRobot(robotId, missionRecords):
     Find the active mission ID assigned to the given robot ID.
     Returns (missionId, warningMessage).
     """
-    matchingRecords = []
-    for missionRecord in missionRecords:
-        resolvedRobotId = resolveMissionRobotId(missionRecord)
-        if resolvedRobotId is None:
-            continue
-
-        if resolvedRobotId != robotId:
-            continue
-
-        matchingRecords.append(missionRecord)
-
-    for missionRecord in sortActiveMissionRecords(matchingRecords):
-
-        missionId = _recordValue(missionRecord, "id")
+    for missionRecord in sortActiveMissionRecords(_matchingMissionRecordsForRobot(robotId, missionRecords)):
+        missionId = missionRecord.id
         if missionId:
             return (str(missionId), None)
 
@@ -213,15 +164,8 @@ def findActiveMissionIdsForRobot(robotId, missionRecords):
     missionIds = []
     warnings = []
 
-    for missionRecord in missionRecords:
-        resolvedRobotId = resolveMissionRobotId(missionRecord)
-        if resolvedRobotId is None:
-            continue
-
-        if resolvedRobotId != robotId:
-            continue
-
-        missionId = _recordValue(missionRecord, "id")
+    for missionRecord in _matchingMissionRecordsForRobot(robotId, missionRecords):
+        missionId = missionRecord.id
         if missionId:
             missionIds.append(str(missionId))
         else:

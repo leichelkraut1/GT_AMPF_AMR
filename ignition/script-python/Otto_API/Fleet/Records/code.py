@@ -3,6 +3,50 @@ from Otto_API.Common.RecordHelpers import coerceBool
 from Otto_API.Common.RecordHelpers import coerceFloatOrNone
 from Otto_API.Common.RecordHelpers import coerceIntOrNone
 from Otto_API.Common.RecordHelpers import coerceText
+from Otto_API.Common.RecordHelpers import coerceUpperText
+
+
+class RobotReadinessContext(MappingRecordBase):
+    FIELDS = (
+        "min_charge",
+        "charging_delay_ms",
+        "mission_last_update_ts",
+        "mission_last_update_success",
+        "allowed_activity_states",
+    )
+
+    def __init__(
+        self,
+        minCharge,
+        chargingDelayMs=None,
+        missionLastUpdateTs=None,
+        missionLastUpdateSuccess=None,
+        allowedActivityStates=None,
+    ):
+        self.min_charge = coerceFloatOrNone(minCharge)
+        self.charging_delay_ms = coerceIntOrNone(chargingDelayMs)
+        self.mission_last_update_ts = coerceText(missionLastUpdateTs, None)
+        self.mission_last_update_success = coerceBool(missionLastUpdateSuccess, False)
+        self.allowed_activity_states = list(allowedActivityStates or [])
+
+    @classmethod
+    def fromDict(cls, record):
+        record = dict(record or {})
+        return cls(
+            record.get("min_charge"),
+            record.get("charging_delay_ms"),
+            record.get("mission_last_update_ts"),
+            record.get("mission_last_update_success"),
+            record.get("allowed_activity_states"),
+        )
+
+    def normalizedAllowedActivityStates(self):
+        normalized = set()
+        for value in list(self.allowed_activity_states or []):
+            text = coerceUpperText(value, None)
+            if text is not None:
+                normalized.add(text)
+        return normalized
 
 
 class RobotReadinessResult(MappingRecordBase):
@@ -73,6 +117,25 @@ class RobotReadinessResult(MappingRecordBase):
             record.get("charging_delay_ms"),
             record.get("mission_last_update_ts"),
             record.get("mission_last_update_success"),
+        )
+
+    @classmethod
+    def fromSnapshot(cls, snapshot, context, available, reason):
+        return cls(
+            snapshot.robot_name,
+            available,
+            reason,
+            snapshot.system_state,
+            snapshot.activity_state,
+            snapshot.charge_level,
+            context.min_charge,
+            snapshot.active_mission_count,
+            snapshot.failed_mission_count,
+            snapshot.charging_tof,
+            snapshot.charging_ts,
+            context.charging_delay_ms,
+            context.mission_last_update_ts,
+            context.mission_last_update_success,
         )
 
     def isReady(self):

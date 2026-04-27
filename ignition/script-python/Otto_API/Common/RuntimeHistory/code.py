@@ -210,6 +210,11 @@ def buildRuntimeIssue(issueId, source, level, message):
 
 
 def _issueField(issue, fieldName, defaultValue=""):
+    if hasattr(issue, fieldName):
+        value = getattr(issue, fieldName)
+        if value is None:
+            return defaultValue
+        return value
     getter = getattr(issue, "get", None)
     if getter is not None:
         value = getter(fieldName, defaultValue)
@@ -233,18 +238,21 @@ def _coerceRuntimeIssues(items):
     for item in list(items or []):
         if item is None:
             continue
-        if hasattr(item, "get"):
-            if _issueField(item, "id") and _issueField(item, "source") and _issueField(item, "message"):
-                issues.append(item)
-                continue
-        if isinstance(item, dict):
-            if "id" in item and "source" in item and "message" in item:
-                issues.append(dict(item))
-                continue
-            issues.extend(list(dict(item).get("issues") or []))
-            continue
         if isinstance(item, (list, tuple)):
             issues.extend(_coerceRuntimeIssues(item))
+            continue
+        if _issueField(item, "id") and _issueField(item, "source") and _issueField(item, "message"):
+            issues.append(item)
+            continue
+
+        nestedIssues = None
+        if isinstance(item, dict):
+            nestedIssues = item.get("issues")
+        else:
+            nestedIssues = getattr(item, "issues", None)
+
+        if nestedIssues:
+            issues.extend(_coerceRuntimeIssues(nestedIssues))
     return issues
 
 

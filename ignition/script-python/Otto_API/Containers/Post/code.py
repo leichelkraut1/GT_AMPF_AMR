@@ -103,8 +103,8 @@ def _coerceContainerLocationTarget(kind, value):
 def _applyContainerLocationTarget(containerFields, locationTarget):
     containerFields = _coerceContainerCreateFields(containerFields)
     if locationTarget.isRobot():
-        return containerFields.withRobot(locationTarget.get("value"))
-    return containerFields.withPlace(locationTarget.get("value"))
+        return containerFields.withRobot(locationTarget.value)
+    return containerFields.withPlace(locationTarget.value)
 
 
 def _runCreateFromTagPath(containerTagPath, targetLabel, targetId, createFunc):

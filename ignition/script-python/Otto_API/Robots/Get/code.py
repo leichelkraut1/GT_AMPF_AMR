@@ -338,60 +338,71 @@ def updateRobotOperationalState():
             previousSystemState = currentValues.get(systemStatePath)
             previousSubSystemState = currentValues.get(subSystemPath)
             previousActivityState = currentValues.get(activityPath)
-            effectiveSystemState = currentValues.get(systemStatePath)
-            effectiveSubSystemState = currentValues.get(subSystemPath)
             effectivePriority = currentValues.get(priorityPath)
             effectiveUpdatedTs = currentValues.get(updatedTsPath)
-            effectiveActivity = currentValues.get(activityPath)
-            effectiveCharge = currentValues.get(chargePath)
-            effectiveActiveMissionCount = currentValues.get(activeMissionCountPath)
-            effectiveFailedMissionCount = currentValues.get(failedMissionCountPath)
-            effectiveChargingTof = currentValues.get(chargingTofPath)
-            effectiveChargingTs = currentValues.get(chargingTsPath)
             previousRobotStateLogSignature = currentValues.get(robotStateLogSignaturePath)
+            snapshot = RobotSnapshot(
+                robotName,
+                robotPath,
+                currentValues.get(systemStatePath),
+                currentValues.get(activityPath),
+                currentValues.get(chargePath),
+                currentValues.get(activeMissionCountPath),
+                currentValues.get(failedMissionCountPath),
+                currentValues.get(placeIdPath),
+                currentValues.get(placeNamePath),
+                currentValues.get(chargingTofPath),
+                currentValues.get(chargingTsPath),
+            )
+            effectiveSubSystemState = currentValues.get(subSystemPath)
 
             if dominant is not None:
-                effectiveSystemState = dominant.get("system_state")
-                effectiveSubSystemState = dominant.get("sub_system_state")
-                effectivePriority = dominant.get("priority")
+                snapshot = snapshot.withUpdatedOperationalState(
+                    systemState=dominant.system_state,
+                )
+                effectiveSubSystemState = dominant.sub_system_state
+                effectivePriority = dominant.priority
                 effectiveUpdatedTs = nowDate
-                writesByPath[systemStatePath] = effectiveSystemState
+                writesByPath[systemStatePath] = snapshot.system_state
                 writesByPath[subSystemPath] = effectiveSubSystemState
                 writesByPath[priorityPath] = effectivePriority
                 writesByPath[updatedTsPath] = effectiveUpdatedTs
 
             if robotId in activityByRobot:
-                effectiveActivity = activityByRobot.get(robotId)
-                writesByPath[activityPath] = effectiveActivity
+                snapshot = snapshot.withUpdatedOperationalState(
+                    activityState=activityByRobot.get(robotId),
+                )
+                writesByPath[activityPath] = snapshot.activity_state
 
             if robotId in chargeByRobot:
-                effectiveCharge = chargeByRobot.get(robotId)
-                writesByPath[chargePath] = effectiveCharge
+                snapshot = snapshot.withUpdatedOperationalState(
+                    chargeLevel=chargeByRobot.get(robotId),
+                )
+                writesByPath[chargePath] = snapshot.charge_level
 
-            placeEntry = placesByRobot.get(robotId, RobotPlace("", ""))
-            effectivePlaceId = str(placeEntry.get("place_id") or "")
-            effectivePlaceName = str(placeEntry.get("place_name") or "")
-            writesByPath[placeIdPath] = effectivePlaceId
-            writesByPath[placeNamePath] = effectivePlaceName
+            snapshot = snapshot.withPlace(placesByRobot.get(robotId, RobotPlace.empty()))
+            writesByPath[placeIdPath] = snapshot.place_id
+            writesByPath[placeNamePath] = snapshot.place_name
 
-            effectiveChargingTof, effectiveChargingTs = _chargingStateUpdate(
-                effectiveActivity,
-                effectiveChargingTof,
-                effectiveChargingTs,
+            chargingTof, chargingTs = _chargingStateUpdate(
+                snapshot.activity_state,
+                snapshot.charging_tof,
+                snapshot.charging_ts,
                 chargingDelayMs,
                 nowEpochMs
             )
-            writesByPath[chargingTofPath] = effectiveChargingTof
-            writesByPath[chargingTsPath] = effectiveChargingTs
+            snapshot = snapshot.withChargingState(chargingTof, chargingTs)
+            writesByPath[chargingTofPath] = snapshot.charging_tof
+            writesByPath[chargingTsPath] = snapshot.charging_ts
 
             historyUpdate = buildRobotStateHistoryUpdate(
                 robotName,
                 previousSystemState,
-                effectiveSystemState,
+                snapshot.system_state,
                 previousSubSystemState,
                 effectiveSubSystemState,
                 previousActivityState,
-                effectiveActivity,
+                snapshot.activity_state,
                 previousRobotStateLogSignature,
                 robotStateLogSignaturePath,
                 tagExists(robotStateLogSignaturePath),
@@ -402,21 +413,7 @@ def updateRobotOperationalState():
                 signaturePath, signatureValue = historyUpdate["signature_write"]
                 writesByPath[signaturePath] = signatureValue
 
-            robotSnapshots.append(
-                RobotSnapshot(
-                    robotName,
-                    robotPath,
-                    effectiveSystemState,
-                    effectiveActivity,
-                    effectiveCharge,
-                    effectiveActiveMissionCount,
-                    effectiveFailedMissionCount,
-                    effectivePlaceId,
-                    effectivePlaceName,
-                    effectiveChargingTof,
-                    effectiveChargingTs,
-                )
-            )
+            robotSnapshots.append(snapshot)
 
         readinessBatch = buildReadinessResultsAndWrites(
             robotSnapshots,

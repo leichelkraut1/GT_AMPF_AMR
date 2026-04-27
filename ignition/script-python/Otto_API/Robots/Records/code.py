@@ -71,6 +71,10 @@ class RobotPlace(MappingRecordBase):
             record.get("place_name") or record.get("name"),
         )
 
+    @classmethod
+    def empty(cls):
+        return cls("", "")
+
 
 class RobotSnapshot(MappingRecordBase):
     FIELDS = (
@@ -133,6 +137,25 @@ class RobotSnapshot(MappingRecordBase):
     def isCharging(self):
         return bool(self.charging_tof)
 
+    def currentPlace(self):
+        return RobotPlace(self.place_id, self.place_name)
+
+    def withPlace(self, place):
+        if place is None:
+            return self.cloneWith(place_id="", place_name="")
+        if not isinstance(place, RobotPlace):
+            place = RobotPlace.fromDict(place)
+        return self.cloneWith(
+            place_id=place.place_id,
+            place_name=place.place_name,
+        )
+
+    def withChargingState(self, chargingTof, chargingTs):
+        return self.cloneWith(
+            charging_tof=chargingTof,
+            charging_ts=chargingTs,
+        )
+
     def withUpdatedOperationalState(
         self,
         systemState=None,
@@ -157,6 +180,8 @@ class RobotSnapshot(MappingRecordBase):
             updates["place_id"] = self.place_id
             updates["place_name"] = self.place_name
         else:
-            updates["place_id"] = place.get("place_id")
-            updates["place_name"] = place.get("place_name")
+            if not isinstance(place, RobotPlace):
+                place = RobotPlace.fromDict(place)
+            updates["place_id"] = place.place_id
+            updates["place_name"] = place.place_name
         return self.cloneWith(**updates)
