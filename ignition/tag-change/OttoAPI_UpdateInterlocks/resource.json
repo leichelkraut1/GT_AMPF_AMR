@@ -10,7 +10,7 @@
     "changeTypes": [
       "ValueChange"
     ],
-    "lastModificationSignature": "",
+    "lastModificationSignature": "update-interlocks",
     "paths": [
       "[Otto_FleetManager]Fleet/Triggers/SystemUpdates/updateInterlocks"
     ],

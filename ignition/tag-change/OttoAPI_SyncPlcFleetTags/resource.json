@@ -10,7 +10,7 @@
     "changeTypes": [
       "ValueChange"
     ],
-    "lastModificationSignature": "",
+    "lastModificationSignature": "sync-plc-fleet-tags",
     "paths": [
       "[Otto_FleetManager]Fleet/Triggers/SystemUpdates/UpdateAndCleanPLCTags"
     ],

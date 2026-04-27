@@ -10,7 +10,7 @@
     "changeTypes": [
       "ValueChange"
     ],
-    "lastModificationSignature": "",
+    "lastModificationSignature": "provision-controller-tags",
     "paths": [
       "[Otto_FleetManager]Fleet/Triggers/SystemUpdates/ProvisionControllerTags"
     ],
