@@ -1,29 +1,26 @@
-from Otto_API.Common.TagIO import readOptionalTagValue
-from Otto_API.Common.TagIO import tagExists
-from Otto_API.Common.TagIO import writeRequiredTagValues
 from Otto_API.Common.RuntimeHistory import appendRuntimeDatasetRow
 from Otto_API.Common.RuntimeHistory import COMMAND_HISTORY_HEADERS
 from Otto_API.Common.RuntimeHistory import COMMAND_HISTORY_MAX_ROWS
 from Otto_API.Common.RuntimeHistory import timestampString
+from Otto_API.Common.TagIO import readOptionalTagValue
+from Otto_API.Common.TagIO import tagExists
+from Otto_API.Common.TagIO import writeRequiredTagValues
 from MainController.Robot.Actions import callMissionCommand
 from MainController.WorkflowConfig import normalizeWorkflowNumber
 
 
 MISSION_LAST_ISSUED_COMMAND_SIGNATURE_MEMBER = "_LastIssuedCommandSignature"
 MISSION_LAST_COMMAND_LOG_SIGNATURE_MEMBER = "_LastCommandLogSignature"
+
+_MISSION_RUNTIME_KEYS = {
+    "last_issued_command_signature": MISSION_LAST_ISSUED_COMMAND_SIGNATURE_MEMBER,
+    "last_command_log_signature": MISSION_LAST_COMMAND_LOG_SIGNATURE_MEMBER,
+}
 _WARNED_MISSING_MISSION_RUNTIME_MEMBERS = set()
 
 
 def _log():
     return system.util.getLogger("MainController_WorkflowRunner")
-
-
-def _missionRuntimePaths(instancePath):
-    """Return optional mission-instance runtime members used by controller clear actions."""
-    return {
-        "last_issued_command_signature": instancePath + "/" + MISSION_LAST_ISSUED_COMMAND_SIGNATURE_MEMBER,
-        "last_command_log_signature": instancePath + "/" + MISSION_LAST_COMMAND_LOG_SIGNATURE_MEMBER,
-    }
 
 
 def _warnMissingMissionRuntimeMember(memberName):
@@ -40,57 +37,30 @@ def _warnMissingMissionRuntimeMember(memberName):
     )
 
 
-def _missionRuntimeTagPath(instancePath, keyName, memberName, warn=True):
-    """Return one mission runtime helper tag path when the UDT member exists."""
-    if not instancePath:
+def _missionRuntimeTagPath(instancePath, keyName, warn=True):
+    """Return one optional mission runtime helper tag path when the UDT member exists."""
+    instancePath = str(instancePath or "")
+    memberName = _MISSION_RUNTIME_KEYS.get(str(keyName or ""))
+    if not instancePath or not memberName:
         return None
-    tagPath = _missionRuntimePaths(instancePath).get(keyName)
-    if not tagPath or not tagExists(tagPath):
-        if warn:
-            _warnMissingMissionRuntimeMember(memberName)
-        return None
-    return tagPath
+
+    tagPath = instancePath + "/" + memberName
+    if tagExists(tagPath):
+        return tagPath
+    if warn:
+        _warnMissingMissionRuntimeMember(memberName)
+    return None
 
 
-def _missionInstancePath(missionRecord):
-    """Return the mission instance path used for controller-side runtime helpers."""
-    missionRecord = dict(missionRecord or {})
-    return str(missionRecord.get("instance_path") or missionRecord.get("path") or "")
-
-
-def _missionContext(missionRecord):
-    missionRecord = dict(missionRecord or {})
-    missionName = str(missionRecord.get("mission_name") or missionRecord.get("name") or "")
-    missionId = str(missionRecord.get("id") or "")
-    instancePath = _missionInstancePath(missionRecord)
-    missionLabel = missionName or missionId or instancePath or "mission"
-    return {
-        "record": missionRecord,
-        "instance_path": instancePath,
-        "mission_name": missionName,
-        "mission_id": missionId,
-        "mission_label": missionLabel,
-        "workflow_number": normalizeWorkflowNumber(missionRecord.get("workflow_number")) or 0,
-    }
-def _missionCommandResult(ok, level, message):
-    return {
-        "ok": bool(ok),
-        "level": str(level or "warn"),
-        "message": str(message or ""),
-    }
-
-
-def _readMissionRuntimeValue(instancePath, keyName, memberName):
-    """Read an optional mission runtime helper tag, warning once if the UDT member is absent."""
-    tagPath = _missionRuntimeTagPath(instancePath, keyName, memberName)
+def _readMissionRuntimeValue(context, keyName):
+    tagPath = _missionRuntimeTagPath(context.get("instance_path"), keyName)
     if not tagPath:
         return ""
     return str(readOptionalTagValue(tagPath, "", allowEmptyString=True) or "")
 
 
-def _writeMissionRuntimeValue(instancePath, keyName, memberName, value):
-    """Write an optional mission runtime helper tag when the UDT member exists."""
-    tagPath = _missionRuntimeTagPath(instancePath, keyName, memberName)
+def _writeMissionRuntimeValue(context, keyName, value):
+    tagPath = _missionRuntimeTagPath(context.get("instance_path"), keyName)
     if not tagPath:
         return False
     writeRequiredTagValues(
@@ -101,13 +71,22 @@ def _writeMissionRuntimeValue(instancePath, keyName, memberName, value):
     return True
 
 
-def _buildMissionIssuedCommandSignature(actionName):
-    """Build the per-mission signature that suppresses repeated clear commands after success."""
-    return str(actionName or "")
+def _missionContext(missionRecord):
+    missionRecord = dict(missionRecord or {})
+    missionName = str(missionRecord.get("mission_name") or missionRecord.get("name") or "")
+    missionId = str(missionRecord.get("id") or "")
+    instancePath = str(missionRecord.get("instance_path") or missionRecord.get("path") or "")
+    return {
+        "record": missionRecord,
+        "instance_path": instancePath,
+        "mission_name": missionName,
+        "mission_id": missionId,
+        "mission_label": missionName or missionId or instancePath or "mission",
+        "workflow_number": normalizeWorkflowNumber(missionRecord.get("workflow_number")) or 0,
+    }
 
 
-def _buildMissionCommandLogSignature(actionName, result):
-    """Build the per-mission signature that suppresses duplicate command-history rows."""
+def _commandLogSignature(actionName, result):
     return "|".join([
         str(actionName or ""),
         "ok" if bool((result or {}).get("ok")) else "fail",
@@ -115,46 +94,36 @@ def _buildMissionCommandLogSignature(actionName, result):
     ])
 
 
-def _hasMissionCommandAlreadyIssued(missionRecord, actionName):
-    """Return True when this mission already accepted the same clear command in a prior scan."""
-    context = _missionContext(missionRecord)
+def _hasCommandAlreadyIssued(context, actionName):
     signature = _readMissionRuntimeValue(
-        context["instance_path"],
+        context,
         "last_issued_command_signature",
-        MISSION_LAST_ISSUED_COMMAND_SIGNATURE_MEMBER
     )
-    return signature == _buildMissionIssuedCommandSignature(actionName)
+    return signature == str(actionName or "")
 
 
-def _markMissionCommandIssued(missionRecord, actionName):
-    """Persist the successful per-mission clear command so later scans wait instead of repeating it."""
-    context = _missionContext(missionRecord)
+def _markCommandIssued(context, actionName):
     return _writeMissionRuntimeValue(
-        context["instance_path"],
+        context,
         "last_issued_command_signature",
-        MISSION_LAST_ISSUED_COMMAND_SIGNATURE_MEMBER,
-        _buildMissionIssuedCommandSignature(actionName)
+        str(actionName or ""),
     )
 
 
 def _recordMissionCommandHistory(
     nowEpochMs,
     robotName,
-    missionRecord,
+    context,
     requestedWorkflowNumber,
     activeWorkflowNumber,
     actionName,
     result,
-    stateName="mission_active"
 ):
-    """Append one explicit mission cancel/finalize row unless the mission-side log signature already matches."""
-    context = _missionContext(missionRecord)
-    missionRecord = context["record"]
-    logSignature = _buildMissionCommandLogSignature(actionName, result)
+    """Append one explicit mission cancel/finalize row unless the log signature matches."""
+    logSignature = _commandLogSignature(actionName, result)
     currentSignature = _readMissionRuntimeValue(
-        context["instance_path"],
+        context,
         "last_command_log_signature",
-        MISSION_LAST_COMMAND_LOG_SIGNATURE_MEMBER
     )
     if currentSignature == logSignature:
         return
@@ -181,16 +150,15 @@ def _recordMissionCommandHistory(
             or 0,
             actionName,
             (result or {}).get("level") or "",
-            stateName,
+            "mission_active",
             message,
         ],
         maxRows=COMMAND_HISTORY_MAX_ROWS,
     )
     _writeMissionRuntimeValue(
-        context["instance_path"],
+        context,
         "last_command_log_signature",
-        MISSION_LAST_COMMAND_LOG_SIGNATURE_MEMBER,
-        logSignature
+        logSignature,
     )
 
 
@@ -202,8 +170,29 @@ def _clearTargetActionName(missionRecord):
     return "cancel_mission"
 
 
-def _clearMissionMessageParts(finalizedCount, canceledCount, skippedCount, failedMessages):
-    """Build a stable human-readable summary for one clear-reconcile pass."""
+def _dispatchMissionCommand(context, actionName, finalizeMissionId=None, cancelMissionIds=None):
+    if not context["mission_id"]:
+        return {
+            "ok": False,
+            "level": "warn",
+            "message": "Cannot {} because [{}] is missing its mission id".format(
+                actionName.replace("_", " "),
+                context["mission_label"]
+            ),
+        }
+    return callMissionCommand(
+        actionName,
+        context["mission_id"],
+        finalizeMissionId=finalizeMissionId,
+        cancelMissionIds=cancelMissionIds,
+    )
+
+
+def _summaryMessage(summary):
+    finalizedCount = int(summary.get("finalized_count") or 0)
+    canceledCount = int(summary.get("canceled_count") or 0)
+    skippedCount = int(summary.get("skipped_count") or 0)
+    failedMessages = list(summary.get("failed_messages") or [])
     parts = []
     if finalizedCount:
         parts.append("finalized {} mission(s)".format(finalizedCount))
@@ -215,12 +204,10 @@ def _clearMissionMessageParts(finalizedCount, canceledCount, skippedCount, faile
         parts.append(
             "failed {} mission(s): {}".format(
                 len(failedMessages),
-                "; ".join(list(failedMessages or [])[:2])
+                "; ".join(failedMessages[:2])
             )
         )
-    if not parts:
-        parts.append("waiting for cleared missions to disappear")
-    return "; ".join(parts)
+    return "; ".join(parts or ["waiting for cleared missions to disappear"])
 
 
 def issueMissionCommands(
@@ -233,41 +220,31 @@ def issueMissionCommands(
     cancelMissionIds=None
 ):
     """Issue explicit finalize/cancel commands for the supplied mission records."""
-    finalizedCount = 0
-    canceledCount = 0
-    skippedCount = 0
-    failedLevels = []
-    failedMessages = []
+    summary = {
+        "finalized_count": 0,
+        "canceled_count": 0,
+        "skipped_count": 0,
+        "failed_messages": [],
+        "failed_levels": [],
+    }
 
     for missionRecord in list(missionRecords or []):
-        missionContext = _missionContext(missionRecord)
-        missionRecord = missionContext["record"]
-        actionName = _clearTargetActionName(missionRecord)
-        if _hasMissionCommandAlreadyIssued(missionRecord, actionName):
-            skippedCount += 1
+        context = _missionContext(missionRecord)
+        actionName = _clearTargetActionName(context["record"])
+        if _hasCommandAlreadyIssued(context, actionName):
+            summary["skipped_count"] += 1
             continue
 
-        if not missionContext["mission_id"]:
-            result = _missionCommandResult(
-                False,
-                "warn",
-                "Cannot {} because [{}] is missing its mission id".format(
-                    actionName.replace("_", " "),
-                    missionContext["mission_label"]
-                )
-            )
-        else:
-            result = callMissionCommand(
-                actionName,
-                missionContext["mission_id"],
-                finalizeMissionId=finalizeMissionId,
-                cancelMissionIds=cancelMissionIds,
-            )
-
+        result = _dispatchMissionCommand(
+            context,
+            actionName,
+            finalizeMissionId=finalizeMissionId,
+            cancelMissionIds=cancelMissionIds,
+        )
         _recordMissionCommandHistory(
             nowEpochMs,
             robotName,
-            missionRecord,
+            context,
             requestedWorkflowNumber,
             activeWorkflowNumber,
             actionName,
@@ -275,31 +252,27 @@ def issueMissionCommands(
         )
 
         if result.get("ok"):
-            _markMissionCommandIssued(missionRecord, actionName)
+            _markCommandIssued(context, actionName)
             if actionName == "finalize_mission":
-                finalizedCount += 1
+                summary["finalized_count"] += 1
             else:
-                canceledCount += 1
+                summary["canceled_count"] += 1
         else:
-            failedLevels.append(str(result.get("level") or "warn"))
-            failedMessages.append(str(result.get("message") or "mission clear failed"))
+            summary["failed_levels"].append(str(result.get("level") or "warn"))
+            summary["failed_messages"].append(
+                str(result.get("message") or "mission clear failed")
+            )
 
-    return {
-        "finalized_count": finalizedCount,
-        "canceled_count": canceledCount,
-        "skipped_count": skippedCount,
-        "failed_messages": failedMessages,
-        "failed_levels": failedLevels,
-        "issued_count": finalizedCount + canceledCount,
-        "any_failures": bool(failedMessages),
-        "message": _clearMissionMessageParts(
-            finalizedCount,
-            canceledCount,
-            skippedCount,
-            failedMessages
-        ),
-        "robot_name": robotName,
-        "requested_workflow_number": requestedWorkflowNumber,
-        "active_workflow_number": activeWorkflowNumber,
-        "now_epoch_ms": nowEpochMs,
-    }
+    finalizedCount = int(summary.get("finalized_count") or 0)
+    canceledCount = int(summary.get("canceled_count") or 0)
+    failedMessages = list(summary.get("failed_messages") or [])
+    return dict(
+        summary,
+        issued_count=finalizedCount + canceledCount,
+        any_failures=bool(failedMessages),
+        message=_summaryMessage(summary),
+        robot_name=robotName,
+        requested_workflow_number=requestedWorkflowNumber,
+        active_workflow_number=activeWorkflowNumber,
+        now_epoch_ms=nowEpochMs,
+    )

@@ -71,3 +71,36 @@ def readRobotCycleSnapshot(
         "selected_workflow_number": selectedWorkflowNumber,
         "controller_available_for_work": controllerAvailableForWork,
     }
+
+
+def readRobotCycleSnapshots(
+    robotNames,
+    plcMappingState=None,
+    reservedWorkflows=None,
+    nowEpochMs=None,
+    createMission=None,
+    finalizeMissionId=None,
+    cancelMissionIds=None
+):
+    """Read a controller-cycle batch with shared PLC mapping, time, and reservations."""
+    if nowEpochMs is None:
+        nowEpochMs = int(time.time() * 1000)
+    if reservedWorkflows is None:
+        reservedWorkflows = {}
+    if plcMappingState is None:
+        plcMappingState = readPlcMappings()
+
+    snapshots = []
+    for robotName in list(robotNames or []):
+        snapshots.append(
+            readRobotCycleSnapshot(
+                robotName,
+                plcMappingState=plcMappingState,
+                reservedWorkflows=reservedWorkflows,
+                nowEpochMs=nowEpochMs,
+                createMission=createMission,
+                finalizeMissionId=finalizeMissionId,
+                cancelMissionIds=cancelMissionIds,
+            )
+        )
+    return snapshots

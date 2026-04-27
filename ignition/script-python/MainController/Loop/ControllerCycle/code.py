@@ -7,13 +7,14 @@ from Otto_API.Robots import Get as RobotGet
 from Otto_API.System import Get as SystemGet
 
 from MainController.Robot.Cycle import runRobotWorkflowCycleSnapshot
-from MainController.Robot.Snapshot import readRobotCycleSnapshot
+from MainController.Robot.Reservations import attachReservedWorkflows
+from MainController.Robot.Reservations import buildReservedWorkflowsFromSnapshots
+from MainController.Robot.Snapshot import readRobotCycleSnapshots
 from MainController.State.ContainerMirror import mirrorPlcPlaces
 from MainController.State.MissionMirror import writeMissionSortingRobotMirror
 from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.Paths import ROBOT_NAMES
 from MainController.State.RuntimeStore import writeRuntimeFields
-from MainController.WorkflowConfig import normalizeWorkflowNumber
 
 
 def _phaseStatus(result):
@@ -66,28 +67,6 @@ def _controllerRuntimeFields(
 
 def _log():
     return system.util.getLogger("MainController.Loop.ControllerCycle")
-
-
-def _buildReservedWorkflowsFromSnapshots(snapshots):
-    reserved = {}
-    for snapshot in list(snapshots or []):
-        activeWorkflowNumber = normalizeWorkflowNumber(
-            dict(snapshot.get("active_summary") or {}).get("workflow_number")
-        )
-        if activeWorkflowNumber:
-            reserved[activeWorkflowNumber] = snapshot["robot_name"]
-            continue
-
-        currentState = dict(snapshot.get("current_state") or {})
-        selectedWorkflowNumber = normalizeWorkflowNumber(
-            currentState.get("selected_workflow_number")
-        )
-        if not selectedWorkflowNumber:
-            continue
-
-        if currentState.get("mission_created"):
-            reserved[selectedWorkflowNumber] = snapshot["robot_name"]
-    return reserved
 
 
 def _mergeResults(label, *results):
@@ -276,23 +255,20 @@ def runAllRobotWorkflowCycles(
     if robotNames is None:
         robotNames = ROBOT_NAMES
 
-    snapshots = [
-        readRobotCycleSnapshot(
-            robotName,
-            plcMappingState=plcMappingState,
-            nowEpochMs=nowEpochMs,
-            createMission=createMission,
-            finalizeMissionId=finalizeMissionId,
-            cancelMissionIds=cancelMissionIds,
-        )
-        for robotName in list(robotNames or [])
-    ]
+    snapshots = readRobotCycleSnapshots(
+        robotNames,
+        plcMappingState=plcMappingState,
+        nowEpochMs=nowEpochMs,
+        createMission=createMission,
+        finalizeMissionId=finalizeMissionId,
+        cancelMissionIds=cancelMissionIds,
+    )
 
-    reservedWorkflows = _buildReservedWorkflowsFromSnapshots(snapshots)
+    reservedWorkflows = buildReservedWorkflowsFromSnapshots(snapshots)
+    attachReservedWorkflows(snapshots, reservedWorkflows)
     results = []
     plcSyncResults = []
     for snapshot in snapshots:
-        snapshot["reserved_workflows"] = reservedWorkflows
         try:
             cycleResult = runRobotWorkflowCycleSnapshot(snapshot)
         except Exception as exc:
