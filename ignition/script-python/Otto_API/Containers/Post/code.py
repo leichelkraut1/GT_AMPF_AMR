@@ -13,6 +13,8 @@ from Otto_API.Containers.Actions import buildCreateContainerPayload
 from Otto_API.Containers.Actions import buildDeleteContainerPayload
 from Otto_API.Containers.Actions import buildUpdateContainerPlacePayload
 from Otto_API.Containers.Actions import buildUpdateContainerRobotPayload
+from Otto_API.Containers.Records import ContainerCreateFields
+from Otto_API.Containers.Records import ContainerLocationTarget
 from Otto_API.Containers.Actions import interpretCreateContainerResponse
 from Otto_API.Containers.Actions import interpretDeleteContainerResponse
 from Otto_API.Containers.Actions import interpretUpdateContainerPlaceResponse
@@ -82,6 +84,27 @@ def _resultWithDefaults(defaultFields=None, defaultExtraData=None):
 
 def _writeResponseAndLogResult(result, logger):
     return logOperationResult(result, logger)
+
+
+def _coerceContainerCreateFields(containerFields):
+    if isinstance(containerFields, ContainerCreateFields):
+        return containerFields
+    return ContainerCreateFields.fromDict(containerFields)
+
+
+def _coerceContainerLocationTarget(kind, value):
+    if isinstance(kind, ContainerLocationTarget):
+        return kind
+    if str(kind or "").strip().lower() == "robot":
+        return ContainerLocationTarget.forRobot(value)
+    return ContainerLocationTarget.forPlace(value)
+
+
+def _applyContainerLocationTarget(containerFields, locationTarget):
+    containerFields = _coerceContainerCreateFields(containerFields)
+    if locationTarget.isRobot():
+        return containerFields.withRobot(locationTarget.get("value"))
+    return containerFields.withPlace(locationTarget.get("value"))
 
 
 def _runCreateFromTagPath(containerTagPath, targetLabel, targetId, createFunc):
@@ -219,7 +242,7 @@ def _readCreateContainerBaseFields(containerTagPath, uuidFactory=None):
         if value in [None, ""]:
             continue
         containerFields[fieldName] = value
-    return containerFields
+    return ContainerCreateFields.fromDict(containerFields)
 
 
 def createContainerFromInputs(containerFields, fleetManagerURL, postFunc):
@@ -232,6 +255,7 @@ def createContainerFromInputs(containerFields, fleetManagerURL, postFunc):
         return _result(False, "warn", "No container fields supplied for create")
 
     try:
+        containerFields = _coerceContainerCreateFields(containerFields)
         payload = buildCreateContainerPayload(containerFields)
         jsonBody = system.util.jsonEncode(payload)
         response = postFunc(
@@ -265,9 +289,8 @@ def createContainerAtPlaceFromInputs(containerFields, placeId, fleetManagerURL, 
     if not placeId:
         return _result(False, "warn", "No place id supplied for container create")
 
-    containerFields = dict(containerFields or {})
-    containerFields.pop("robot", None)
-    containerFields["place"] = placeId
+    locationTarget = _coerceContainerLocationTarget("place", placeId)
+    containerFields = _applyContainerLocationTarget(containerFields, locationTarget)
     return createContainerFromInputs(containerFields, fleetManagerURL, postFunc)
 
 
@@ -280,9 +303,8 @@ def createContainerAtRobotFromInputs(containerFields, robotId, fleetManagerURL, 
     if not robotId:
         return _result(False, "warn", "No robot id supplied for container create")
 
-    containerFields = dict(containerFields or {})
-    containerFields.pop("place", None)
-    containerFields["robot"] = robotId
+    locationTarget = _coerceContainerLocationTarget("robot", robotId)
+    containerFields = _applyContainerLocationTarget(containerFields, locationTarget)
     return createContainerFromInputs(containerFields, fleetManagerURL, postFunc)
 
 

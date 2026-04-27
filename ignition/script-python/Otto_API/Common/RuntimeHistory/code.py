@@ -1,5 +1,6 @@
 import time
 
+from Otto_API.Common.RecordHelpers import MappingRecordBase
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import writeTagValues
 from Otto_API.Common.TagPaths import getMainControlRuntimePath
@@ -70,6 +71,16 @@ HTTP_HISTORY_MAX_ROWS = 500
 
 def _log():
     return system.util.getLogger("Otto_API.Common.RuntimeHistory")
+
+
+class RuntimeIssue(MappingRecordBase):
+    FIELDS = ("id", "source", "level", "message")
+
+    def __init__(self, issueId, source, level, message):
+        self.id = str(issueId or "").strip()
+        self.source = str(source or "").strip()
+        self.level = str(level or "warn").strip()
+        self.message = str(message or "").strip()
 
 
 def runtimePaths():
@@ -195,12 +206,17 @@ def timestampString(nowEpochMs=None):
 
 def buildRuntimeIssue(issueId, source, level, message):
     """Build one normalized runtime issue payload for RuntimeIssues recording."""
-    return {
-        "id": str(issueId or "").strip(),
-        "source": str(source or "").strip(),
-        "level": str(level or "warn").strip(),
-        "message": str(message or "").strip(),
-    }
+    return RuntimeIssue(issueId, source, level, message)
+
+
+def _issueField(issue, fieldName, defaultValue=""):
+    getter = getattr(issue, "get", None)
+    if getter is not None:
+        value = getter(fieldName, defaultValue)
+        if value is None:
+            return defaultValue
+        return value
+    return defaultValue
 
 
 def _normalizeRuntimeIssueLevel(levelText):
@@ -217,6 +233,10 @@ def _coerceRuntimeIssues(items):
     for item in list(items or []):
         if item is None:
             continue
+        if hasattr(item, "get"):
+            if _issueField(item, "id") and _issueField(item, "source") and _issueField(item, "message"):
+                issues.append(item)
+                continue
         if isinstance(item, dict):
             if "id" in item and "source" in item and "message" in item:
                 issues.append(dict(item))
@@ -265,10 +285,9 @@ def recordRuntimeIssues(items, nowEpochMs=None, logger=None):
                 }
 
         for rawIssue in issueRows:
-            issue = dict(rawIssue or {})
-            issueId = str(issue.get("id") or "").strip()
-            source = str(issue.get("source") or "").strip()
-            message = str(issue.get("message") or "").strip()
+            issueId = str(_issueField(rawIssue, "id") or "").strip()
+            source = str(_issueField(rawIssue, "source") or "").strip()
+            message = str(_issueField(rawIssue, "message") or "").strip()
             if not issueId or not source or not message:
                 continue
 
@@ -277,14 +296,14 @@ def recordRuntimeIssues(items, nowEpochMs=None, logger=None):
                 rowsById[issueId] = {
                     "IssueId": issueId,
                     "Source": source,
-                    "Level": _normalizeRuntimeIssueLevel(issue.get("level")),
+                    "Level": _normalizeRuntimeIssueLevel(_issueField(rawIssue, "level")),
                     "Message": message,
                     "FirstSeenTs": timestampText,
                     "LastSeenTs": timestampText,
                 }
             else:
                 existing["Source"] = source
-                existing["Level"] = _normalizeRuntimeIssueLevel(issue.get("level"))
+                existing["Level"] = _normalizeRuntimeIssueLevel(_issueField(rawIssue, "level"))
                 existing["Message"] = message
                 existing["LastSeenTs"] = timestampText
 

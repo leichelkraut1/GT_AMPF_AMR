@@ -10,7 +10,9 @@ from Otto_API.Common.TagPaths import getPlcInterlocksPath
 from Otto_API.Common.TagProvisioning import ensureFolder
 from Otto_API.Common.TagProvisioning import ensureMemoryTag
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
+from Otto_API.Interlocks.Records import DuplicateInterlockMappingInfo
 from Otto_API.Interlocks.Helpers import normalizeBool
+from Otto_API.Interlocks.Records import InterlockMappingRow
 
 
 VALID_DIRECTIONS = ["FromFleet", "ToFleet"]
@@ -88,7 +90,7 @@ def _normalizeMappingRows(configRows):
         writeEnable = normalizeBool(row.get("WriteEnable"), True)
 
         if not fleetName or not plcTagName or not direction:
-            warning = "InterlockMapping row [{}] has blank FleetName, PlcTagName, or Direction".format(plcTagName or "<unknown>")
+            warning = "Interlock mapping row [{}] has blank FleetName, PlcTagName, or Direction".format(plcTagName or "<unknown>")
             warnings.append(warning)
             issues.append(buildRuntimeIssue(
                 "interlocks.mapping.blank_config.{}".format(plcTagName or "unknown"),
@@ -99,7 +101,7 @@ def _normalizeMappingRows(configRows):
             continue
 
         if direction not in VALID_DIRECTIONS:
-            warning = "InterlockMapping row [{}] direction [{}] is invalid for FleetName [{}]; skipping row".format(
+            warning = "Interlock mapping row [{}] direction [{}] is invalid for FleetName [{}]; skipping row".format(
                 plcTagName,
                 direction,
                 fleetName,
@@ -112,6 +114,13 @@ def _normalizeMappingRows(configRows):
                 warning,
             ))
             continue
+
+        normalizedRow = InterlockMappingRow(
+            fleetName,
+            plcTagName,
+            direction,
+            writeEnable,
+        )
 
         existing = mappingByName.get(fleetName)
         if existing is not None:
@@ -129,23 +138,24 @@ def _normalizeMappingRows(configRows):
                 "warn",
                 warning,
             ))
-            duplicateInfoByName[fleetName] = {
-                "fleet_name": fleetName,
-                "replaced_plc_tag_name": existing.get("PlcTagName"),
-                "replaced_direction": existing.get("Direction"),
-                "winning_plc_tag_name": plcTagName,
-                "winning_direction": direction,
-            }
+            duplicateInfoByName[fleetName] = DuplicateInterlockMappingInfo(
+                fleetName,
+                existing.get("PlcTagName"),
+                existing.get("Direction"),
+                plcTagName,
+                direction,
+            )
 
-        mappingByName[fleetName] = {
-            "FleetName": fleetName,
-            "PlcTagName": plcTagName,
-            "Direction": direction,
-            "WriteEnable": writeEnable,
-        }
+        mappingByName[fleetName] = normalizedRow
 
-    normalizedRows = [mappingByName[name] for name in sorted(mappingByName.keys())]
-    return normalizedRows, mappingByName, duplicateInfoByName, warnings, issues
+    normalizedRows = [mappingByName[name].toDict() for name in sorted(mappingByName.keys())]
+    serializedMappingByName = {}
+    serializedDuplicateInfoByName = {}
+    for fleetName, row in list(mappingByName.items()):
+        serializedMappingByName[fleetName] = row.toDict()
+    for fleetName, duplicateInfo in list(duplicateInfoByName.items()):
+        serializedDuplicateInfoByName[fleetName] = duplicateInfo.toDict()
+    return normalizedRows, serializedMappingByName, serializedDuplicateInfoByName, warnings, issues
 
 
 def readInterlockMappings():
@@ -180,7 +190,7 @@ def readInterlockMappings():
             ))
             configRows = []
 
-    normalizedRows, mappingByName, duplicateInfoByName, rowWarnings, rowIssues = _normalizeMappingRows(configRows)
+    normalizedRows, serializedMappingByName, duplicateInfoByName, rowWarnings, rowIssues = _normalizeMappingRows(configRows)
     warnings.extend(list(rowWarnings or []))
     issues.extend(list(rowIssues or []))
 
@@ -189,9 +199,9 @@ def readInterlockMappings():
     if warnings:
         level = "warn"
 
-    message = "PLC interlock config loaded"
+    message = "Interlock mapping loaded"
     if warnings:
-        message = "PLC interlock config loaded with {} issue(s)".format(len(warnings))
+        message = "Interlock mapping loaded with {} issue(s)".format(len(warnings))
 
     return buildOperationResult(
         ok,
@@ -199,13 +209,13 @@ def readInterlockMappings():
         message,
         data={
             "rows": normalizedRows,
-            "mapping_by_name": mappingByName,
+            "mapping_by_name": serializedMappingByName,
             "duplicate_info_by_name": duplicateInfoByName,
             "warnings": warnings,
             "issues": issues,
         },
         rows=normalizedRows,
-        mapping_by_name=mappingByName,
+        mapping_by_name=serializedMappingByName,
         duplicate_info_by_name=duplicateInfoByName,
         warnings=warnings,
         issues=issues,

@@ -17,6 +17,8 @@ from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
 from Otto_API.Missions.Get import getMissions
 from Otto_API.Missions.Maintenance import cleanup_stale_bucket
 from Otto_API.Missions.Maintenance import cleanup_terminal_folder
+from Otto_API.Missions.Records import MissionRecord
+from Otto_API.Missions.Records import RobotMissionSummary
 from Otto_API.Missions.Sync import mission_to_tag_values
 from Otto_API.Missions.Sync import sync_mission_into_bucket
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
@@ -111,6 +113,16 @@ def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None
     )
 
 
+def _serializeRobotSummaryByFolder(robotSummaryByFolder, robotMappings):
+    serialized = {}
+    for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
+        summary = robotSummaryByFolder.get(robotFolder)
+        if summary is None:
+            summary = RobotMissionSummary()
+        serialized[robotFolder] = summary.toDict()
+    return serialized
+
+
 def _readMaxCompletedCount():
     return int(readRequiredTagValue(
         getMissionMaxCompletedCountPath(),
@@ -182,8 +194,8 @@ def _writeFleetRobotMissionCounts(robotSummaryByFolder, logger=None):
             basePath + "/FailedMissionCount",
         ])
         writeValues.extend([
-            int(dict(summary or {}).get("active_mission_count", 0) or 0),
-            int(dict(summary or {}).get("failed_mission_count", 0) or 0),
+            int(summary.get("active_mission_count", 0) or 0),
+            int(summary.get("failed_mission_count", 0) or 0),
         ])
 
     if not writePaths:
@@ -218,34 +230,34 @@ def run():
         nowDate = system.date.now()
         nowTimestamp = system.date.format(nowDate, "yyyy-MM-dd HH:mm:ss.SSS")
 
-        missions.extend(
-            getMissions(
-                logger,
-                debug,
-                mission_status=ACTIVE_STATUSES
+        missions.extend([
+            MissionRecord.fromDict(mission)
+            for mission in list(
+                getMissions(
+                    logger,
+                    debug,
+                    mission_status=ACTIVE_STATUSES
+                ) or []
             )
-        )
+        ])
 
-        missions.extend(
-            getMissions(
-                logger,
-                debug,
-                mission_status=FAILED_STATUSES,
-                limit=MAX_FAILED
+        missions.extend([
+            MissionRecord.fromDict(mission)
+            for mission in list(
+                getMissions(
+                    logger,
+                    debug,
+                    mission_status=FAILED_STATUSES,
+                    limit=MAX_FAILED
+                ) or []
             )
-        )
+        ])
 
         robotMappings = readRobotFolderMappings(robotsPath=ROBOTS_PATH, logger=logger)
         activeWanted = set()
         completedWanted = set()
         failedWanted = set()
-        activeCountsByFolder = {}
-        failedCountsByFolder = {}
-        missionStarvedByFolder = {}
-        attachmentReadyByFolder = {}
-        currentMissionNameByFolder = {}
-        currentMissionIdByFolder = {}
-        currentMissionStatusByFolder = {}
+        robotSummaryByFolder = {}
         activeMissionsByFolder = {}
         removed = []
 
@@ -277,41 +289,23 @@ def run():
                 completedWanted.add(syncResult["paths"]["completed"])
             elif bucket == "failed":
                 failedWanted.add(syncResult["paths"]["failed"])
-                failedCountsByFolder[robotFolder] = failedCountsByFolder.get(robotFolder, 0) + 1
+                robotSummaryByFolder.setdefault(robotFolder, RobotMissionSummary()).recordFailedMission(mission)
             else:
                 activeWanted.add(syncResult["paths"]["active"])
-                activeCountsByFolder[robotFolder] = activeCountsByFolder.get(robotFolder, 0) + 1
+                robotSummaryByFolder.setdefault(robotFolder, RobotMissionSummary()).recordActiveMission(
+                    mission,
+                    attachmentState,
+                )
                 activeMissionsByFolder.setdefault(robotFolder, []).append(mission)
-                if attachmentState.get("mission_starved") is True:
-                    missionStarvedByFolder[robotFolder] = True
-                if attachmentState.get("ready_for_attachment") is True:
-                    attachmentReadyByFolder[robotFolder] = True
 
         for robotFolder, robotMissions in list(dict(activeMissionsByFolder or {}).items()):
             currentMission = selectCurrentActiveMissionRecord(robotMissions)
             if currentMission is None:
                 continue
-            currentMissionNameByFolder[robotFolder] = str(
-                currentMission.get("name")
-                or currentMission.get("mission_name")
-                or ""
-            )
-            currentMissionIdByFolder[robotFolder] = str(currentMission.get("id") or "")
-            currentMissionStatusByFolder[robotFolder] = str(currentMission.get("mission_status") or "")
+            robotSummaryByFolder.setdefault(robotFolder, RobotMissionSummary()).setCurrentMission(currentMission)
 
-        robotSummaryByFolder = {}
-        for robotFolder in sorted(robotMappings.get("name_by_lower", {}).values()):
-            robotSummaryByFolder[robotFolder] = {
-                "active_mission_count": int(activeCountsByFolder.get(robotFolder, 0) or 0),
-                "failed_mission_count": int(failedCountsByFolder.get(robotFolder, 0) or 0),
-                "mission_starved": bool(missionStarvedByFolder.get(robotFolder, False)),
-                "mission_ready_for_attachment": bool(attachmentReadyByFolder.get(robotFolder, False)),
-                "current_mission_name": str(currentMissionNameByFolder.get(robotFolder, "") or ""),
-                "current_mission_id": str(currentMissionIdByFolder.get(robotFolder, "") or ""),
-                "current_mission_status": str(currentMissionStatusByFolder.get(robotFolder, "") or ""),
-            }
-
-        _writeFleetRobotMissionCounts(robotSummaryByFolder, logger)
+        serializedRobotSummaryByFolder = _serializeRobotSummaryByFolder(robotSummaryByFolder, robotMappings)
+        _writeFleetRobotMissionCounts(serializedRobotSummaryByFolder, logger)
 
         removed.extend(
             cleanup_stale_bucket(
@@ -357,7 +351,7 @@ def run():
             completedWanted=completedWanted,
             failedWanted=failedWanted,
             removed=removed,
-            robotSummaryByFolder=robotSummaryByFolder,
+            robotSummaryByFolder=serializedRobotSummaryByFolder,
         )
 
     except Exception as e:
@@ -398,13 +392,16 @@ def runTerminalMaintenance():
         completedWanted = set()
         removed = []
 
-        missions = getMissions(
-            logger,
-            debug,
-            mission_status=TERMINAL_STATUSES,
-            limit=maxCompleted,
-            ordering="-created",
-        )
+        missions = [
+            MissionRecord.fromDict(mission)
+            for mission in list(getMissions(
+                logger,
+                debug,
+                mission_status=TERMINAL_STATUSES,
+                limit=maxCompleted,
+                ordering="-created",
+            ) or [])
+        ]
 
         for mission in missions:
             robotFolder = resolve_mission_robot_folder(

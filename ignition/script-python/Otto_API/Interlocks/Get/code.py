@@ -5,6 +5,7 @@ from Otto_API.Common.ParseHelpers import parseJsonResponse
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Interlocks.Helpers import buildInterlockInstanceMap
+from Otto_API.Interlocks.Records import InterlockRecord
 
 
 INTERLOCK_FETCH_LIMIT = 100
@@ -48,12 +49,7 @@ def _normalizeInterlockRecord(rawRecord, warnings, issues):
         ))
         state = 0
 
-    return {
-        "id": interlockId,
-        "created": created,
-        "name": name,
-        "state": state,
-    }
+    return InterlockRecord(interlockId, created, name, state)
 
 
 def getInterlocks():
@@ -161,7 +157,10 @@ def getInterlocks():
                 ))
             recordsByName[name] = normalized
 
-        records = [recordsByName[name] for name in sorted(recordsByName.keys())]
+        records = [recordsByName[name].toDict() for name in sorted(recordsByName.keys())]
+        serializedRecordsByName = {}
+        for name, record in list(recordsByName.items()):
+            serializedRecordsByName[name] = record.toDict()
         instanceNameByRawName, _rawNameByInstanceName, instanceErrors = buildInterlockInstanceMap(records)
         if instanceErrors:
             errorIssues = []
@@ -180,7 +179,7 @@ def getInterlocks():
                 records=records,
                 response_text=response,
                 warnings=warnings,
-                records_by_name=recordsByName,
+                records_by_name=serializedRecordsByName,
                 instance_name_by_name=instanceNameByRawName,
                 errors=instanceErrors,
                 issues=list(issues or []) + errorIssues,
@@ -202,7 +201,7 @@ def getInterlocks():
             records=records,
             response_text=response,
             warnings=warnings,
-            records_by_name=recordsByName,
+            records_by_name=serializedRecordsByName,
             instance_name_by_name=instanceNameByRawName,
             issues=issues,
         )

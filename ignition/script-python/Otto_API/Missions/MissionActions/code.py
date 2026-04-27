@@ -17,6 +17,25 @@ ACTIVE_MISSION_STATUS_PRIORITY = {
 }
 
 
+def _recordValue(record, *keys):
+    if record is None:
+        return None
+    getter = getattr(record, "get", None)
+    if getter is not None:
+        for key in list(keys or ()):
+            value = getter(key)
+            if value is not None:
+                return value
+        return None
+
+    record = dict(record or {})
+    for key in list(keys or ()):
+        value = record.get(key)
+        if value is not None:
+            return value
+    return None
+
+
 def parseTemplateJson(templateJsonStr):
     """
     Parse a workflow template JSON string and return the template dict.
@@ -102,7 +121,6 @@ def resolveMissionRobotId(missionRecord):
     3. forced_robot
     Accepts either lowercase or title-cased tag-style keys.
     """
-    missionRecord = dict(missionRecord or {})
     for key in [
         "assigned_robot",
         "Assigned_Robot",
@@ -111,7 +129,7 @@ def resolveMissionRobotId(missionRecord):
         "forced_robot",
         "Forced_Robot",
     ]:
-        value = missionRecord.get(key)
+        value = _recordValue(missionRecord, key)
         if value is None:
             continue
         value = str(value).strip().lower()
@@ -135,14 +153,13 @@ def sortActiveMissionRecords(missionRecords):
     Return mission records in deterministic controller/finalize priority order.
     """
     def sort_key(missionRecord):
-        missionRecord = dict(missionRecord or {})
         return (
             activeMissionStatusPriority(
-                missionRecord.get("mission_status") or missionRecord.get("Mission_Status")
+                _recordValue(missionRecord, "mission_status", "Mission_Status")
             ),
-            str(missionRecord.get("path") or missionRecord.get("instance_path") or ""),
-            str(missionRecord.get("name") or missionRecord.get("Name") or ""),
-            str(missionRecord.get("id") or missionRecord.get("ID") or ""),
+            str(_recordValue(missionRecord, "path", "instance_path") or ""),
+            str(_recordValue(missionRecord, "name", "Name") or ""),
+            str(_recordValue(missionRecord, "id", "ID") or ""),
         )
 
     return sorted(list(missionRecords or []), key=sort_key)
@@ -155,7 +172,7 @@ def selectCurrentActiveMissionRecord(missionRecords):
     ordered = sortActiveMissionRecords(missionRecords)
     if not ordered:
         return None
-    return dict(ordered[0])
+    return ordered[0]
 
 
 def findActiveMissionIdForRobot(robotId, missionRecords):
@@ -176,7 +193,7 @@ def findActiveMissionIdForRobot(robotId, missionRecords):
 
     for missionRecord in sortActiveMissionRecords(matchingRecords):
 
-        missionId = missionRecord.get("id")
+        missionId = _recordValue(missionRecord, "id")
         if missionId:
             return (str(missionId), None)
 
@@ -204,7 +221,7 @@ def findActiveMissionIdsForRobot(robotId, missionRecords):
         if resolvedRobotId != robotId:
             continue
 
-        missionId = missionRecord.get("id")
+        missionId = _recordValue(missionRecord, "id")
         if missionId:
             missionIds.append(str(missionId))
         else:

@@ -1,3 +1,7 @@
+from Otto_API.Fleet.Records import RobotReadinessResult
+from Otto_API.Robots.Records import RobotSnapshot
+
+
 DEFAULT_ALLOWED_ACTIVITY_STATES = set([
     "PARKING",
     "IDLE",
@@ -27,22 +31,22 @@ def _buildRobotReadinessResult(
     missionLastUpdateTs=None,
     missionLastUpdateSuccess=None
 ):
-    return {
-        "robot_name": robotName,
-        "available": available,
-        "reason": reason,
-        "system_state": systemState,
-        "activity_state": activityState,
-        "charge_level": chargeLevel,
-        "min_charge": minCharge,
-        "active_mission_count": activeMissionCount,
-        "failed_mission_count": failedMissionCount,
-        "charging_tof": chargingTof,
-        "charging_ts": chargingTs,
-        "charging_delay_ms": chargingDelayMs,
-        "mission_last_update_ts": missionLastUpdateTs,
-        "mission_last_update_success": missionLastUpdateSuccess,
-    }
+    return RobotReadinessResult(
+        robotName,
+        available,
+        reason,
+        systemState,
+        activityState,
+        chargeLevel,
+        minCharge,
+        activeMissionCount,
+        failedMissionCount,
+        chargingTof,
+        chargingTs,
+        chargingDelayMs,
+        missionLastUpdateTs,
+        missionLastUpdateSuccess,
+    )
 
 
 def evaluateRobotReadiness(
@@ -92,10 +96,22 @@ def evaluateRobotReadiness(
     )
 
     def _result(reason, available=False):
-        result = dict(baseResult)
-        result["reason"] = reason
-        result["available"] = bool(available)
-        return result
+        return _buildRobotReadinessResult(
+            robotName=baseResult.robot_name,
+            available=available,
+            reason=reason,
+            systemState=baseResult.system_state,
+            activityState=baseResult.activity_state,
+            chargeLevel=baseResult.charge_level,
+            minCharge=baseResult.min_charge,
+            activeMissionCount=baseResult.active_mission_count,
+            failedMissionCount=baseResult.failed_mission_count,
+            chargingTof=baseResult.charging_tof,
+            chargingTs=baseResult.charging_ts,
+            chargingDelayMs=baseResult.charging_delay_ms,
+            missionLastUpdateTs=baseResult.mission_last_update_ts,
+            missionLastUpdateSuccess=baseResult.mission_last_update_success,
+        )
 
     if minCharge is None:
         return _result("min_charge_missing")
@@ -173,11 +189,19 @@ def isRobotAvailable(
         chargingTs,
         chargingDelayMs,
         allowedActivityStates
-    )["available"]
+    ).isReady()
+
+
 def _reasonToTagValue(readiness):
-    if readiness.get("available"):
+    if readiness.isReady():
         return ""
-    return str(readiness.get("reason") or "")
+    return readiness.notReadyReason()
+
+
+def _coerceRobotSnapshot(snapshot):
+    if isinstance(snapshot, RobotSnapshot):
+        return snapshot
+    return RobotSnapshot.fromDict(snapshot)
 
 
 def buildReadinessResultsAndWrites(
@@ -205,30 +229,31 @@ def buildReadinessResultsAndWrites(
     writeValues = []
 
     for snapshot in list(robotSnapshots or []):
+        snapshot = _coerceRobotSnapshot(snapshot)
         readiness = evaluateRobotReadiness(
-            snapshot.get("robot_name"),
-            snapshot.get("system_state"),
-            snapshot.get("activity_state"),
-            snapshot.get("charge_level"),
+            snapshot.robot_name,
+            snapshot.system_state,
+            snapshot.activity_state,
+            snapshot.charge_level,
             minCharge,
-            snapshot.get("active_mission_count"),
+            snapshot.active_mission_count,
             missionLastUpdateTs,
             missionLastUpdateSuccess,
-            snapshot.get("failed_mission_count"),
-            snapshot.get("charging_tof"),
-            snapshot.get("charging_ts"),
+            snapshot.failed_mission_count,
+            snapshot.charging_tof,
+            snapshot.charging_ts,
             chargingDelayMs,
         )
-        robotResults.append(readiness)
+        robotResults.append(readiness.toDict())
 
-        robotPath = snapshot.get("robot_path")
+        robotPath = snapshot.robot_path
         if robotPath:
             writePaths.extend([
                 robotPath + "/AvailableForWork",
                 robotPath + "/NotReadyReason",
             ])
             writeValues.extend([
-                readiness["available"],
+                readiness.isReady(),
                 _reasonToTagValue(readiness),
             ])
 

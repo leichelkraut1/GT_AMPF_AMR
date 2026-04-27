@@ -1,33 +1,7 @@
 from Otto_API.Common.TagIO import browseTagResults
 from Otto_API.Common.TagIO import readTagValues
 
-from Otto_API.Common.TimeHelpers import parseIsoTimestampToEpochMillis
-
-
-def _createdSortValue(created, logger=None):
-    if created is None:
-        return 0
-
-    try:
-        return parseIsoTimestampToEpochMillis(created)
-    except Exception as exc:
-        if logger is not None:
-            logger.warn(
-                "Falling back to digit-only mission created sort for [{}]: {}".format(
-                    str(created),
-                    str(exc)
-                )
-            )
-        digits = "".join([
-            ch for ch in str(created)
-            if ch.isdigit()
-        ])
-        if not digits:
-            return 0
-        try:
-            return int(digits)
-        except Exception:
-            return 0
+from Otto_API.Robots.Records import RobotSystemStateEntry
 
 
 def selectDominantSystemState(entries, logger=None):
@@ -39,13 +13,10 @@ def selectDominantSystemState(entries, logger=None):
     bestCreated = None
 
     for entry in list(entries or []):
+        if not isinstance(entry, RobotSystemStateEntry):
+            entry = RobotSystemStateEntry.fromDict(entry)
         priority = entry.get("priority", 9999)
-        try:
-            priority = int(priority)
-        except Exception:
-            priority = 9999
-
-        createdValue = _createdSortValue(entry.get("created"), logger=logger)
+        createdValue = entry.createdSortValue(logger=logger)
 
         if bestEntry is None:
             bestEntry = entry

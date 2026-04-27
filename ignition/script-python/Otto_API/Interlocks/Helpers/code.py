@@ -1,3 +1,4 @@
+from Otto_API.Common.RecordHelpers import coerceBool
 from Otto_API.Common.SyncHelpers import sanitizeTagName
 from Otto_API.Common.TagIO import browseTagResults
 
@@ -10,15 +11,7 @@ def buildInterlockInstanceName(rawName):
 
 
 def normalizeBool(value, defaultValue=False):
-    if isinstance(value, bool):
-        return value
-
-    text = str(value or "").strip().lower()
-    if text in ["true", "1", "yes", "on"]:
-        return True
-    if text in ["false", "0", "no", "off"]:
-        return False
-    return bool(defaultValue)
+    return coerceBool(value, defaultValue)
 
 
 def childRowNames(basePath):

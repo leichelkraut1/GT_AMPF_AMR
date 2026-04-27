@@ -2,6 +2,12 @@ import json
 import time
 
 
+def _containerFieldsPayload(containerFields):
+    if hasattr(containerFields, "toPayloadFields"):
+        return containerFields.toPayloadFields()
+    return dict(containerFields or {})
+
+
 def buildCreateContainerPayload(containerFields, nowEpoch=None):
     """
     Build the JSON-RPC payload for createContainer.
@@ -14,7 +20,7 @@ def buildCreateContainerPayload(containerFields, nowEpoch=None):
         "jsonrpc": "2.0",
         "method": "createContainer",
         "params": {
-            "container": dict(containerFields or {})
+            "container": _containerFieldsPayload(containerFields)
         }
     }
 

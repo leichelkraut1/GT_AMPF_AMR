@@ -26,6 +26,9 @@ from Otto_API.Robots.Inventory import readRobotInventory
 from Otto_API.Robots.Normalize import buildRobotTagValues
 from Otto_API.Robots.ObservedWrites import buildRobotSyncResult
 from Otto_API.Robots.ObservedWrites import writeObservedPairs
+from Otto_API.Robots.Records import RobotPlace
+from Otto_API.Robots.Records import RobotSnapshot
+from Otto_API.Robots.Records import RobotSystemStateEntry
 from Otto_API.Robots.StateHistory import appendPendingRobotStateHistoryRows
 from Otto_API.Robots.StateHistory import buildRobotStateHistoryUpdate
 from Otto_API.Robots.StateHistory import ROBOT_STATE_LOG_SIGNATURE_MEMBER
@@ -98,10 +101,7 @@ def _robot_places(records):
         robotId = str(record.get("robot") or "").strip()
         if not robotId:
             continue
-        placesByRobot[robotId] = {
-            "place_id": str(record.get("id") or "").strip(),
-            "place_name": str(record.get("name") or "").strip(),
-        }
+        placesByRobot[robotId] = RobotPlace.fromDict(record)
     return placesByRobot
 
 
@@ -294,7 +294,10 @@ def updateRobotOperationalState():
         if errorResult is not None:
             return errorResult
 
-        statesByRobot = groupRecordsByRobot(systemStateResults, "robot")
+        statesByRobot = groupRecordsByRobot(
+            [RobotSystemStateEntry.fromDict(record) for record in list(systemStateResults or [])],
+            "robot"
+        )
         activityByRobot = _robot_keyed_values(activityResults, "robot", "activity")
         chargeByRobot = _robot_keyed_values(
             batteryResults,
@@ -365,7 +368,7 @@ def updateRobotOperationalState():
                 effectiveCharge = chargeByRobot.get(robotId)
                 writesByPath[chargePath] = effectiveCharge
 
-            placeEntry = placesByRobot.get(robotId, {})
+            placeEntry = placesByRobot.get(robotId, RobotPlace("", ""))
             effectivePlaceId = str(placeEntry.get("place_id") or "")
             effectivePlaceName = str(placeEntry.get("place_name") or "")
             writesByPath[placeIdPath] = effectivePlaceId
@@ -399,19 +402,21 @@ def updateRobotOperationalState():
                 signaturePath, signatureValue = historyUpdate["signature_write"]
                 writesByPath[signaturePath] = signatureValue
 
-            robotSnapshots.append({
-                "robot_name": robotName,
-                "robot_path": robotPath,
-                "system_state": effectiveSystemState,
-                "activity_state": effectiveActivity,
-                "charge_level": effectiveCharge,
-                "active_mission_count": effectiveActiveMissionCount,
-                "failed_mission_count": effectiveFailedMissionCount,
-                "place_id": effectivePlaceId,
-                "place_name": effectivePlaceName,
-                "charging_tof": effectiveChargingTof,
-                "charging_ts": effectiveChargingTs,
-            })
+            robotSnapshots.append(
+                RobotSnapshot(
+                    robotName,
+                    robotPath,
+                    effectiveSystemState,
+                    effectiveActivity,
+                    effectiveCharge,
+                    effectiveActiveMissionCount,
+                    effectiveFailedMissionCount,
+                    effectivePlaceId,
+                    effectivePlaceName,
+                    effectiveChargingTof,
+                    effectiveChargingTs,
+                )
+            )
 
         readinessBatch = buildReadinessResultsAndWrites(
             robotSnapshots,
