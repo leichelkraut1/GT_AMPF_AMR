@@ -69,7 +69,7 @@ def httpGet(url, headerValues=None):
     try:
         response = system.net.httpGet(
             url=url,
-            bypassCertValidation=False,
+            bypassCertValidation=True,
             headerValues=headerValues or jsonHeaders(),
         )
         _logHttpHistory("GET", url, "", response, True, startEpochMs)
