@@ -32,16 +32,6 @@ def issueClearMissionCommands(snapshot, missions, selectedWorkflowNumber, active
     )
 
 
-def reserveActiveWorkflow(snapshot):
-    """Reserve an already-active workflow for this robot in the shared cycle map."""
-    if snapshot.get("active_workflow_number"):
-        reserveWorkflow(
-            snapshot["reserved_workflows"],
-            snapshot["active_workflow_number"],
-            snapshot["robot_name"],
-        )
-
-
 def createWorkflowMission(snapshot, workflowNumber):
     """Create one workflow mission and reserve the workflow after a successful create."""
     result = callCreateMission(
@@ -56,3 +46,38 @@ def createWorkflowMission(snapshot, workflowNumber):
             snapshot["robot_name"],
         )
     return result
+
+
+def _unsupportedCommandResult(commandRequest):
+    return {
+        "ok": False,
+        "level": "error",
+        "message": "Unsupported robot command request [{}]".format(
+            str(dict(commandRequest or {}).get("type") or "")
+        ),
+    }
+
+
+def executeRobotCommandRequests(snapshot, commandRequests):
+    """Execute planned robot command requests and return results by request name."""
+    results = {}
+    for commandRequest in list(commandRequests or []):
+        commandRequest = dict(commandRequest or {})
+        requestName = str(commandRequest.get("name") or commandRequest.get("type") or "")
+        requestType = str(commandRequest.get("type") or "")
+        if requestType == "create_workflow_mission":
+            result = createWorkflowMission(
+                snapshot,
+                commandRequest.get("workflow_number"),
+            )
+        elif requestType == "clear_missions":
+            result = issueClearMissionCommands(
+                snapshot,
+                commandRequest.get("missions"),
+                commandRequest.get("selected_workflow_number"),
+                commandRequest.get("active_workflow_number"),
+            )
+        else:
+            result = _unsupportedCommandResult(commandRequest)
+        results[requestName] = result
+    return results

@@ -6,11 +6,27 @@ from MainController.State.MissionStore import readRobotMirrorInputs
 from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.PlcStore import readPlcInputs
 from MainController.State.RobotStore import readRobotState
+from Otto_API.Common.TagIO import readOptionalTagValue
+from Otto_API.Common.TagPaths import getPendingCreateMissionTimeoutMsPath
+
+
+_DEFAULT_PENDING_CREATE_TIMEOUT_MS = 30000
 
 
 def _resolveRobotPlcTagName(robotName, plcMappingState):
     """Resolve one robot's PLC row name from the already-read mapping state."""
     return str(dict(plcMappingState.get("robot_name_to_plc_tag") or {}).get(robotName) or "")
+
+
+def _pendingCreateTimeoutMs():
+    rawValue = readOptionalTagValue(
+        getPendingCreateMissionTimeoutMsPath(),
+        _DEFAULT_PENDING_CREATE_TIMEOUT_MS,
+    )
+    try:
+        return max(0, int(rawValue or 0))
+    except Exception:
+        return _DEFAULT_PENDING_CREATE_TIMEOUT_MS
 
 
 def readRobotCycleSnapshot(
@@ -70,6 +86,7 @@ def readRobotCycleSnapshot(
         "active_workflow_number": activeWorkflowNumber,
         "selected_workflow_number": selectedWorkflowNumber,
         "controller_available_for_work": controllerAvailableForWork,
+        "pending_create_timeout_ms": _pendingCreateTimeoutMs(),
     }
 
 

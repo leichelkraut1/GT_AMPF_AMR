@@ -1,7 +1,3 @@
-from MainController.Robot.Commands import createWorkflowMission
-from MainController.Robot.Commands import emptyMissionCommandSummary
-from MainController.Robot.Commands import issueClearMissionCommands
-from MainController.Robot.Commands import reserveActiveWorkflow
 from MainController.Robot.PlcMirror import buildOutputs
 from MainController.State.Paths import RETRY_DELAY_MS
 from MainController.State.RobotStore import normalizeRobotState
@@ -9,8 +5,6 @@ from MainController.WorkflowConfig import getWorkflowDef
 from MainController.WorkflowConfig import isWorkflowAllowedForRobot
 from MainController.WorkflowConfig import normalizeWorkflowNumber
 from Otto_API.Common.RuntimeHistory import timestampString
-from Otto_API.Common.TagIO import readOptionalTagValue
-from Otto_API.Common.TagPaths import getPendingCreateMissionTimeoutMsPath
 
 
 _DEFAULT_PENDING_CREATE_TIMEOUT_MS = 30000
@@ -58,9 +52,29 @@ def _mergeMessages(*messages):
     return "; ".join(normalized)
 
 
-def _pendingCreateTimeoutMs():
-    rawValue = readOptionalTagValue(
-        getPendingCreateMissionTimeoutMsPath(),
+def _emptyMissionCommandSummary():
+    return {
+        "finalized_count": 0,
+        "canceled_count": 0,
+        "skipped_count": 0,
+        "failed_messages": [],
+        "failed_levels": [],
+        "issued_count": 0,
+        "any_failures": False,
+        "message": "",
+    }
+
+
+def _commandSummary(commandResults, requestName):
+    return dict(
+        dict(commandResults or {}).get(requestName)
+        or _emptyMissionCommandSummary()
+    )
+
+
+def _pendingCreateTimeoutMs(snapshot):
+    rawValue = dict(snapshot or {}).get(
+        "pending_create_timeout_ms",
         _DEFAULT_PENDING_CREATE_TIMEOUT_MS,
     )
     try:
@@ -140,6 +154,13 @@ def _clearRequestPatch(snapshot, lastResult="", recordTimestamp=False):
         "retry_count": 0,
     }
     return _withTimestamp(snapshot, patch, recordTimestamp=recordTimestamp)
+
+
+def _selectedWorkflowPatch(snapshot, lastResult):
+    return {
+        "selected_workflow_number": snapshot["selected_workflow_number"],
+        "last_result": lastResult,
+    }
 
 
 def _requestPatch(
@@ -223,6 +244,48 @@ def _outcome(
     }
 
 
+def _plan(outcome=None, commandRequests=None, resolver=None, data=None):
+    if resolver is None and outcome is not None:
+        resolver = _resolveStaticOutcome
+    return {
+        "outcome": outcome,
+        "command_requests": list(commandRequests or []),
+        "resolver": resolver,
+        "data": dict(data or {}),
+    }
+
+
+def _clearMissionsRequest(
+    requestName,
+    missions,
+    selectedWorkflowNumber,
+    activeWorkflowNumber
+):
+    return {
+        "name": str(requestName or ""),
+        "type": "clear_missions",
+        "missions": list(missions or []),
+        "selected_workflow_number": selectedWorkflowNumber,
+        "active_workflow_number": activeWorkflowNumber,
+    }
+
+
+def _createWorkflowMissionRequest(requestName, workflowNumber):
+    return {
+        "name": str(requestName or ""),
+        "type": "create_workflow_mission",
+        "workflow_number": workflowNumber,
+    }
+
+
+def _resolveStaticOutcome(snapshot, plan, commandResults):
+    return dict(plan.get("outcome") or {})
+
+
+def _outcomePlan(*args, **kwargs):
+    return _plan(outcome=_outcome(*args, **kwargs))
+
+
 def _plcFaultOutcome(snapshot):
     return _outcome(
         snapshot,
@@ -274,96 +337,112 @@ def _failedSummaryLevel(failedLevels):
     return "error" if "error" in levels else "warn"
 
 
-def _decideActiveMissions(snapshot):
-    currentState = snapshot["current_state"]
-    selectedWorkflowNumber = snapshot["selected_workflow_number"]
-    activeWorkflowNumber = snapshot["active_workflow_number"]
-    activeSplit = _classifyActiveMissions(snapshot)
-    matching = list(activeSplit["matching"] or [])
-    queuedMismatches = list(activeSplit["queued_mismatches"] or [])
-    blockingMismatches = list(activeSplit["blocking_mismatches"] or [])
-    hasQueuedMismatches = bool(queuedMismatches)
-    hasBlockingMismatches = bool(blockingMismatches)
-    queuedSummary = emptyMissionCommandSummary()
-
-    if (hasQueuedMismatches or hasBlockingMismatches) and currentState.get("disable_ignition_control"):
-        disabledMessage = _holdDisabledMessage(
-            snapshot,
-            hasBlockingMismatches=hasBlockingMismatches,
-            hasQueuedMismatches=hasQueuedMismatches,
-        )
-        return _outcome(
-            snapshot,
-            "hold_control_disabled",
-            disabledMessage,
-            "mission_active",
-            _requestPatch(
-                snapshot,
-                disabledMessage,
-                missionCreated=True,
-                missionNeedsFinalized=hasBlockingMismatches,
-                clearPendingCreate=True,
-            ),
-            level="warn",
-            missionOps={"queued_summary": queuedSummary},
-        )
-
-    queuedSummary = issueClearMissionCommands(
-        snapshot,
-        queuedMismatches,
-        selectedWorkflowNumber,
-        activeWorkflowNumber,
-    )
-    queuedMessage = str(queuedSummary.get("message") or "")
-
-    if hasBlockingMismatches:
-        if not snapshot["plc_inputs"].get("finalize_ok"):
-            pendingMessage = _mergeMessages(queuedMessage, _activeClearPendingMessage(snapshot))
-            return _outcome(
-                snapshot,
-                "hold_clear_pending",
-                pendingMessage,
-                "mission_active",
-                _requestPatch(
-                    snapshot,
-                    pendingMessage,
-                    missionCreated=True,
-                    missionNeedsFinalized=True,
-                    clearPendingCreate=True,
-                ),
-                missionOps={"queued_summary": queuedSummary},
+def _activeCommandRequests(
+    queuedMismatches,
+    blockingMismatches,
+    selectedWorkflowNumber,
+    activeWorkflowNumber,
+    includeBlocking=False
+):
+    requests = []
+    if queuedMismatches:
+        requests.append(
+            _clearMissionsRequest(
+                "queued_clear",
+                queuedMismatches,
+                selectedWorkflowNumber,
+                activeWorkflowNumber,
             )
+        )
+    if includeBlocking and blockingMismatches:
+        requests.append(
+            _clearMissionsRequest(
+                "blocking_clear",
+                blockingMismatches,
+                selectedWorkflowNumber,
+                activeWorkflowNumber,
+            )
+        )
+    return requests
 
-        blockingSummary = issueClearMissionCommands(
+
+def _activePlanData(plan):
+    return dict(dict(plan or {}).get("data") or {})
+
+
+def _activeQueuedSummary(commandResults):
+    return _commandSummary(commandResults, "queued_clear")
+
+
+def _resolveActiveClearPending(snapshot, plan, commandResults):
+    queuedSummary = _commandSummary(commandResults, "queued_clear")
+    queuedMessage = str(queuedSummary.get("message") or "")
+    pendingMessage = _mergeMessages(
+        queuedMessage,
+        _activeClearPendingMessage(snapshot),
+    )
+    return _outcome(
+        snapshot,
+        "hold_clear_pending",
+        pendingMessage,
+        "mission_active",
+        _requestPatch(
             snapshot,
-            blockingMismatches,
-            selectedWorkflowNumber,
-            activeWorkflowNumber,
-        )
-        anyFailures = bool(queuedSummary.get("any_failures") or blockingSummary.get("any_failures"))
-        failedLevels = list(queuedSummary.get("failed_levels") or []) + list(blockingSummary.get("failed_levels") or [])
-        issuedCount = int(queuedSummary.get("issued_count") or 0) + int(blockingSummary.get("issued_count") or 0)
-        mergedMessage = _mergeMessages(queuedMessage, blockingSummary.get("message"))
-        return _outcome(
+            pendingMessage,
+            missionCreated=True,
+            missionNeedsFinalized=True,
+            clearPendingCreate=True,
+        ),
+        missionOps={"queued_summary": queuedSummary},
+    )
+
+
+def _resolveActiveBlockingClear(snapshot, plan, commandResults):
+    queuedSummary = _commandSummary(commandResults, "queued_clear")
+    blockingSummary = _commandSummary(commandResults, "blocking_clear")
+    queuedMessage = str(queuedSummary.get("message") or "")
+    anyFailures = bool(
+        queuedSummary.get("any_failures")
+        or blockingSummary.get("any_failures")
+    )
+    failedLevels = (
+        list(queuedSummary.get("failed_levels") or [])
+        + list(blockingSummary.get("failed_levels") or [])
+    )
+    issuedCount = (
+        int(queuedSummary.get("issued_count") or 0)
+        + int(blockingSummary.get("issued_count") or 0)
+    )
+    mergedMessage = _mergeMessages(queuedMessage, blockingSummary.get("message"))
+    return _outcome(
+        snapshot,
+        "clear_reconcile_failed" if anyFailures else (
+            "clear_reconcile" if issuedCount else "hold_clear_inflight"
+        ),
+        mergedMessage,
+        "fault" if anyFailures else "mission_active",
+        _requestPatch(
             snapshot,
-            "clear_reconcile_failed" if anyFailures else ("clear_reconcile" if issuedCount else "hold_clear_inflight"),
             mergedMessage,
-            "fault" if anyFailures else "mission_active",
-            _requestPatch(
-                snapshot,
-                mergedMessage,
-                missionCreated=True,
-                missionNeedsFinalized=True,
-                clearPendingCreate=True,
-                recordTimestamp=bool(issuedCount or anyFailures),
-            ),
-            ok=not anyFailures,
-            level=_failedSummaryLevel(failedLevels) if anyFailures else "info",
-            missionOps={
-                "queued_summary": queuedSummary,
-                "blocking_summary": blockingSummary,
-            },
-        )
+            missionCreated=True,
+            missionNeedsFinalized=True,
+            clearPendingCreate=True,
+            recordTimestamp=bool(issuedCount or anyFailures),
+        ),
+        ok=not anyFailures,
+        level=_failedSummaryLevel(failedLevels) if anyFailures else "info",
+        missionOps={
+            "queued_summary": queuedSummary,
+            "blocking_summary": blockingSummary,
+        },
+    )
+
+
+def _resolveActiveNoBlocking(snapshot, plan, commandResults):
+    selectedWorkflowNumber = snapshot["selected_workflow_number"]
+    queuedSummary = _activeQueuedSummary(commandResults)
+    queuedMessage = str(queuedSummary.get("message") or "")
+    matching = list(_activePlanData(plan).get("matching") or [])
 
     if queuedSummary.get("any_failures"):
         message = queuedMessage or "queued mission cleanup failed"
@@ -385,7 +464,10 @@ def _decideActiveMissions(snapshot):
         )
 
     if matching:
-        lastResult = _mergeMessages("active mission matches requested workflow", queuedMessage)
+        lastResult = _mergeMessages(
+            "active mission matches requested workflow",
+            queuedMessage,
+        )
         return _outcome(
             snapshot,
             "hold_active",
@@ -423,180 +505,72 @@ def _decideActiveMissions(snapshot):
     )
 
 
-def _decideNoActiveMissions(snapshot):
-    currentState = dict(snapshot["current_state"] or {})
+def _planActiveMissions(snapshot):
+    currentState = snapshot["current_state"]
     selectedWorkflowNumber = snapshot["selected_workflow_number"]
-    if currentState.get("mission_needs_finalized"):
-        currentState["request_latched"] = False
-        currentState["mission_created"] = False
-        currentState["mission_needs_finalized"] = False
-        currentState["pending_create_start_epoch_ms"] = 0
-        currentState["last_result"] = ""
-        currentState["last_command_id"] = ""
-        snapshot = dict(snapshot or {})
-        snapshot["current_state"] = currentState
+    activeWorkflowNumber = snapshot["active_workflow_number"]
+    activeSplit = _classifyActiveMissions(snapshot)
+    matching = list(activeSplit["matching"] or [])
+    queuedMismatches = list(activeSplit["queued_mismatches"] or [])
+    blockingMismatches = list(activeSplit["blocking_mismatches"] or [])
+    hasQueuedMismatches = bool(queuedMismatches)
+    hasBlockingMismatches = bool(blockingMismatches)
+    queuedSummary = _emptyMissionCommandSummary()
 
-    if _requestCleared(selectedWorkflowNumber):
-        return _outcome(
+    if (hasQueuedMismatches or hasBlockingMismatches) and currentState.get("disable_ignition_control"):
+        disabledMessage = _holdDisabledMessage(
             snapshot,
-            "idle",
-            "Robot [{}] idle".format(snapshot["robot_name"]),
-            "idle",
-            _clearRequestPatch(snapshot, ""),
+            hasBlockingMismatches=hasBlockingMismatches,
+            hasQueuedMismatches=hasQueuedMismatches,
         )
-
-    if currentState.get("disable_ignition_control"):
-        return _outcome(
+        return _outcomePlan(
             snapshot,
             "hold_control_disabled",
-            "Robot [{}] create suppressed while Ignition control is disabled".format(snapshot["robot_name"]),
-            "mission_requested",
-            {
-                "selected_workflow_number": selectedWorkflowNumber,
-                "last_result": _holdDisabledMessage(snapshot, False),
-            },
-            level="warn",
-        )
-
-    workflowDef = getWorkflowDef(selectedWorkflowNumber)
-    if workflowDef is None or not isWorkflowAllowedForRobot(selectedWorkflowNumber, snapshot["robot_name"]):
-        return _outcome(
-            snapshot,
-            "request_invalid",
-            "Robot [{}] requested invalid workflow {}".format(snapshot["robot_name"], selectedWorkflowNumber),
-            "fault",
-            {
-                "selected_workflow_number": selectedWorkflowNumber,
-                "last_result": "workflow {} invalid for {}".format(selectedWorkflowNumber, snapshot["robot_name"]),
-            },
-            ok=False,
-            level="warn",
-            plcFlags={"requestInvalid": True},
-        )
-
-    owner = snapshot["reserved_workflows"].get(selectedWorkflowNumber)
-    if owner and owner != snapshot["robot_name"]:
-        return _outcome(
-            snapshot,
-            "request_conflict",
-            "Robot [{}] workflow {} conflicts with {}".format(
-                snapshot["robot_name"],
-                selectedWorkflowNumber,
-                owner
-            ),
-            "fault",
-            {
-                "selected_workflow_number": selectedWorkflowNumber,
-                "last_result": "workflow {} already reserved by {}".format(selectedWorkflowNumber, owner),
-            },
-            ok=False,
-            level="warn",
-            plcFlags={"requestConflict": True},
-        )
-
-    if _latchedRequestMatches(snapshot):
-        if currentState.get("mission_created"):
-            pendingCreateStartEpochMs = _pendingCreateStartEpochMs(snapshot)
-            if pendingCreateStartEpochMs is None:
-                pendingCreateStartEpochMs = int(snapshot.get("now_epoch_ms") or 0)
-            pendingCreateAgeMs = max(
-                0,
-                int(snapshot.get("now_epoch_ms") or 0) - int(pendingCreateStartEpochMs or 0)
-            )
-            pendingCreateTimeoutMs = _pendingCreateTimeoutMs()
-            if pendingCreateAgeMs is None or pendingCreateAgeMs < pendingCreateTimeoutMs:
-                return _outcome(
-                    snapshot,
-                    "hold_request",
-                    "Robot [{}] waiting for created mission to appear in fleet".format(
-                        snapshot["robot_name"]
-                    ),
-                    "mission_requested",
-                    _requestPatch(
-                        snapshot,
-                        "waiting for created mission to appear in fleet",
-                        requestLatched=True,
-                        missionCreated=True,
-                        pendingCreateStartEpochMs=pendingCreateStartEpochMs,
-                    ),
-                    plcFlags={"requestSuccess": True},
-                )
-
-            timeoutMessage = (
-                "created mission did not appear within {} ms; cleared stale request latch"
-            ).format(pendingCreateTimeoutMs)
-            _log().warn(
-                "Robot [{}] {}".format(
-                    snapshot["robot_name"],
-                    timeoutMessage,
-                )
-            )
-            return _outcome(
-                snapshot,
-                "hold_request_timeout",
-                "Robot [{}] {}".format(snapshot["robot_name"], timeoutMessage),
-                "fault",
-                dict(
-                    _clearRequestPatch(snapshot, timeoutMessage, recordTimestamp=True),
-                    next_action_allowed_epoch_ms=int(snapshot["now_epoch_ms"] or 0) + RETRY_DELAY_MS,
-                    last_attempt_action="create",
-                    retry_count=int(currentState.get("retry_count") or 0) + 1,
-                ),
-                level="warn",
-            )
-
-        return _outcome(
-            snapshot,
-            "hold_request",
-            "Robot [{}] holding requested workflow {}".format(
-                snapshot["robot_name"],
-                selectedWorkflowNumber
-            ),
-            "mission_requested",
+            disabledMessage,
+            "mission_active",
             _requestPatch(
                 snapshot,
-                currentState.get("last_result") or "waiting for active mission reconciliation",
-                requestLatched=True,
-                missionCreated=bool(currentState.get("mission_created")),
+                disabledMessage,
+                missionCreated=True,
+                missionNeedsFinalized=hasBlockingMismatches,
+                clearPendingCreate=True,
             ),
-            plcFlags={"requestSuccess": bool(currentState.get("mission_created"))},
-        )
-
-    if not snapshot["controller_available_for_work"]:
-        return _outcome(
-            snapshot,
-            "waiting_available",
-            "Robot [{}] is not available for workflow {}".format(
-                snapshot["robot_name"],
-                selectedWorkflowNumber
-            ),
-            "fault",
-            {
-                "selected_workflow_number": selectedWorkflowNumber,
-                "last_result": "robot not available for work",
-            },
-            ok=False,
             level="warn",
-            plcFlags={"requestRobotNotReady": True},
+            missionOps={"queued_summary": queuedSummary},
         )
 
-    if _createBackoffActive(snapshot):
-        return _outcome(
-            snapshot,
-            "hold_create_backoff",
-            "Robot [{}] waiting before retrying create".format(snapshot["robot_name"]),
-            "fault",
-            {
-                "selected_workflow_number": selectedWorkflowNumber,
-                "last_result": "waiting {} ms before retrying create".format(_remainingCreateBackoffMs(snapshot)),
-            },
-            ok=False,
-            level="warn",
+    commandRequests = _activeCommandRequests(
+        queuedMismatches,
+        blockingMismatches,
+        selectedWorkflowNumber,
+        activeWorkflowNumber,
+        includeBlocking=hasBlockingMismatches and bool(snapshot["plc_inputs"].get("finalize_ok")),
+    )
+
+    if hasBlockingMismatches:
+        if not snapshot["plc_inputs"].get("finalize_ok"):
+            return _plan(
+                commandRequests=commandRequests,
+                resolver=_resolveActiveClearPending,
+            )
+        return _plan(
+            commandRequests=commandRequests,
+            resolver=_resolveActiveBlockingClear,
         )
 
-    commandId = str(snapshot["now_epoch_ms"])
-    commandResult = createWorkflowMission(snapshot, selectedWorkflowNumber)
+    return _plan(
+        commandRequests=commandRequests,
+        resolver=_resolveActiveNoBlocking,
+        data={"matching": matching},
+    )
+
+
+def _resolveCreateWorkflowMission(snapshot, plan, commandResults):
+    currentState = dict(snapshot["current_state"] or {})
+    selectedWorkflowNumber = snapshot["selected_workflow_number"]
+    commandResult = dict(dict(commandResults or {}).get("create") or {})
     createSucceeded = bool(commandResult.get("ok"))
+    commandId = str(snapshot["now_epoch_ms"])
     return _outcome(
         snapshot,
         "create" if createSucceeded else "create_failed",
@@ -626,13 +600,192 @@ def _decideNoActiveMissions(snapshot):
     )
 
 
-def decideRobotWorkflowCycleSnapshot(snapshot):
-    """Return one normalized robot workflow outcome without applying tag writes."""
+def _planNoActiveMissions(snapshot):
+    currentState = dict(snapshot["current_state"] or {})
+    selectedWorkflowNumber = snapshot["selected_workflow_number"]
+    if currentState.get("mission_needs_finalized"):
+        currentState["request_latched"] = False
+        currentState["mission_created"] = False
+        currentState["mission_needs_finalized"] = False
+        currentState["pending_create_start_epoch_ms"] = 0
+        currentState["last_result"] = ""
+        currentState["last_command_id"] = ""
+        snapshot = dict(snapshot or {})
+        snapshot["current_state"] = currentState
+
+    if _requestCleared(selectedWorkflowNumber):
+        return _outcomePlan(
+            snapshot,
+            "idle",
+            "Robot [{}] idle".format(snapshot["robot_name"]),
+            "idle",
+            _clearRequestPatch(snapshot, ""),
+        )
+
+    if currentState.get("disable_ignition_control"):
+        return _outcomePlan(
+            snapshot,
+            "hold_control_disabled",
+            "Robot [{}] create suppressed while Ignition control is disabled".format(snapshot["robot_name"]),
+            "mission_requested",
+            _selectedWorkflowPatch(snapshot, _holdDisabledMessage(snapshot, False)),
+            level="warn",
+        )
+
+    workflowDef = getWorkflowDef(selectedWorkflowNumber)
+    if workflowDef is None or not isWorkflowAllowedForRobot(selectedWorkflowNumber, snapshot["robot_name"]):
+        return _outcomePlan(
+            snapshot,
+            "request_invalid",
+            "Robot [{}] requested invalid workflow {}".format(snapshot["robot_name"], selectedWorkflowNumber),
+            "fault",
+            _selectedWorkflowPatch(
+                snapshot,
+                "workflow {} invalid for {}".format(selectedWorkflowNumber, snapshot["robot_name"]),
+            ),
+            ok=False,
+            level="warn",
+            plcFlags={"requestInvalid": True},
+        )
+
+    owner = snapshot["reserved_workflows"].get(selectedWorkflowNumber)
+    if owner and owner != snapshot["robot_name"]:
+        return _outcomePlan(
+            snapshot,
+            "request_conflict",
+            "Robot [{}] workflow {} conflicts with {}".format(
+                snapshot["robot_name"],
+                selectedWorkflowNumber,
+                owner
+            ),
+            "fault",
+            _selectedWorkflowPatch(
+                snapshot,
+                "workflow {} already reserved by {}".format(selectedWorkflowNumber, owner),
+            ),
+            ok=False,
+            level="warn",
+            plcFlags={"requestConflict": True},
+        )
+
+    if _latchedRequestMatches(snapshot):
+        if currentState.get("mission_created"):
+            pendingCreateStartEpochMs = _pendingCreateStartEpochMs(snapshot)
+            if pendingCreateStartEpochMs is None:
+                pendingCreateStartEpochMs = int(snapshot.get("now_epoch_ms") or 0)
+            pendingCreateAgeMs = max(
+                0,
+                int(snapshot.get("now_epoch_ms") or 0) - int(pendingCreateStartEpochMs or 0)
+            )
+            pendingCreateTimeoutMs = _pendingCreateTimeoutMs(snapshot)
+            if pendingCreateAgeMs is None or pendingCreateAgeMs < pendingCreateTimeoutMs:
+                return _outcomePlan(
+                    snapshot,
+                    "hold_request",
+                    "Robot [{}] waiting for created mission to appear in fleet".format(
+                        snapshot["robot_name"]
+                    ),
+                    "mission_requested",
+                    _requestPatch(
+                        snapshot,
+                        "waiting for created mission to appear in fleet",
+                        requestLatched=True,
+                        missionCreated=True,
+                        pendingCreateStartEpochMs=pendingCreateStartEpochMs,
+                    ),
+                    plcFlags={"requestSuccess": True},
+                )
+
+            timeoutMessage = (
+                "created mission did not appear within {} ms; cleared stale request latch"
+            ).format(pendingCreateTimeoutMs)
+            _log().warn(
+                "Robot [{}] {}".format(
+                    snapshot["robot_name"],
+                    timeoutMessage,
+                )
+            )
+            return _outcomePlan(
+                snapshot,
+                "hold_request_timeout",
+                "Robot [{}] {}".format(snapshot["robot_name"], timeoutMessage),
+                "fault",
+                dict(
+                    _clearRequestPatch(snapshot, timeoutMessage, recordTimestamp=True),
+                    next_action_allowed_epoch_ms=int(snapshot["now_epoch_ms"] or 0) + RETRY_DELAY_MS,
+                    last_attempt_action="create",
+                    retry_count=int(currentState.get("retry_count") or 0) + 1,
+                ),
+                level="warn",
+            )
+
+        return _outcomePlan(
+            snapshot,
+            "hold_request",
+            "Robot [{}] holding requested workflow {}".format(
+                snapshot["robot_name"],
+                selectedWorkflowNumber
+            ),
+            "mission_requested",
+            _requestPatch(
+                snapshot,
+                currentState.get("last_result") or "waiting for active mission reconciliation",
+                requestLatched=True,
+                missionCreated=bool(currentState.get("mission_created")),
+            ),
+            plcFlags={"requestSuccess": bool(currentState.get("mission_created"))},
+        )
+
+    if not snapshot["controller_available_for_work"]:
+        return _outcomePlan(
+            snapshot,
+            "waiting_available",
+            "Robot [{}] is not available for workflow {}".format(
+                snapshot["robot_name"],
+                selectedWorkflowNumber
+            ),
+            "fault",
+            _selectedWorkflowPatch(snapshot, "robot not available for work"),
+            ok=False,
+            level="warn",
+            plcFlags={"requestRobotNotReady": True},
+        )
+
+    if _createBackoffActive(snapshot):
+        return _outcomePlan(
+            snapshot,
+            "hold_create_backoff",
+            "Robot [{}] waiting before retrying create".format(snapshot["robot_name"]),
+            "fault",
+            _selectedWorkflowPatch(
+                snapshot,
+                "waiting {} ms before retrying create".format(_remainingCreateBackoffMs(snapshot)),
+            ),
+            ok=False,
+            level="warn",
+        )
+
+    return _plan(
+        commandRequests=[
+            _createWorkflowMissionRequest("create", selectedWorkflowNumber),
+        ],
+        resolver=_resolveCreateWorkflowMission,
+    )
+
+
+def planRobotWorkflowCycleSnapshot(snapshot):
+    """Return one pure robot workflow plan without executing mission commands."""
     snapshot = dict(snapshot or {})
-    reserveActiveWorkflow(snapshot)
 
     if not snapshot["plc_healthy"]:
-        return _plcFaultOutcome(snapshot)
+        return _plan(outcome=_plcFaultOutcome(snapshot))
     if list(snapshot["active_summary"].get("missions") or []):
-        return _decideActiveMissions(snapshot)
-    return _decideNoActiveMissions(snapshot)
+        return _planActiveMissions(snapshot)
+    return _planNoActiveMissions(snapshot)
+
+
+def resolveRobotWorkflowDecision(snapshot, plan, commandResults=None):
+    """Resolve one plan plus command results into the normalized apply outcome."""
+    plan = dict(plan or {})
+    resolver = plan.get("resolver") or _resolveStaticOutcome
+    return resolver(dict(snapshot or {}), plan, dict(commandResults or {}))

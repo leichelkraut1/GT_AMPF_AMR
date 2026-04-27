@@ -1,12 +1,35 @@
 from MainController.Robot.Apply import applyRobotOutcome
-from MainController.Robot.Decision import decideRobotWorkflowCycleSnapshot
+from MainController.Robot.Commands import executeRobotCommandRequests
+from MainController.Robot.Decision import planRobotWorkflowCycleSnapshot
+from MainController.Robot.Decision import resolveRobotWorkflowDecision
+from MainController.Robot.Reservations import buildReservedWorkflowsFromSnapshots
 from MainController.Robot.Snapshot import readRobotCycleSnapshot
+
+
+def _attachLocalReservations(snapshot):
+    """Ensure a single-robot cycle sees reservations implied by its own snapshot."""
+    reservedWorkflows = snapshot.get("reserved_workflows")
+    if reservedWorkflows is None:
+        reservedWorkflows = {}
+        snapshot["reserved_workflows"] = reservedWorkflows
+
+    localReservations = buildReservedWorkflowsFromSnapshots([snapshot])
+    for workflowNumber, robotName in localReservations.items():
+        if not reservedWorkflows.get(workflowNumber):
+            reservedWorkflows[workflowNumber] = robotName
+    return snapshot
 
 
 def runRobotWorkflowCycleSnapshot(snapshot):
     """Evaluate and apply one already-read robot snapshot."""
     snapshot = dict(snapshot or {})
-    outcome = decideRobotWorkflowCycleSnapshot(snapshot)
+    _attachLocalReservations(snapshot)
+    plan = planRobotWorkflowCycleSnapshot(snapshot)
+    commandResults = executeRobotCommandRequests(
+        snapshot,
+        plan.get("command_requests"),
+    )
+    outcome = resolveRobotWorkflowDecision(snapshot, plan, commandResults)
     return applyRobotOutcome(snapshot, outcome)
 
 
