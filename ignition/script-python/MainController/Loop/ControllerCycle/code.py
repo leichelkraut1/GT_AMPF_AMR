@@ -85,11 +85,7 @@ def _buildReservedWorkflowsFromSnapshots(snapshots):
         if not selectedWorkflowNumber:
             continue
 
-        if (
-            currentState.get("request_latched")
-            or currentState.get("mission_needs_finalized")
-            or currentState.get("mission_created")
-        ):
+        if currentState.get("mission_created"):
             reserved[selectedWorkflowNumber] = snapshot["robot_name"]
     return reserved
 

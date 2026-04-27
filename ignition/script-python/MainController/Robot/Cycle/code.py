@@ -541,8 +541,6 @@ def _evaluateNoActiveMissions(snapshot):
         context["plc_flags"]["requestConflict"] = True
         return _buildOutcomeFromContext(context)
 
-    snapshot["reserved_workflows"][selectedWorkflowNumber] = snapshot["robot_name"]
-
     if _latchedRequestMatches(snapshot):
         if currentState.get("mission_created"):
             pendingCreateStartEpochMs = _pendingCreateStartEpochMs(snapshot)
@@ -648,6 +646,8 @@ def _evaluateNoActiveMissions(snapshot):
         createMission=snapshot["create_mission"],
     )
     createSucceeded = bool(commandResult.get("ok"))
+    if createSucceeded:
+        snapshot["reserved_workflows"][selectedWorkflowNumber] = snapshot["robot_name"]
     statePatch = {
         "selected_workflow_number": selectedWorkflowNumber,
         "request_latched": createSucceeded,
