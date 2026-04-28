@@ -1,6 +1,6 @@
-from Otto_API.Fleet.Records import RobotReadinessContext
-from Otto_API.Fleet.Records import RobotReadinessResult
-from Otto_API.Robots.Records import RobotSnapshot
+from Otto_API.Models.Fleet import RobotReadinessContext
+from Otto_API.Models.Fleet import RobotReadinessResult
+from Otto_API.Models.Robots import RobotSnapshot
 
 
 DEFAULT_ALLOWED_ACTIVITY_STATES = set([

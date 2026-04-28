@@ -52,6 +52,7 @@ class RobotReadinessContext(MappingRecordBase):
             record.get("allowed_activity_states"),
         )
 
+
 class RobotReadinessResult(MappingRecordBase):
     FIELDS = (
         "robot_name",

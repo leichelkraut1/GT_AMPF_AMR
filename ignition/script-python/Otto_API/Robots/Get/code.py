@@ -26,9 +26,9 @@ from Otto_API.Robots.Inventory import readRobotInventory
 from Otto_API.Robots.Normalize import buildRobotTagValues
 from Otto_API.Robots.ObservedWrites import buildRobotSyncResult
 from Otto_API.Robots.ObservedWrites import writeObservedPairs
-from Otto_API.Robots.Records import RobotPlace
-from Otto_API.Robots.Records import RobotSnapshot
-from Otto_API.Robots.Records import RobotSystemStateEntry
+from Otto_API.Models.Robots import RobotPlace
+from Otto_API.Models.Robots import RobotSnapshot
+from Otto_API.Models.Robots import RobotSystemStateEntry
 from Otto_API.Robots.StateHistory import appendPendingRobotStateHistoryRows
 from Otto_API.Robots.StateHistory import buildRobotStateHistoryUpdate
 from Otto_API.Robots.StateHistory import ROBOT_STATE_LOG_SIGNATURE_MEMBER
@@ -151,7 +151,11 @@ def _epochMillis(dateValue):
     if hasattr(dateValue, "getTime"):
         return int(dateValue.getTime())
     if hasattr(dateValue, "to_datetime"):
-        return int(time.mktime(dateValue.to_datetime().timetuple()) * 1000 + (dateValue.to_datetime().microsecond // 1000))
+        nativeDate = dateValue.to_datetime()
+        return int(
+            time.mktime(nativeDate.timetuple()) * 1000
+            + (nativeDate.microsecond // 1000)
+        )
     return int(time.time() * 1000)
 
 

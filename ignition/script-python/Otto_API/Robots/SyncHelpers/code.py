@@ -1,7 +1,7 @@
 from Otto_API.Common.TagIO import browseTagResults
 from Otto_API.Common.TagIO import readTagValues
 
-from Otto_API.Robots.Records import RobotSystemStateEntry
+from Otto_API.Models.Robots import RobotSystemStateEntry
 
 
 def selectDominantSystemState(entries, logger=None):
