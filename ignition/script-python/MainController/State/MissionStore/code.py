@@ -1,7 +1,7 @@
 from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
 from Otto_API.Missions.MissionActions import sortActiveMissionRecords
-from Otto_API.Missions.Records import MissionRecord
+from Otto_API.Models.Missions import MissionRecord
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
 
 from MainController.Robot.Records import ActiveMissionSummary

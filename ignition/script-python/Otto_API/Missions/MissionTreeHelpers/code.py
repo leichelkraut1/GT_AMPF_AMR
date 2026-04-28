@@ -1,6 +1,6 @@
 from Otto_API.Common.TagIO import browseTagResults
 from Otto_API.Common.TagIO import readTagValues
-from Otto_API.Missions.Records import MissionRecord
+from Otto_API.Models.Missions import MissionRecord
 
 
 def _log():

@@ -2,8 +2,8 @@ from Otto_API.Common.RecordHelpers import MappingRecordBase
 from Otto_API.Common.RecordHelpers import coerceBool
 from Otto_API.Common.RecordHelpers import coerceInt
 from Otto_API.Common.RecordHelpers import coerceText
-from Otto_API.Missions.Records import coerceMissionRecord
-from Otto_API.Missions.Records import coerceMissionRecords
+from Otto_API.Models.Missions import coerceMissionRecord
+from Otto_API.Models.Missions import coerceMissionRecords
 
 from MainController.State.RobotStore import normalizeRobotState
 from MainController.WorkflowConfig import normalizeWorkflowNumber

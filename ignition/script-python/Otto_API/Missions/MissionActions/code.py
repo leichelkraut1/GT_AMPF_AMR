@@ -2,8 +2,8 @@ import json
 import time
 import uuid
 
-from Otto_API.Missions.Records import coerceMissionRecord
-from Otto_API.Missions.Records import coerceMissionRecords
+from Otto_API.Models.Missions import coerceMissionRecord
+from Otto_API.Models.Missions import coerceMissionRecords
 from Otto_API.Common.SyncHelpers import sanitizeTagName
 
 

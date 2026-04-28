@@ -9,7 +9,7 @@ from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagIO import writeRequiredTagValues
 
 from Otto_API.Missions.Buckets import UNASSIGNED_FOLDER
-from Otto_API.Missions.Records import MissionRecord
+from Otto_API.Models.Missions import MissionRecord
 
 
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")

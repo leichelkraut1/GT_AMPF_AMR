@@ -147,7 +147,10 @@ def coerceMissionRecord(missionRecord):
 
 
 def coerceMissionRecords(missionRecords):
-    return [coerceMissionRecord(missionRecord) for missionRecord in list(missionRecords or [])]
+    return [
+        coerceMissionRecord(missionRecord)
+        for missionRecord in list(missionRecords or [])
+    ]
 
 
 class RobotMissionSummary(MappingRecordBase):

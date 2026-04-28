@@ -3,7 +3,7 @@ from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ParseHelpers import parseMissionResults
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Missions.QueryHelpers import buildMissionsUrl
-from Otto_API.Missions.Records import MissionRecord
+from Otto_API.Models.Missions import MissionRecord
 
 
 def getMissions(logger, debug, mission_status=None, limit=None, ordering=None):

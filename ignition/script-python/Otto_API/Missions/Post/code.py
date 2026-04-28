@@ -14,7 +14,7 @@ from Otto_API.Missions.MissionActions import interpretCreateMissionResponse
 from Otto_API.Missions.MissionActions import interpretFinalizeMissionResponse
 from Otto_API.Missions.MissionActions import parseTemplateJson
 from Otto_API.Missions.MissionTreeHelpers import readMissionIdRecords
-from Otto_API.Missions.Records import coerceMissionRecords
+from Otto_API.Models.Missions import coerceMissionRecords
 
 ACTIVE_MISSIONS_ROOT = getFleetMissionsPath() + "/Active"
 FAILED_MISSIONS_ROOT = getFleetMissionsPath() + "/Failed"

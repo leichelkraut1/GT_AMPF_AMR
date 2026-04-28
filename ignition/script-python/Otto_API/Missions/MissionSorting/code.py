@@ -16,7 +16,7 @@ from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
 from Otto_API.Missions.Get import getMissions
 from Otto_API.Missions.Maintenance import cleanup_stale_bucket
 from Otto_API.Missions.Maintenance import cleanup_terminal_folder
-from Otto_API.Missions.Records import RobotMissionSummary
+from Otto_API.Models.Missions import RobotMissionSummary
 from Otto_API.Missions.Sync import mission_to_tag_values
 from Otto_API.Missions.Sync import sync_mission_into_bucket
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
