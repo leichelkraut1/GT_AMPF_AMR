@@ -161,7 +161,7 @@
             "fontWeight": "700",
             "lineHeight": "1.1"
           },
-          "text": "RV1 / RV2 Demo Workflow"
+          "text": "RV1 / RV2 Workflow"
         },
         "type": "ia.display.label"
       },
@@ -173,8 +173,7 @@
             },
             "position": {
               "basis": "150px",
-              "grow": 1,
-              "shrink": 1
+              "grow": 1
             },
             "propConfig": {
               "props.style.backgroundColor": {
@@ -212,7 +211,6 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "borderRadius": "12px",
                 "boxShadow": "0 10px 24px rgba(0,0,0,0.08)",
@@ -223,7 +221,7 @@
                 "padding": "10px",
                 "whiteSpace": "pre-line"
               },
-              "text": "01  RV1\nDiamond Saw"
+              "text": "01 RV1\nDiamond Saw Sample Tray Retrieval"
             },
             "type": "ia.display.label"
           },
@@ -247,12 +245,11 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "fontSize": "22px",
                 "fontWeight": "700"
               },
-              "text": "->"
+              "text": "-\u003e"
             },
             "type": "ia.display.label"
           },
@@ -262,8 +259,7 @@
             },
             "position": {
               "basis": "150px",
-              "grow": 1,
-              "shrink": 1
+              "grow": 1
             },
             "propConfig": {
               "props.style.backgroundColor": {
@@ -301,7 +297,6 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "borderRadius": "12px",
                 "boxShadow": "0 10px 24px rgba(0,0,0,0.08)",
@@ -336,12 +331,11 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "fontSize": "22px",
                 "fontWeight": "700"
               },
-              "text": "->"
+              "text": "-\u003e"
             },
             "type": "ia.display.label"
           },
@@ -351,8 +345,7 @@
             },
             "position": {
               "basis": "150px",
-              "grow": 1,
-              "shrink": 1
+              "grow": 1
             },
             "propConfig": {
               "props.style.backgroundColor": {
@@ -390,7 +383,6 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "borderRadius": "12px",
                 "boxShadow": "0 10px 24px rgba(0,0,0,0.08)",
@@ -401,7 +393,7 @@
                 "padding": "10px",
                 "whiteSpace": "pre-line"
               },
-              "text": "03  RV2\nHot Mount"
+              "text": "03 RV2\nHot Mount"
             },
             "type": "ia.display.label"
           },
@@ -425,12 +417,11 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "fontSize": "22px",
                 "fontWeight": "700"
               },
-              "text": "->"
+              "text": "-\u003e"
             },
             "type": "ia.display.label"
           },
@@ -440,8 +431,7 @@
             },
             "position": {
               "basis": "150px",
-              "grow": 1,
-              "shrink": 1
+              "grow": 1
             },
             "propConfig": {
               "props.style.backgroundColor": {
@@ -479,7 +469,6 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "borderRadius": "12px",
                 "boxShadow": "0 10px 24px rgba(0,0,0,0.08)",
@@ -490,7 +479,7 @@
                 "padding": "10px",
                 "whiteSpace": "pre-line"
               },
-              "text": "04  RV2\nRobomet 1"
+              "text": "04 RV2\nRobomet 1 Polishing"
             },
             "type": "ia.display.label"
           }
@@ -503,8 +492,6 @@
           "shrink": 0
         },
         "props": {
-          "alignItems": "stretch",
-          "direction": "row",
           "style": {
             "gap": "0px"
           }
@@ -531,10 +518,10 @@
         },
         "props": {
           "alignHorizontal": "right",
-          "alignVertical": "center",
           "style": {
             "fontSize": "22px",
             "fontWeight": "700",
+            "marginLeft": "auto",
             "paddingRight": "70px"
           },
           "text": "v"
@@ -545,12 +532,21 @@
         "children": [
           {
             "meta": {
+              "name": "BottomSpacer"
+            },
+            "position": {
+              "basis": "234px",
+              "grow": 1
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
               "name": "Step7_RV1_MetLab"
             },
             "position": {
               "basis": "150px",
-              "grow": 1,
-              "shrink": 1
+              "grow": 1
             },
             "propConfig": {
               "props.style.backgroundColor": {
@@ -588,7 +584,6 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "borderRadius": "12px",
                 "boxShadow": "0 10px 24px rgba(0,0,0,0.08)",
@@ -623,12 +618,11 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "fontSize": "22px",
                 "fontWeight": "700"
               },
-              "text": "<-"
+              "text": "\u003c-"
             },
             "type": "ia.display.label"
           },
@@ -638,8 +632,7 @@
             },
             "position": {
               "basis": "150px",
-              "grow": 1,
-              "shrink": 1
+              "grow": 1
             },
             "propConfig": {
               "props.style.backgroundColor": {
@@ -677,7 +670,6 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "borderRadius": "12px",
                 "boxShadow": "0 10px 24px rgba(0,0,0,0.08)",
@@ -712,12 +704,11 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "fontSize": "22px",
                 "fontWeight": "700"
               },
-              "text": "<-"
+              "text": "\u003c-"
             },
             "type": "ia.display.label"
           },
@@ -727,8 +718,7 @@
             },
             "position": {
               "basis": "150px",
-              "grow": 1,
-              "shrink": 1
+              "grow": 1
             },
             "propConfig": {
               "props.style.backgroundColor": {
@@ -766,7 +756,6 @@
             },
             "props": {
               "alignHorizontal": "center",
-              "alignVertical": "center",
               "style": {
                 "borderRadius": "12px",
                 "boxShadow": "0 10px 24px rgba(0,0,0,0.08)",
@@ -780,20 +769,6 @@
               "text": "05  RV2\nWet Lab Handoff"
             },
             "type": "ia.display.label"
-          },
-          {
-            "meta": {
-              "name": "BottomSpacer"
-            },
-            "position": {
-              "basis": "234px",
-              "grow": 1,
-              "shrink": 1
-            },
-            "props": {
-              "text": ""
-            },
-            "type": "ia.display.label"
           }
         ],
         "meta": {
@@ -802,10 +777,6 @@
         "position": {
           "basis": "86px",
           "shrink": 0
-        },
-        "props": {
-          "alignItems": "stretch",
-          "direction": "row"
         },
         "type": "ia.container.flex"
       }

@@ -304,6 +304,136 @@
       },
       {
         "meta": {
+          "name": "DemoWorkflowFlow"
+        },
+        "position": {
+          "basis": "-32.8%",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.params.activeRv1DiamondSaw": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]PLC/Sequence/RV1_AutoMissionStep"
+              },
+              "transforms": [
+                {
+                  "code": "\treturn value\u003d\u003d0 ",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.params.activeRv1MetLab": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]PLC/Sequence/RV1_AutoMissionStep"
+              },
+              "transforms": [
+                {
+                  "code": "\treturn value\u003d\u003d5",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.params.activeRv1WetLabHandoffOut": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]PLC/Sequence/RV1_AutoMissionStep"
+              },
+              "transforms": [
+                {
+                  "code": "\treturn value\u003d\u003d1",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.params.activeRv1WetLabHandoffReturn": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]PLC/Sequence/RV1_AutoMissionStep"
+              },
+              "transforms": [
+                {
+                  "code": "\treturn value\u003d\u003d6 ",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.params.activeRv2HotMount": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]PLC/Sequence/RV2_AutoMissionStep"
+              },
+              "transforms": [
+                {
+                  "code": "\treturn value\u003d\u003d1 ",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.params.activeRv2Robomet1": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]PLC/Sequence/RV2_AutoMissionStep"
+              },
+              "transforms": [
+                {
+                  "code": "\treturn value\u003d\u003d2 ",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.params.activeRv2WetLabHandoff": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "direct",
+                "tagPath": "[Otto_FleetManager]PLC/Sequence/RV2_AutoMissionStep"
+              },
+              "transforms": [
+                {
+                  "code": "\treturn value\u003d\u003d0 ",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "path": "Page/Components/StatusBoard/DemoWorkflowFlow",
+          "style": {
+            "marginTop": "20px"
+          }
+        },
+        "type": "ia.display.view"
+      },
+      {
+        "meta": {
           "name": "Image"
         },
         "position": {
@@ -332,7 +462,7 @@
             "mode": "contain"
           },
           "style": {
-            "marginTop": "500px"
+            "marginTop": "100px"
           }
         },
         "type": "ia.display.image"
