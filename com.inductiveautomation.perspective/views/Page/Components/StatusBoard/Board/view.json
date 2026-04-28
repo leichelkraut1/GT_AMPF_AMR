@@ -124,6 +124,47 @@
       },
       {
         "meta": {
+          "name": "CrxTitle"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "26px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "0px"
+          },
+          "text": "CRX"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CRX_Control_Group"
+        },
+        "position": {
+          "shrink": 0
+        },
+        "props": {
+          "path": "Page/Components/Robots/CRX_Control_Group"
+        },
+        "type": "ia.display.view"
+      },
+      {
+        "meta": {
           "name": "ContainersTitle"
         },
         "position": {

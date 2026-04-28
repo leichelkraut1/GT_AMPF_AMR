@@ -204,7 +204,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"CRX_Faulted: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "expression": "\"Faulted: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
                   "type": "expression"
                 }
               ],
@@ -237,7 +237,7 @@
                 "references": {
                   "1": "{view.params.RVNum}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Running"
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_PrgRunning"
               },
               "transforms": [
                 {
@@ -260,7 +260,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"CRX_Running: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "expression": "\"PrgRunning: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
                   "type": "expression"
                 }
               ],
@@ -293,7 +293,7 @@
                 "references": {
                   "1": "{view.params.RVNum}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Paused"
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_PrgPaused"
               },
               "transforms": [
                 {
@@ -316,7 +316,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"CRX_Paused: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "expression": "\"PrgPaused: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
                   "type": "expression"
                 }
               ],
@@ -361,7 +361,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"CRX_ReadyForSeq: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "expression": "\"ReadyForSeq: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
                   "type": "expression"
                 }
               ],
@@ -406,7 +406,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"CRX_ReadyToTransit: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "expression": "\"ReadyToTransit: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
                   "type": "expression"
                 }
               ],
@@ -451,7 +451,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"CRX_Seq: \" + if(isNull({value}), \"-\", toStr({value}))",
+                  "expression": "\"Seq: \" + if(isNull({value}), \"-\", toStr({value}))",
                   "type": "expression"
                 }
               ],
@@ -534,7 +534,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"CRX_StartReady: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "expression": "\"StartReady: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
                   "type": "expression"
                 }
               ],
@@ -579,7 +579,7 @@
               },
               "transforms": [
                 {
-                  "expression": "\"CRX_TransitPosRequired: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "expression": "\"TransitPosRequired: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
                   "type": "expression"
                 }
               ],
@@ -614,6 +614,25 @@
             "path": "view.custom.themeSurfaceBorder"
           },
           "type": "property"
+        }
+      },
+      "props.style.borderLeft": {
+        "binding": {
+          "config": {
+            "fallbackDelay": 2.5,
+            "mode": "indirect",
+            "references": {
+              "1": "{view.params.RVNum}"
+            },
+            "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_PrgRunning"
+          },
+          "transforms": [
+            {
+              "expression": "\"6px solid \" + if({value}, \"#166534\", \"#475569\")",
+              "type": "expression"
+            }
+          ],
+          "type": "tag"
         }
       },
       "props.style.color": {
