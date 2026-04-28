@@ -34,6 +34,14 @@ ACTIVE_MISSION_STATUS_PRIORITY = {
 }
 
 
+def _coerceWorkflowNumber(value):
+    try:
+        number = int(value)
+    except Exception:
+        return None
+    return number if number > 0 else None
+
+
 class MissionRecord(RawBackedRecordBase):
     FIELDS = (
         "id",
@@ -41,6 +49,9 @@ class MissionRecord(RawBackedRecordBase):
         "mission_status",
         "assigned_robot",
         "force_robot",
+        "workflow_number",
+        "instance_path",
+        "path",
     )
     RAW_FIELD_ALIASES = {
         "name": ("mission_name",),
@@ -48,12 +59,26 @@ class MissionRecord(RawBackedRecordBase):
         "force_robot": ("forced_robot", "Force_Robot", "Forced_Robot"),
     }
 
-    def __init__(self, missionId, name, missionStatus, assignedRobot=None, forceRobot=None, rawData=None):
+    def __init__(
+        self,
+        missionId,
+        name,
+        missionStatus,
+        assignedRobot=None,
+        forceRobot=None,
+        workflowNumber=None,
+        instancePath="",
+        path="",
+        rawData=None
+    ):
         self.id = coerceText(missionId)
         self.name = coerceText(name)
         self.mission_status = coerceUpperText(missionStatus, "")
         self.assigned_robot = coerceText(assignedRobot)
         self.force_robot = coerceText(forceRobot)
+        self.workflow_number = _coerceWorkflowNumber(workflowNumber)
+        self.instance_path = coerceText(instancePath)
+        self.path = coerceText(path)
         RawBackedRecordBase.__init__(self, rawData)
 
     @classmethod
@@ -64,7 +89,13 @@ class MissionRecord(RawBackedRecordBase):
             mission.get("name") or mission.get("mission_name"),
             mission.get("mission_status"),
             mission.get("assigned_robot") or mission.get("Assigned_Robot"),
-            mission.get("force_robot") or mission.get("forced_robot") or mission.get("Force_Robot") or mission.get("Forced_Robot"),
+            mission.get("force_robot")
+            or mission.get("forced_robot")
+            or mission.get("Force_Robot")
+            or mission.get("Forced_Robot"),
+            mission.get("workflow_number"),
+            mission.get("instance_path"),
+            mission.get("path"),
             rawData=mission,
         )
 
@@ -92,7 +123,7 @@ class MissionRecord(RawBackedRecordBase):
     def activeSortKey(self):
         return (
             self.activeStatusPriority(),
-            str(self.get("path") or self.get("instance_path") or ""),
+            self.path or self.instance_path,
             self.name,
             self.id,
         )
@@ -103,6 +134,20 @@ class MissionRecord(RawBackedRecordBase):
             "current_mission_id": self.id,
             "current_mission_status": self.mission_status,
         }
+
+
+def isMissionRecord(value):
+    return isinstance(value, MissionRecord)
+
+
+def coerceMissionRecord(missionRecord):
+    if isMissionRecord(missionRecord):
+        return missionRecord
+    return MissionRecord.fromDict(missionRecord)
+
+
+def coerceMissionRecords(missionRecords):
+    return [coerceMissionRecord(missionRecord) for missionRecord in list(missionRecords or [])]
 
 
 class RobotMissionSummary(MappingRecordBase):

@@ -6,6 +6,7 @@ from MainController.State.MissionStore import readRobotMirrorInputs
 from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.PlcStore import readPlcInputs
 from MainController.State.RobotStore import readRobotState
+from MainController.Robot.Records import RobotCycleSnapshot
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagPaths import getPendingCreateMissionTimeoutMsPath
 
@@ -36,7 +37,8 @@ def readRobotCycleSnapshot(
     nowEpochMs=None,
     createMission=None,
     finalizeMissionId=None,
-    cancelMissionIds=None
+    cancelMissionIds=None,
+    pendingCreateTimeoutMs=None
 ):
     """Read the full per-robot snapshot needed for one workflow-controller pass."""
     if nowEpochMs is None:
@@ -55,39 +57,42 @@ def readRobotCycleSnapshot(
         mappingFaultReason = ""
 
     plcInputs = readPlcInputs(plcTagName, faultReason=mappingFaultReason)
-    mirrorInputs = dict(readRobotMirrorInputs(robotName) or {})
+    mirrorInputs = readRobotMirrorInputs(robotName)
     currentState = readRobotState(robotName)
     activeSummary = readActiveMissionSummary(robotName)
     missionFlags = buildMissionControlFlags(
-        str(activeSummary.get("current_mission_status") or "").upper() == "STARVED"
+        str(activeSummary.current_mission_status or "").upper() == "STARVED"
     )
-    mirrorInputs["mission_starved"] = missionFlags["mission_starved"]
-    mirrorInputs["mission_ready_for_attachment"] = missionFlags["ready_for_attachment"]
-    activeWorkflowNumber = activeSummary.get("workflow_number")
+    mirrorInputs = mirrorInputs.cloneWith(
+        mission_starved=missionFlags["mission_starved"],
+        mission_ready_for_attachment=missionFlags["ready_for_attachment"],
+    )
+    activeWorkflowNumber = activeSummary.workflow_number
     selectedWorkflowNumber = plcInputs["requested_workflow_number"]
     controllerAvailableForWork = (
-        bool(mirrorInputs.get("available_for_work"))
+        bool(mirrorInputs.available_for_work)
         or bool(currentState.get("force_robot_ready"))
     )
+    if pendingCreateTimeoutMs is None:
+        pendingCreateTimeoutMs = _pendingCreateTimeoutMs()
 
-    return {
-        "robot_name": robotName,
-        "plc_tag_name": plcTagName,
-        "reserved_workflows": reservedWorkflows,
-        "now_epoch_ms": int(nowEpochMs),
-        "create_mission": createMission,
-        "finalize_mission_id": finalizeMissionId,
-        "cancel_mission_ids": cancelMissionIds,
-        "plc_inputs": plcInputs,
-        "plc_healthy": bool(plcInputs.get("healthy", True)),
-        "mirror_inputs": mirrorInputs,
-        "current_state": currentState,
-        "active_summary": activeSummary,
-        "active_workflow_number": activeWorkflowNumber,
-        "selected_workflow_number": selectedWorkflowNumber,
-        "controller_available_for_work": controllerAvailableForWork,
-        "pending_create_timeout_ms": _pendingCreateTimeoutMs(),
-    }
+    return RobotCycleSnapshot(
+        robotName,
+        plcTagName,
+        reservedWorkflows,
+        int(nowEpochMs),
+        createMission,
+        finalizeMissionId,
+        cancelMissionIds,
+        plcInputs,
+        mirrorInputs,
+        currentState,
+        activeSummary,
+        activeWorkflowNumber,
+        selectedWorkflowNumber,
+        controllerAvailableForWork,
+        pendingCreateTimeoutMs,
+    )
 
 
 def readRobotCycleSnapshots(
@@ -106,6 +111,7 @@ def readRobotCycleSnapshots(
         reservedWorkflows = {}
     if plcMappingState is None:
         plcMappingState = readPlcMappings()
+    pendingCreateTimeoutMs = _pendingCreateTimeoutMs()
 
     snapshots = []
     for robotName in list(robotNames or []):
@@ -118,6 +124,7 @@ def readRobotCycleSnapshots(
                 createMission=createMission,
                 finalizeMissionId=finalizeMissionId,
                 cancelMissionIds=cancelMissionIds,
+                pendingCreateTimeoutMs=pendingCreateTimeoutMs,
             )
         )
     return snapshots

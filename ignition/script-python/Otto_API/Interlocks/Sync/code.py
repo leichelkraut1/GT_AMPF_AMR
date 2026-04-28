@@ -1,10 +1,11 @@
 import time
 
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
-from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.ResultHelpers import buildTypedOperationResult
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import readOptionalTagValues
 from Otto_API.Common.TagIO import writeObservedTagValue
+from Otto_API.Common.TagIO import writeObservedTagValues
 from Otto_API.Common.TagPaths import getFleetInterlocksPath
 from Otto_API.Common.TagPaths import getInterlockWritebackRetryMsPath
 from Otto_API.Common.TagPaths import getPlcInterlocksPath
@@ -12,11 +13,11 @@ from Otto_API.Interlocks.Apply import applyInterlockSync
 from Otto_API.Interlocks.Get import getInterlocks
 from Otto_API.Interlocks.Mapping import DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS
 from Otto_API.Interlocks.Mapping import readInterlockMappings
-from Otto_API.Interlocks.Post import setInterlockState
-from Otto_API.Interlocks.Records import DuplicateInterlockMappingInfo
-from Otto_API.Interlocks.Records import InterlockMappingRow
-from Otto_API.Interlocks.Records import InterlockRecord
+from Otto_API.Interlocks.Records import coerceDuplicateInterlockMappingInfo
+from Otto_API.Interlocks.Records import coerceInterlockRecord
+from Otto_API.Interlocks.Records import coerceInterlockMappingRow
 from Otto_API.Interlocks.Records import PlcInterlockSnapshot
+from Otto_API.Interlocks.Post import setInterlockState
 
 
 def _log():
@@ -45,9 +46,13 @@ def _fleetInterlockRowPath(interlockName, instanceNameByRawName):
 
 class _ResolvedInterlockSyncRow(object):
     def __init__(self, row, record, duplicateInfo, snapshot, fleetRowPath):
-        self.row = _coerceMappingRow(row)
-        self.record = None if record is None else _coerceInterlockRecord(record)
-        self.duplicate_info = None if duplicateInfo is None else _coerceDuplicateInfo(duplicateInfo)
+        self.row = coerceInterlockMappingRow(row)
+        self.record = None if record is None else coerceInterlockRecord(record)
+        self.duplicate_info = (
+            None
+            if duplicateInfo is None
+            else coerceDuplicateInterlockMappingInfo(duplicateInfo)
+        )
         if snapshot is None:
             self.snapshot = None
         elif isinstance(snapshot, PlcInterlockSnapshot):
@@ -119,7 +124,13 @@ class _ResolvedInterlockSyncRow(object):
         return self.fleet_row_path + "/" + str(leafName or "").strip()
 
 
-def buildResolvedSyncRow(rowOrResolved, recordsByName=None, instanceNameByRawName=None, duplicateInfoByName=None, plcSnapshotByTagName=None):
+def buildResolvedSyncRow(
+    rowOrResolved,
+    recordsByName=None,
+    instanceNameByRawName=None,
+    duplicateInfoByName=None,
+    plcSnapshotByTagName=None,
+):
     """
     Build one resolved interlock sync row from typed or raw inputs.
 
@@ -135,11 +146,17 @@ def buildResolvedSyncRow(rowOrResolved, recordsByName=None, instanceNameByRawNam
     )
 
 
-def _coerceResolvedSyncRow(rowOrResolved, recordsByName=None, instanceNameByRawName=None, duplicateInfoByName=None, plcSnapshotByTagName=None):
+def _coerceResolvedSyncRow(
+    rowOrResolved,
+    recordsByName=None,
+    instanceNameByRawName=None,
+    duplicateInfoByName=None,
+    plcSnapshotByTagName=None,
+):
     if isinstance(rowOrResolved, _ResolvedInterlockSyncRow):
         return rowOrResolved
 
-    row = _coerceMappingRow(rowOrResolved)
+    row = coerceInterlockMappingRow(rowOrResolved)
     fleetName = row.FleetName
     plcTagName = row.PlcTagName
     record = None if recordsByName is None else (recordsByName or {}).get(fleetName)
@@ -155,24 +172,6 @@ def _coerceResolvedSyncRow(rowOrResolved, recordsByName=None, instanceNameByRawN
     )
 
 
-def _coerceMappingRow(row):
-    if isinstance(row, InterlockMappingRow):
-        return row
-    return InterlockMappingRow.fromDict(row)
-
-
-def _coerceInterlockRecord(record):
-    if isinstance(record, InterlockRecord):
-        return record
-    return InterlockRecord.fromDict(record)
-
-
-def _coerceDuplicateInfo(duplicateInfo):
-    if isinstance(duplicateInfo, DuplicateInterlockMappingInfo):
-        return duplicateInfo
-    return DuplicateInterlockMappingInfo.fromDict(duplicateInfo)
-
-
 def _readRetryMs():
     retryMs = _toIntOrNone(
         readOptionalTagValue(
@@ -185,19 +184,51 @@ def _readRetryMs():
     return retryMs
 
 
-def _writePendingState(rowPath, pendingWrite, pendingState, pendingStartedMs, lastWriteAttemptMs, lastCommandedState, lastCommandedMs, logger):
-    writeObservedTagValue(rowPath + "/PendingWriteToFleet", bool(pendingWrite), label="Interlock pending-write sync", logger=logger)
-    writeObservedTagValue(rowPath + "/PendingWriteState", int(pendingState or 0), label="Interlock pending-write sync", logger=logger)
-    writeObservedTagValue(rowPath + "/PendingWriteStartedMs", int(pendingStartedMs or 0), label="Interlock pending-write sync", logger=logger)
-    writeObservedTagValue(rowPath + "/LastWriteAttemptMs", int(lastWriteAttemptMs or 0), label="Interlock pending-write sync", logger=logger)
-    writeObservedTagValue(rowPath + "/LastCommandedState", int(lastCommandedState or 0), label="Interlock pending-write sync", logger=logger)
-    writeObservedTagValue(rowPath + "/LastCommandedMs", int(lastCommandedMs or 0), label="Interlock pending-write sync", logger=logger)
+def _writePendingState(
+    rowPath,
+    pendingWrite,
+    pendingState,
+    pendingStartedMs,
+    lastWriteAttemptMs,
+    lastCommandedState,
+    lastCommandedMs,
+    logger,
+):
+    _writePendingFields(
+        rowPath,
+        [
+            ("PendingWriteToFleet", bool(pendingWrite)),
+            ("PendingWriteState", int(pendingState or 0)),
+            ("PendingWriteStartedMs", int(pendingStartedMs or 0)),
+            ("LastWriteAttemptMs", int(lastWriteAttemptMs or 0)),
+            ("LastCommandedState", int(lastCommandedState or 0)),
+            ("LastCommandedMs", int(lastCommandedMs or 0)),
+        ],
+        logger,
+    )
 
 
 def _clearPendingState(rowPath, logger):
-    writeObservedTagValue(rowPath + "/PendingWriteToFleet", False, label="Interlock pending-write sync", logger=logger)
-    writeObservedTagValue(rowPath + "/PendingWriteState", 0, label="Interlock pending-write sync", logger=logger)
-    writeObservedTagValue(rowPath + "/PendingWriteStartedMs", 0, label="Interlock pending-write sync", logger=logger)
+    _writePendingFields(
+        rowPath,
+        [
+            ("PendingWriteToFleet", False),
+            ("PendingWriteState", 0),
+            ("PendingWriteStartedMs", 0),
+        ],
+        logger,
+    )
+
+
+def _writePendingFields(rowPath, fieldValues, logger):
+    tagPaths = []
+    values = []
+    labels = []
+    for fieldName, value in list(fieldValues or []):
+        tagPaths.append(rowPath + "/" + str(fieldName or "").strip())
+        values.append(value)
+        labels.append("Interlock pending-write sync")
+    writeObservedTagValues(tagPaths, values, labels=labels, logger=logger)
 
 
 def _readPlcSnapshot(rows):
@@ -207,7 +238,7 @@ def _readPlcSnapshot(rows):
     defaultValues = []
 
     for row in list(rows or []):
-        row = _coerceMappingRow(row)
+        row = coerceInterlockMappingRow(row)
         plcTagName = str(row.PlcTagName or "").strip()
         if not plcTagName or plcTagName in snapshotByPlcTagName:
             continue
@@ -232,24 +263,6 @@ def _readPlcSnapshot(rows):
         )
 
     return snapshotByPlcTagName
-
-
-def _recordObjectsByName(recordsByName):
-    recordObjectsByName = {}
-    for fleetName, recordValue in list(dict(recordsByName or {}).items()):
-        recordObjectsByName[fleetName] = _coerceInterlockRecord(recordValue)
-    return recordObjectsByName
-
-
-def _duplicateInfoObjectsByName(duplicateInfoByName):
-    duplicateInfoObjectsByName = {}
-    for fleetName, duplicateInfoValue in list(dict(duplicateInfoByName or {}).items()):
-        duplicateInfoObjectsByName[fleetName] = _coerceDuplicateInfo(duplicateInfoValue)
-    return duplicateInfoObjectsByName
-
-
-def _mappingRowObjects(rows):
-    return [_coerceMappingRow(row) for row in list(rows or [])]
 
 
 def _extendWarningsAndIssues(targetWarnings, targetIssues, result):
@@ -369,10 +382,18 @@ def _applyToFleet(
         return _syncIssueResult("interlocks.sync.{}.missing_row.{}".format(actionKey, fleetName), "warn", message)
     if fleetState is None:
         message = "{} skipped [{}] because Fleet state is unreadable".format(actionLabel, fleetName)
-        return _syncIssueResult("interlocks.sync.{}.unreadable_fleet_state.{}".format(actionKey, fleetName), "warn", message)
+        return _syncIssueResult(
+            "interlocks.sync.{}.unreadable_fleet_state.{}".format(actionKey, fleetName),
+            "warn",
+            message,
+        )
     if targetState is None:
         message = "{} skipped [{}] because PLC state is unreadable".format(actionLabel, fleetName)
-        return _syncIssueResult("interlocks.sync.{}.unreadable_plc_state.{}".format(actionKey, fleetName), "warn", message)
+        return _syncIssueResult(
+            "interlocks.sync.{}.unreadable_plc_state.{}".format(actionKey, fleetName),
+            "warn",
+            message,
+        )
 
     # During ForceZero override, keep best-effort driving the PLC mirror to zero
     # even when the most recent PLC State read was bad or unavailable.
@@ -441,7 +462,7 @@ def updateInterlocks():
         return getResult
 
     records = list(getResult.get("records") or [])
-    recordsByName = _recordObjectsByName(getResult.get("records_by_name") or {})
+    recordsByName = getResult.get("records_by_name") or {}
     instanceNameByRawName = getResult.get("instance_name_by_name") or {}
 
     applyResult = applyInterlockSync(
@@ -455,8 +476,8 @@ def updateInterlocks():
     issues = []
     _extendWarningsAndIssues(warnings, issues, getResult)
     _extendWarningsAndIssues(warnings, issues, mappingState)
-    duplicateInfoByName = _duplicateInfoObjectsByName(mappingState.get("duplicate_info_by_name") or {})
-    mappingRows = _mappingRowObjects(mappingState.get("rows") or [])
+    duplicateInfoByName = mappingState.get("duplicate_info_by_name") or {}
+    mappingRows = list(mappingState.get("rows") or [])
     plcSnapshotByTagName = _readPlcSnapshot(mappingRows)
     resolvedRows = [
         _coerceResolvedSyncRow(
@@ -505,22 +526,18 @@ def updateInterlocks():
     if hasError:
         message = "Interlocks sync failed"
 
-    return buildOperationResult(
+    return buildTypedOperationResult(
         ok,
         level,
         message,
-        data={
+        typedFields={
             "get_result": getResult,
             "apply_result": applyResult,
             "mapping_result": mappingState,
             "directional_results": directionalResults,
+        },
+        sharedFields={
             "warnings": warnings,
             "issues": issues,
         },
-        get_result=getResult,
-        apply_result=applyResult,
-        mapping_result=mappingState,
-        directional_results=directionalResults,
-        warnings=warnings,
-        issues=issues,
     )

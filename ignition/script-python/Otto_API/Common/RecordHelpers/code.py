@@ -96,6 +96,23 @@ class RawBackedRecordBase(MappingRecordBase):
         return fromDict(data)
 
 
+def recordToDict(record):
+    if hasattr(record, "toDict"):
+        return record.toDict()
+    return dict(record or {})
+
+
+def recordsToDicts(records):
+    return [recordToDict(record) for record in list(records or [])]
+
+
+def recordsByNameToDict(recordsByName):
+    serialized = {}
+    for name, record in list(dict(recordsByName or {}).items()):
+        serialized[name] = recordToDict(record)
+    return serialized
+
+
 def coerceText(value, default=""):
     if value is None:
         return default

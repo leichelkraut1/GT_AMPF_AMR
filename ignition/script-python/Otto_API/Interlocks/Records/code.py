@@ -28,6 +28,16 @@ class InterlockRecord(MappingRecordBase):
         return bool(self.id and self.name)
 
 
+def isInterlockRecord(value):
+    return isinstance(value, InterlockRecord)
+
+
+def coerceInterlockRecord(record):
+    if isInterlockRecord(record):
+        return record
+    return InterlockRecord.fromDict(record)
+
+
 class InterlockMappingRow(MappingRecordBase):
     FIELDS = ("FleetName", "PlcTagName", "Direction", "WriteEnable")
 
@@ -57,6 +67,16 @@ class InterlockMappingRow(MappingRecordBase):
         return bool(self.WriteEnable)
 
 
+def isInterlockMappingRow(value):
+    return isinstance(value, InterlockMappingRow)
+
+
+def coerceInterlockMappingRow(row):
+    if isInterlockMappingRow(row):
+        return row
+    return InterlockMappingRow.fromDict(row)
+
+
 class DuplicateInterlockMappingInfo(MappingRecordBase):
     FIELDS = (
         "fleet_name",
@@ -83,6 +103,16 @@ class DuplicateInterlockMappingInfo(MappingRecordBase):
             row.get("winning_plc_tag_name"),
             row.get("winning_direction"),
         )
+
+
+def isDuplicateInterlockMappingInfo(value):
+    return isinstance(value, DuplicateInterlockMappingInfo)
+
+
+def coerceDuplicateInterlockMappingInfo(duplicateInfo):
+    if isDuplicateInterlockMappingInfo(duplicateInfo):
+        return duplicateInfo
+    return DuplicateInterlockMappingInfo.fromDict(duplicateInfo)
 
 
 class PlcInterlockSnapshot(MappingRecordBase):

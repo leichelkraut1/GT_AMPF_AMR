@@ -1,3 +1,4 @@
+from MainController.Robot.Records import _coerceRobotCycleSnapshot
 from MainController.WorkflowConfig import normalizeWorkflowNumber
 
 
@@ -17,26 +18,25 @@ def buildReservedWorkflowsFromSnapshots(snapshots):
     """Build the whole-cycle workflow reservation map before robot decisions run."""
     reserved = {}
     for snapshot in list(snapshots or []):
-        snapshot = dict(snapshot or {})
-        robotName = snapshot.get("robot_name")
-        activeWorkflowNumber = normalizeWorkflowNumber(
-            dict(snapshot.get("active_summary") or {}).get("workflow_number")
-        )
+        snapshot = _coerceRobotCycleSnapshot(snapshot)
+        robotName = snapshot.robot_name
+        activeWorkflowNumber = normalizeWorkflowNumber(snapshot.active_summary.workflow_number)
         if activeWorkflowNumber:
             reserveWorkflow(reserved, activeWorkflowNumber, robotName)
             continue
 
-        currentState = dict(snapshot.get("current_state") or {})
         selectedWorkflowNumber = normalizeWorkflowNumber(
-            currentState.get("selected_workflow_number")
+            snapshot.current_state.selected_workflow_number
         )
-        if selectedWorkflowNumber and currentState.get("mission_created"):
+        if selectedWorkflowNumber and snapshot.current_state.mission_created:
             reserveWorkflow(reserved, selectedWorkflowNumber, robotName)
     return reserved
 
 
 def attachReservedWorkflows(snapshots, reservedWorkflows):
     """Attach the same live reservation map to every snapshot in the controller batch."""
-    for snapshot in list(snapshots or []):
-        snapshot["reserved_workflows"] = reservedWorkflows
+    for index, snapshot in enumerate(list(snapshots or [])):
+        snapshot = _coerceRobotCycleSnapshot(snapshot)
+        snapshot.reserved_workflows = reservedWorkflows
+        snapshots[index] = snapshot
     return snapshots

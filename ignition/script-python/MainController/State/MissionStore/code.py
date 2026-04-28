@@ -1,8 +1,11 @@
 from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
 from Otto_API.Missions.MissionActions import sortActiveMissionRecords
+from Otto_API.Missions.Records import MissionRecord
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
 
+from MainController.Robot.Records import ActiveMissionSummary
+from MainController.Robot.Records import RobotMirrorInputs
 from MainController.State.Coerce import toBool
 from MainController.State.Paths import FLEET_ROBOTS_BASE
 from MainController.State.Paths import MISSIONS_ACTIVE_BASE
@@ -43,7 +46,7 @@ def readRobotMirrorInputs(robotName):
                 pass
         return value
 
-    return {
+    return RobotMirrorInputs.fromDict({
         "available_for_work": toBool(_value(0, False)),
         "active_mission_count": int(_value(1, 0) or 0),
         "charge_level": float(_value(2, 0.0) or 0.0),
@@ -56,7 +59,7 @@ def readRobotMirrorInputs(robotName):
         "container_id": str(_value(9, "", allowEmptyString=True) or ""),
         "mission_starved": False,
         "mission_ready_for_attachment": False,
-    }
+    })
 
 
 def parseActiveWorkflowNumberFromMissionName(missionName):
@@ -77,7 +80,7 @@ def readActiveMissionSummary(robotName):
     rootPath = MISSIONS_ACTIVE_BASE + "/" + robotName
     missionInstances = browseMissionInstances(rootPath)
     if not missionInstances:
-        return {
+        return ActiveMissionSummary.fromDict({
             "count": 0,
             "missions": [],
             "current_mission": None,
@@ -86,7 +89,7 @@ def readActiveMissionSummary(robotName):
             "current_mission_path": "",
             "mission_name": "",
             "workflow_number": None,
-        }
+        })
 
     readPaths = []
     for fullPath, _instanceName in missionInstances:
@@ -121,7 +124,7 @@ def readActiveMissionSummary(robotName):
                 missionIdValue = str(candidate.value).strip()
                 break
 
-        missions.append({
+        missions.append(MissionRecord.fromDict({
             "instance_path": fullPath,
             "path": fullPath,
             "mission_name": nameValue or "",
@@ -129,7 +132,7 @@ def readActiveMissionSummary(robotName):
             "mission_status": statusValue or "",
             "workflow_number": parseActiveWorkflowNumberFromMissionName(nameValue),
             "id": missionIdValue or "",
-        })
+        }))
 
     missions = sortActiveMissionRecords(missions)
     currentMission = selectCurrentActiveMissionRecord(missions)
@@ -139,13 +142,13 @@ def readActiveMissionSummary(robotName):
     currentMissionId = ""
     currentMissionPath = ""
     if currentMission:
-        missionName = str(currentMission.get("mission_name") or currentMission.get("name") or "")
-        workflowNumber = currentMission.get("workflow_number")
-        currentStatus = str(currentMission.get("mission_status") or "")
-        currentMissionId = str(currentMission.get("id") or "")
-        currentMissionPath = str(currentMission.get("instance_path") or currentMission.get("path") or "")
+        missionName = str(currentMission.name or "")
+        workflowNumber = currentMission.workflow_number
+        currentStatus = str(currentMission.mission_status or "")
+        currentMissionId = str(currentMission.id or "")
+        currentMissionPath = str(currentMission.instance_path or currentMission.path or "")
 
-    return {
+    return ActiveMissionSummary.fromDict({
         "count": len(missionInstances),
         "missions": missions,
         "current_mission": currentMission,
@@ -154,4 +157,4 @@ def readActiveMissionSummary(robotName):
         "current_mission_path": currentMissionPath,
         "mission_name": missionName,
         "workflow_number": workflowNumber,
-    }
+    })

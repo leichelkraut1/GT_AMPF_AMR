@@ -6,6 +6,18 @@ from Otto_API.Common.RecordHelpers import coerceText
 from Otto_API.Common.RecordHelpers import coerceUpperText
 
 
+def _normalizedActivityStates(allowedActivityStates):
+    normalized = []
+    seen = set()
+    for value in list(allowedActivityStates or []):
+        text = coerceUpperText(value, None)
+        if text is None or text in seen:
+            continue
+        normalized.append(text)
+        seen.add(text)
+    return normalized
+
+
 class RobotReadinessContext(MappingRecordBase):
     FIELDS = (
         "min_charge",
@@ -27,7 +39,7 @@ class RobotReadinessContext(MappingRecordBase):
         self.charging_delay_ms = coerceIntOrNone(chargingDelayMs)
         self.mission_last_update_ts = coerceText(missionLastUpdateTs, None)
         self.mission_last_update_success = coerceBool(missionLastUpdateSuccess, False)
-        self.allowed_activity_states = list(allowedActivityStates or [])
+        self.allowed_activity_states = _normalizedActivityStates(allowedActivityStates)
 
     @classmethod
     def fromDict(cls, record):
@@ -39,15 +51,6 @@ class RobotReadinessContext(MappingRecordBase):
             record.get("mission_last_update_success"),
             record.get("allowed_activity_states"),
         )
-
-    def normalizedAllowedActivityStates(self):
-        normalized = set()
-        for value in list(self.allowed_activity_states or []):
-            text = coerceUpperText(value, None)
-            if text is not None:
-                normalized.add(text)
-        return normalized
-
 
 class RobotReadinessResult(MappingRecordBase):
     FIELDS = (

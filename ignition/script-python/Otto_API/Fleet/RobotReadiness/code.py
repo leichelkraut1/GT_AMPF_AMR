@@ -10,19 +10,20 @@ DEFAULT_ALLOWED_ACTIVITY_STATES = set([
 ])
 
 
-def _normalizeStateValue(value):
-    if value is None:
-        return None
-    return str(value).strip().upper()
-
-
 def _coerceRobotSnapshot(snapshot):
     if isinstance(snapshot, RobotSnapshot):
         return snapshot
     return RobotSnapshot.fromDict(snapshot)
 
 
-def _coerceReadinessContext(context=None, minCharge=None, chargingDelayMs=None, missionLastUpdateTs=None, missionLastUpdateSuccess=None, allowedActivityStates=None):
+def _coerceReadinessContext(
+    context=None,
+    minCharge=None,
+    chargingDelayMs=None,
+    missionLastUpdateTs=None,
+    missionLastUpdateSuccess=None,
+    allowedActivityStates=None
+):
     if isinstance(context, RobotReadinessContext):
         return context
 
@@ -38,21 +39,12 @@ def _coerceReadinessContext(context=None, minCharge=None, chargingDelayMs=None, 
     )
 
 
-def _normalizedSnapshot(snapshot):
-    return snapshot.withUpdatedOperationalState(
-        systemState=_normalizeStateValue(snapshot.system_state),
-        activityState=_normalizeStateValue(snapshot.activity_state),
-    )
-
-
 def evaluateRobotReadiness(snapshot, context):
     """
     Evaluate one robot snapshot and return a structured readiness result.
     """
     snapshot = _coerceRobotSnapshot(snapshot)
     context = _coerceReadinessContext(context)
-    snapshot = _normalizedSnapshot(snapshot)
-    normalizedAllowedStates = context.normalizedAllowedActivityStates()
 
     reason = "available"
     available = True
@@ -78,7 +70,7 @@ def evaluateRobotReadiness(snapshot, context):
     elif snapshot.system_state != "RUN":
         reason = "system_state_not_run"
         available = False
-    elif snapshot.activity_state not in normalizedAllowedStates:
+    elif snapshot.activity_state not in context.allowed_activity_states:
         reason = "activity_state_not_allowed"
         available = False
     elif snapshot.charge_level < context.min_charge:

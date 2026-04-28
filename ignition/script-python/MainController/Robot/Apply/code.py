@@ -7,6 +7,7 @@ from MainController.State.PlcStore import writePlcOutputs
 from MainController.State.Results import buildCycleResult
 from MainController.State.RobotStore import readRobotState
 from MainController.State.RobotStore import writeRobotState
+from MainController.Robot.Records import _coerceRobotCycleSnapshot
 from MainController.WorkflowConfig import normalizeWorkflowNumber
 
 
@@ -42,7 +43,7 @@ def _recordCommandHistory(snapshot, outcome, currentState=None):
     if action == "idle":
         return
 
-    robotName = str(outcome.get("robot_name") or snapshot["robot_name"])
+    robotName = str(outcome.get("robot_name") or snapshot.robot_name)
     requestedWorkflowNumber = normalizeWorkflowNumber(
         outcome.get("selected_workflow_number")
     ) or 0
@@ -76,7 +77,7 @@ def _recordCommandHistory(snapshot, outcome, currentState=None):
         "command_history",
         COMMAND_HISTORY_HEADERS,
         [
-            timestampString(snapshot["now_epoch_ms"]),
+            timestampString(snapshot.now_epoch_ms),
             robotName,
             requestedWorkflowNumber,
             activeWorkflowNumber,
@@ -100,13 +101,14 @@ def _recordCommandHistory(snapshot, outcome, currentState=None):
 
 def applyRobotOutcome(snapshot, outcome):
     """Persist a robot-cycle outcome to state, PLC outputs, history, and result payloads."""
-    robotName = snapshot["robot_name"]
+    snapshot = _coerceRobotCycleSnapshot(snapshot)
+    robotName = snapshot.robot_name
     stateUpdates = dict(outcome.get("state_updates") or {})
     action = str(outcome.get("action") or "")
 
     if stateUpdates:
-        writeRobotState(robotName, stateUpdates, currentState=snapshot.get("current_state"))
-    currentState = dict(snapshot.get("current_state") or {})
+        writeRobotState(robotName, stateUpdates, currentState=snapshot.current_state.toDict())
+    currentState = snapshot.current_state.toDict()
     currentState.update(stateUpdates)
 
     syncResult = _plcSyncResult(True)
@@ -114,7 +116,7 @@ def applyRobotOutcome(snapshot, outcome):
         plcHealth = dict(outcome.get("plc_health_outputs") or {})
         try:
             writePlcHealthOutputs(
-                snapshot.get("plc_tag_name"),
+                snapshot.plc_tag_name,
                 fleetFault=plcHealth.get("fleetFault", False),
                 plcCommFault=plcHealth.get("plcCommFault", False),
                 controlHealthy=plcHealth.get("controlHealthy", True),
@@ -127,7 +129,7 @@ def applyRobotOutcome(snapshot, outcome):
             )
     elif outcome.get("plc_outputs") is not None:
         try:
-            writePlcOutputs(snapshot.get("plc_tag_name"), outcome.get("plc_outputs"))
+            writePlcOutputs(snapshot.plc_tag_name, outcome.get("plc_outputs"))
         except Exception as exc:
             syncResult = _plcSyncResult(
                 False,
@@ -152,7 +154,11 @@ def applyRobotOutcome(snapshot, outcome):
         if resultLevel == "info":
             resultLevel = "warn"
         if syncResult["message"]:
-            resultMessage = "{}; {}".format(resultMessage, syncResult["message"]) if resultMessage else syncResult["message"]
+            resultMessage = (
+                "{}; {}".format(resultMessage, syncResult["message"])
+                if resultMessage
+                else syncResult["message"]
+            )
 
     result = buildCycleResult(
         resultOk,

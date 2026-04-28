@@ -4,6 +4,7 @@ from Otto_API.Common.RecordHelpers import coerceFloatOrNone
 from Otto_API.Common.RecordHelpers import coerceInt
 from Otto_API.Common.RecordHelpers import coerceIntOrNone
 from Otto_API.Common.RecordHelpers import coerceText
+from Otto_API.Common.RecordHelpers import coerceUpperText
 from Otto_API.Common.TimeHelpers import parseIsoTimestampToEpochMillis
 
 
@@ -107,8 +108,8 @@ class RobotSnapshot(MappingRecordBase):
     ):
         self.robot_name = coerceText(robotName)
         self.robot_path = coerceText(robotPath)
-        self.system_state = coerceText(systemState, None)
-        self.activity_state = coerceText(activityState, None)
+        self.system_state = coerceUpperText(systemState, None)
+        self.activity_state = coerceUpperText(activityState, None)
         self.charge_level = coerceFloatOrNone(chargeLevel)
         self.active_mission_count = coerceIntOrNone(activeMissionCount)
         self.failed_mission_count = coerceIntOrNone(failedMissionCount)
