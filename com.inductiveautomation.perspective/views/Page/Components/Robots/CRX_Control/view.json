@@ -256,7 +256,7 @@
                 "references": {
                   "1": "{view.params.RVNum}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Running"
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_PrgRunning"
               },
               "transforms": [
                 {
@@ -312,7 +312,7 @@
                 "references": {
                   "1": "{view.params.RVNum}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Paused"
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_PrgPaused"
               },
               "transforms": [
                 {
@@ -447,7 +447,7 @@
                 "references": {
                   "1": "{view.params.RVNum}"
                 },
-                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Seq"
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Seq_Receive"
               },
               "transforms": [
                 {
