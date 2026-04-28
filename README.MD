@@ -462,4 +462,39 @@ Get-ChildItem "ignition/tag-change" -Recurse -Filter "onTagChange.py" | ForEach-
 }
 ```
 
+## Designer Troubleshooting
+
+### Local Designer codec error
+
+If the Designer on one workstation starts failing with:
+
+- `LookupError: no codec search functions registered: can't find encoding 'UTF-8'`
+
+and the gateway/server itself is otherwise healthy, the problem may be a bad local
+Designer cache for that gateway rather than a broken project script.
+
+In one confirmed case, the bad cache contents showed up under:
+
+- `%USERPROFILE%\\.ignition\\cache\\gw<gateway>_<port>\\...\\pylib\\codecs.py`
+- `%USERPROFILE%\\.ignition\\cache\\gw<gateway>_<port>\\...\\pylib\\site.py`
+
+The fix was:
+
+1. close the Designer and Launcher
+2. delete the affected gateway cache folder under:
+   - `%USERPROFILE%\\.ignition\\cache\\`
+3. reopen the Launcher/Designer and let it rebuild the cache
+
+Example PowerShell:
+
+```powershell
+Remove-Item "$env:USERPROFILE\.ignition\cache\gw10.137.22.64_8088" -Recurse -Force
+```
+
+If needed, deleting the full local `.ignition` cache tree is the broader reset:
+
+```powershell
+Remove-Item "$env:USERPROFILE\.ignition" -Recurse -Force
+```
+
 
