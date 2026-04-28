@@ -5,7 +5,7 @@ from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.RuntimeHistory import recordRuntimeIssues
 from Otto_API.Common.RuntimeHistory import timestampString
 from Otto_API.Interlocks.Sync import updateInterlocks
-from Otto_API.Models.Results import TypedOperationResult
+from Otto_API.Models.Results import OperationalResult
 
 
 def _log():
@@ -50,7 +50,7 @@ def runInterlockSyncCycle(nowEpochMs=None):
     except Exception as exc:
         message = "Interlock sync runtime wrapper failed: {}".format(str(exc))
         logger.error(message)
-        result = TypedOperationResult(
+        result = OperationalResult(
             False,
             "error",
             message,

@@ -19,8 +19,8 @@ from Otto_API.Models.Interlocks import DuplicateInterlockMappingInfo
 from Otto_API.Models.Interlocks import InterlockMappingRow
 from Otto_API.Models.Interlocks import InterlockRecord
 from Otto_API.Models.Interlocks import PlcInterlockSnapshot
+from Otto_API.Models.Results import OperationalResult
 from Otto_API.Models.Results import RecordSyncResult
-from Otto_API.Models.Results import TypedOperationResult
 from Otto_API.WebAPI.Interlocks import fetchInterlocks
 from Otto_API.WebAPI.Interlocks import postInterlockState
 
@@ -283,7 +283,7 @@ def _syncIssueResult(issueId, level, message, postResult=None):
     typedFields = {}
     if postResult is not None:
         typedFields["post_result"] = postResult
-    return TypedOperationResult(
+    return OperationalResult(
         False,
         level,
         message,
@@ -342,7 +342,7 @@ def _applyFromFleet(resolved, logger=None):
         return _syncIssueResult("interlocks.sync.fromfleet.unreadable_state.{}".format(fleetName), "warn", message)
 
     writeObservedTagValue(resolved.plc_state_path, fleetState, label="Interlock FromFleet sync", logger=logger)
-    return TypedOperationResult(
+    return OperationalResult(
         True,
         "info",
         "FromFleet synced [{}] -> [{}]".format(fleetName, resolved.plc_tag_name),
@@ -362,7 +362,7 @@ def _applyToFleet(
 ):
     fleetName = resolved.fleet_name
     if not resolved.shouldWriteToFleet(ignoreWriteEnable):
-        return TypedOperationResult(
+        return OperationalResult(
             True,
             "info",
             "{} disabled [{}] because WriteEnable is false".format(actionLabel, fleetName),
@@ -415,7 +415,7 @@ def _applyToFleet(
 
     if targetState == resolved.remoteState():
         _clearPendingState(resolved.fleet_row_path, logger)
-        return TypedOperationResult(
+        return OperationalResult(
             True,
             "info",
             "{} no-op [{}]; target already matches Fleet".format(actionLabel, fleetName),
@@ -423,7 +423,7 @@ def _applyToFleet(
         )
 
     if pendingWrite and pendingWriteState == targetState and (nowEpochMs - lastWriteAttemptMs) < retryMs:
-        return TypedOperationResult(
+        return OperationalResult(
             True,
             "info",
             "{} waiting [{}] for retry backoff".format(actionLabel, fleetName),
@@ -459,7 +459,7 @@ def _applyToFleet(
             message,
             postResult=postResult,
         ).issues
-    return TypedOperationResult(
+    return OperationalResult(
         bool(postResult.ok),
         postResult.level,
         message,
@@ -543,7 +543,7 @@ def updateInterlocks():
     if hasError:
         message = "Interlocks sync failed"
 
-    return TypedOperationResult(
+    return OperationalResult(
         ok,
         level,
         message,

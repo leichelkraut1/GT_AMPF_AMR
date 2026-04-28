@@ -12,7 +12,7 @@ from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
 from Otto_API.Models.Interlocks import DuplicateInterlockMappingInfo
 from Otto_API.Interlocks.Helpers import normalizeBool
 from Otto_API.Models.Interlocks import InterlockMappingRow
-from Otto_API.Models.Results import TypedOperationResult
+from Otto_API.Models.Results import OperationalResult
 
 
 VALID_DIRECTIONS = ["FromFleet", "ToFleet"]
@@ -202,7 +202,7 @@ def readInterlockMappings():
     if warnings:
         message = "Interlock mapping loaded with {} issue(s)".format(len(warnings))
 
-    return TypedOperationResult(
+    return OperationalResult(
         ok,
         level,
         message,

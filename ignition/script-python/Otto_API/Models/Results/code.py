@@ -11,44 +11,7 @@ def _typedValueToData(value):
     return value
 
 
-class OperationResult(object):
-    def __init__(self, ok, level, message, data=None):
-        self.ok = bool(ok)
-        self.level = str(level or "").strip()
-        self.message = str(message or "")
-        self.data = {} if data is None else data
-
-    @classmethod
-    def fromDict(cls, result):
-        if isinstance(result, cls):
-            return result
-        result = dict(result or {})
-        return cls(
-            result.get("ok"),
-            result.get("level"),
-            result.get("message"),
-            result.get("data"),
-        )
-
-    def isError(self):
-        return str(self.level or "").lower() == "error"
-
-    def isWarn(self):
-        return str(self.level or "").lower() == "warn"
-
-    def isHealthy(self):
-        return bool(self.ok)
-
-    def toDict(self):
-        return {
-            "ok": self.ok,
-            "level": self.level,
-            "message": self.message,
-            "data": _typedValueToData(self.data),
-        }
-
-
-class TypedOperationResult(OperationResult):
+class OperationalResult(object):
     def __init__(
         self,
         ok,
@@ -58,6 +21,9 @@ class TypedOperationResult(OperationResult):
         dataFields=None,
         sharedFields=None,
     ):
+        self.ok = bool(ok)
+        self.level = str(level or "").strip()
+        self.message = str(message or "")
         self._typed_field_names = []
         self._data_field_names = []
         self._shared_field_names = []
@@ -82,21 +48,49 @@ class TypedOperationResult(OperationResult):
             self._shared_field_names.append(fieldName)
             dataPayload[fieldName] = _typedValueToData(value)
 
-        OperationResult.__init__(self, ok, level, message, dataPayload)
+        self.data = dataPayload
+
+    @classmethod
+    def fromDict(cls, result):
+        if isinstance(result, cls):
+            return result
+        result = dict(result or {})
+        return cls(
+            result.get("ok"),
+            result.get("level"),
+            result.get("message"),
+            dataFields=result.get("data"),
+        )
+
+    def isError(self):
+        return str(self.level or "").lower() == "error"
+
+    def isWarn(self):
+        return str(self.level or "").lower() == "warn"
+
+    def isHealthy(self):
+        return bool(self.ok)
 
     def _topLevelFields(self):
         fields = {}
-        for fieldName in list(self._typed_field_names or []) + list(self._shared_field_names or []):
+        fieldNames = list(self._typed_field_names or [])
+        fieldNames.extend(list(self._shared_field_names or []))
+        for fieldName in fieldNames:
             fields[fieldName] = _typedValueToData(getattr(self, fieldName))
         return fields
 
     def toDict(self):
-        result = OperationResult.toDict(self)
+        result = {
+            "ok": self.ok,
+            "level": self.level,
+            "message": self.message,
+            "data": _typedValueToData(self.data),
+        }
         result.update(self._topLevelFields())
         return result
 
 
-class RecordSyncResult(TypedOperationResult):
+class RecordSyncResult(OperationalResult):
     def __init__(
         self,
         ok,
@@ -117,7 +111,7 @@ class RecordSyncResult(TypedOperationResult):
         dataFields = dict(dataFields or {})
         dataFields["value"] = value
 
-        TypedOperationResult.__init__(
+        OperationalResult.__init__(
             self,
             ok,
             level,

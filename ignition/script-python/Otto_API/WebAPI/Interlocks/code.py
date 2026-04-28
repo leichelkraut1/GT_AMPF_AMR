@@ -7,8 +7,8 @@ from Otto_API.Common.ParseHelpers import parseJsonResponse
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Interlocks.Helpers import buildInterlockInstanceMap
 from Otto_API.Models.Interlocks import InterlockRecord
+from Otto_API.Models.Results import OperationalResult
 from Otto_API.Models.Results import RecordSyncResult
-from Otto_API.Models.Results import TypedOperationResult
 
 
 INTERLOCK_FETCH_LIMIT = 100
@@ -261,7 +261,7 @@ def postInterlockState(
     Set one OTTO interlock state through the shared operations endpoint.
     """
     if not interlockId:
-        return TypedOperationResult(
+        return OperationalResult(
             False,
             "warn",
             "No interlock id supplied for setInterlockState",
@@ -281,7 +281,7 @@ def postInterlockState(
         responsePayload = system.util.jsonDecode(response)
         if isinstance(responsePayload, dict) and responsePayload.get("error") is not None:
             errorText = responsePayload.get("error")
-            return TypedOperationResult(
+            return OperationalResult(
                 False,
                 "error",
                 "setInterlockState failed for [{}]: {}".format(interlockId, errorText),
@@ -294,7 +294,7 @@ def postInterlockState(
                 },
             )
 
-        return TypedOperationResult(
+        return OperationalResult(
             True,
             "info",
             "setInterlockState queued for [{}] -> {}".format(interlockId, int(state)),
@@ -307,7 +307,7 @@ def postInterlockState(
             },
         )
     except Exception as exc:
-        return TypedOperationResult(
+        return OperationalResult(
             False,
             "error",
             "setInterlockState failed for [{}]: {}".format(interlockId, exc),
