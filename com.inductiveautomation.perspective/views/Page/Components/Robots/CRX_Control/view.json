@@ -1,0 +1,640 @@
+{
+  "custom": {},
+  "params": {
+    "RVNum": 1
+  },
+  "propConfig": {
+    "custom.themeDividerBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeMutedText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#9ca3af\"\n\treturn \"#6b7280\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themePrimaryText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBg": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#111827\"\n\treturn \"#f9fafb\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "custom.themeSurfaceBorder": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"1px solid #374151\"\n\treturn \"1px solid #d1d5db\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
+    "params.RVNum": {
+      "paramDirection": "input",
+      "persistent": true
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 330,
+      "width": 320
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "Title"
+        },
+        "position": {
+          "basis": "32px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "\"RV\" + {view.params.RVNum} + \" CRX\""
+              },
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "18px",
+            "fontWeight": "700",
+            "textAlign": "center"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "FromCrxTitle"
+        },
+        "position": {
+          "basis": "28px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.borderTop": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeDividerBorder"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "paddingTop": "8px",
+            "textTransform": "uppercase"
+          },
+          "text": "From CRX"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CRX_Faulted"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Faulted"
+              },
+              "transforms": [
+                {
+                  "code": "\treturn \"#b91c1c\" if bool(value) else self.view.custom.themePrimaryText",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Faulted"
+              },
+              "transforms": [
+                {
+                  "expression": "\"CRX_Faulted: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "fontWeight": "600"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CRX_Running"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Running"
+              },
+              "transforms": [
+                {
+                  "code": "\treturn \"#166534\" if bool(value) else self.view.custom.themePrimaryText",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Running"
+              },
+              "transforms": [
+                {
+                  "expression": "\"CRX_Running: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "fontWeight": "600"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CRX_Paused"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Paused"
+              },
+              "transforms": [
+                {
+                  "code": "\treturn \"#b45309\" if bool(value) else self.view.custom.themePrimaryText",
+                  "type": "script"
+                }
+              ],
+              "type": "tag"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Paused"
+              },
+              "transforms": [
+                {
+                  "expression": "\"CRX_Paused: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "fontWeight": "600"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CRX_ReadyForSeq"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_ReadyForSeq"
+              },
+              "transforms": [
+                {
+                  "expression": "\"CRX_ReadyForSeq: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "fontWeight": "600"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CRX_ReadyToTransit"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_ReadyToTransit"
+              },
+              "transforms": [
+                {
+                  "expression": "\"CRX_ReadyToTransit: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "fontWeight": "600"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CRX_Seq"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_Seq"
+              },
+              "transforms": [
+                {
+                  "expression": "\"CRX_Seq: \" + if(isNull({value}), \"-\", toStr({value}))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "fontWeight": "600"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ToCrxTitle"
+        },
+        "position": {
+          "basis": "30px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.borderTop": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeDividerBorder"
+              },
+              "type": "property"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themeMutedText"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "12px",
+            "fontWeight": "700",
+            "marginTop": "6px",
+            "paddingTop": "8px",
+            "textTransform": "uppercase"
+          },
+          "text": "To CRX"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CRX_StartReady"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_StartReady"
+              },
+              "transforms": [
+                {
+                  "expression": "\"CRX_StartReady: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "fontWeight": "600"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CRX_TransitPosRequired"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          },
+          "props.text": {
+            "binding": {
+              "config": {
+                "fallbackDelay": 2.5,
+                "mode": "indirect",
+                "references": {
+                  "1": "{view.params.RVNum}"
+                },
+                "tagPath": "[Otto_FleetManager]PLC/CRX/RV{1}/RV{1}_CRX_TransitPosRequired"
+              },
+              "transforms": [
+                {
+                  "expression": "\"CRX_TransitPosRequired: \" + if(isNull({value}), \"-\", if({value}, \"Yes\", \"No\"))",
+                  "type": "expression"
+                }
+              ],
+              "type": "tag"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "fontSize": "13px",
+            "fontWeight": "600"
+          }
+        },
+        "type": "ia.display.label"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "propConfig": {
+      "props.style.backgroundColor": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBg"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.border": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themeSurfaceBorder"
+          },
+          "type": "property"
+        }
+      },
+      "props.style.color": {
+        "binding": {
+          "config": {
+            "path": "view.custom.themePrimaryText"
+          },
+          "type": "property"
+        }
+      }
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "borderRadius": "8px",
+        "boxShadow": "0 1px 2px rgba(0,0,0,0.08)",
+        "marginBottom": "16px",
+        "marginRight": "16px",
+        "padding": "12px"
+      }
+    },
+    "type": "ia.container.flex"
+  }
+}

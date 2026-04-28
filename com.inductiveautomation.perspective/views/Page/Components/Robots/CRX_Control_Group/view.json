@@ -1,0 +1,72 @@
+{
+  "custom": {},
+  "params": {},
+  "props": {
+    "defaultSize": {
+      "height": 360,
+      "width": 1016
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "CRX_Control_RV1"
+        },
+        "position": {
+          "basis": "320px"
+        },
+        "props": {
+          "params": {
+            "RVNum": 1
+          },
+          "path": "Page/Components/Robots/CRX_Control"
+        },
+        "type": "ia.display.view"
+      },
+      {
+        "meta": {
+          "name": "CRX_Control_RV2"
+        },
+        "position": {
+          "basis": "320px"
+        },
+        "props": {
+          "params": {
+            "RVNum": 2
+          },
+          "path": "Page/Components/Robots/CRX_Control"
+        },
+        "type": "ia.display.view"
+      },
+      {
+        "meta": {
+          "name": "CRX_Control_RV3"
+        },
+        "position": {
+          "basis": "320px"
+        },
+        "props": {
+          "params": {
+            "RVNum": 3
+          },
+          "path": "Page/Components/Robots/CRX_Control"
+        },
+        "type": "ia.display.view"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "style": {
+        "paddingBottom": "8px",
+        "paddingLeft": "8px",
+        "paddingRight": "8px",
+        "paddingTop": "8px"
+      },
+      "wrap": "wrap"
+    },
+    "type": "ia.container.flex"
+  }
+}
