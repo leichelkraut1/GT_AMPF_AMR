@@ -14,6 +14,7 @@ from Otto_API.Missions.MissionActions import interpretCreateMissionResponse
 from Otto_API.Missions.MissionActions import interpretFinalizeMissionResponse
 from Otto_API.Missions.MissionActions import parseTemplateJson
 from Otto_API.Missions.MissionTreeHelpers import readMissionIdRecords
+from Otto_API.Missions.Records import coerceMissionRecords
 
 ACTIVE_MISSIONS_ROOT = getFleetMissionsPath() + "/Active"
 FAILED_MISSIONS_ROOT = getFleetMissionsPath() + "/Failed"
@@ -130,6 +131,7 @@ def _cancelMissionIdsFromInputs(
 	Cancel an explicit list of mission ids and return a structured result.
 	"""
 	targetMissionIds = [str(missionId) for missionId in list(targetMissionIds or []) if missionId]
+
 	def _cancelBatchResult(ok, level, message, missionIds=None, responseTexts=None, payloads=None):
 		return _buildCancelBatchResult(
 			ok=ok,
@@ -307,8 +309,8 @@ def cancelAllActiveMissionsFromInputs(missionRecords, fleetManagerURL, postFunc)
 	Cancels all known active missions and returns a structured result.
 	"""
 	targetMissionIds = []
-	for missionRecord in list(missionRecords or []):
-		missionId = missionRecord.get("id")
+	for missionRecord in coerceMissionRecords(missionRecords):
+		missionId = missionRecord.id
 		if missionId:
 			targetMissionIds.append(str(missionId))
 
@@ -445,9 +447,9 @@ def cancelAllFailedMissions():
 	try:
 		missionRecords = readMissionIdRecords(FAILED_MISSIONS_ROOT)
 		targetMissionIds = [
-			str(missionRecord.get("id"))
-			for missionRecord in list(missionRecords or [])
-			if missionRecord.get("id")
+			str(missionRecord.id)
+			for missionRecord in coerceMissionRecords(missionRecords)
+			if missionRecord.id
 		]
 		result = _cancelMissionIdsFromInputs(
 			targetMissionIds,

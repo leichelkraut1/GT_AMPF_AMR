@@ -1,5 +1,6 @@
 from Otto_API.Common.TagIO import browseTagResults
 from Otto_API.Common.TagIO import readTagValues
+from Otto_API.Missions.Records import MissionRecord
 
 
 def _log():
@@ -114,14 +115,15 @@ def readMissionRobotAwareRecords(rootPath):
 
     for index, missionRow in enumerate(missionRows):
         offset = index * 10
-        missionRecords.append({
+        missionRecords.append(MissionRecord.fromDict({
             "path": missionRow["path"],
+            "instance_path": missionRow["path"],
             "assigned_robot": _pickValue(readResults[offset], readResults[offset + 1]),
             "force_robot": _pickValue(readResults[offset + 2], readResults[offset + 3]),
             "forced_robot": _pickValue(readResults[offset + 4], readResults[offset + 5]),
             "id": _pickValue(readResults[offset + 6], readResults[offset + 7]),
             "mission_status": _pickValue(readResults[offset + 8], readResults[offset + 9]),
-        })
+        }))
 
     return missionRecords
 
@@ -161,6 +163,8 @@ def readMissionIdRecords(rootPath):
         offset = index * 2
         missionId = _pickValue(readResults[offset], readResults[offset + 1])
         if missionId:
-            missionRecords.append({"id": missionId})
+            missionRecords.append(MissionRecord.fromDict({
+                "id": missionId,
+            }))
 
     return missionRecords

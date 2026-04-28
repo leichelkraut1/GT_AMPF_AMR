@@ -16,7 +16,6 @@ from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
 from Otto_API.Missions.Get import getMissions
 from Otto_API.Missions.Maintenance import cleanup_stale_bucket
 from Otto_API.Missions.Maintenance import cleanup_terminal_folder
-from Otto_API.Missions.Records import MissionRecord
 from Otto_API.Missions.Records import RobotMissionSummary
 from Otto_API.Missions.Sync import mission_to_tag_values
 from Otto_API.Missions.Sync import sync_mission_into_bucket
@@ -84,7 +83,17 @@ def _dlog(logger, debug, msg):
         logger.info(msg)
 
 
-def _buildSyncResult(ok, level, message, activeWanted=None, completedWanted=None, failedWanted=None, removed=None, robotSummaryByFolder=None, issues=None):
+def _buildSyncResult(
+    ok,
+    level,
+    message,
+    activeWanted=None,
+    completedWanted=None,
+    failedWanted=None,
+    removed=None,
+    robotSummaryByFolder=None,
+    issues=None
+):
     activeWanted = sorted(list(activeWanted or []))
     completedWanted = sorted(list(completedWanted or []))
     failedWanted = sorted(list(failedWanted or []))
@@ -265,28 +274,18 @@ def run():
         nowDate = system.date.now()
         nowTimestamp = system.date.format(nowDate, "yyyy-MM-dd HH:mm:ss.SSS")
 
-        missions.extend([
-            MissionRecord.fromDict(mission)
-            for mission in list(
-                getMissions(
-                    logger,
-                    debug,
-                    mission_status=ACTIVE_STATUSES
-                ) or []
-            )
-        ])
+        missions.extend(getMissions(
+            logger,
+            debug,
+            mission_status=ACTIVE_STATUSES
+        ) or [])
 
-        missions.extend([
-            MissionRecord.fromDict(mission)
-            for mission in list(
-                getMissions(
-                    logger,
-                    debug,
-                    mission_status=FAILED_STATUSES,
-                    limit=MAX_FAILED
-                ) or []
-            )
-        ])
+        missions.extend(getMissions(
+            logger,
+            debug,
+            mission_status=FAILED_STATUSES,
+            limit=MAX_FAILED
+        ) or [])
 
         robotMappings = readRobotFolderMappings(robotsPath=ROBOTS_PATH, logger=logger)
         activeWanted = set()
@@ -422,16 +421,13 @@ def runTerminalMaintenance():
         completedWanted = set()
         removed = []
 
-        missions = [
-            MissionRecord.fromDict(mission)
-            for mission in list(getMissions(
-                logger,
-                debug,
-                mission_status=TERMINAL_STATUSES,
-                limit=maxCompleted,
-                ordering="-created",
-            ) or [])
-        ]
+        missions = list(getMissions(
+            logger,
+            debug,
+            mission_status=TERMINAL_STATUSES,
+            limit=maxCompleted,
+            ordering="-created",
+        ) or [])
 
         for mission in missions:
             robotFolder = resolve_mission_robot_folder(
