@@ -1,7 +1,10 @@
 import time
 
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
-from Otto_API.Common.ResultHelpers import buildTypedOperationResult
+from Otto_API.Common.HttpHelpers import httpGet
+from Otto_API.Common.HttpHelpers import httpPost
+from Otto_API.Common.TagIO import getApiBaseUrl
+from Otto_API.Common.TagIO import getOttoOperationsUrl
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import readOptionalTagValues
 from Otto_API.Common.TagIO import writeObservedTagValue
@@ -10,14 +13,16 @@ from Otto_API.Common.TagPaths import getFleetInterlocksPath
 from Otto_API.Common.TagPaths import getInterlockWritebackRetryMsPath
 from Otto_API.Common.TagPaths import getPlcInterlocksPath
 from Otto_API.Interlocks.Apply import applyInterlockSync
-from Otto_API.Interlocks.Get import getInterlocks
 from Otto_API.Interlocks.Mapping import DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS
 from Otto_API.Interlocks.Mapping import readInterlockMappings
 from Otto_API.Models.Interlocks import DuplicateInterlockMappingInfo
 from Otto_API.Models.Interlocks import InterlockMappingRow
 from Otto_API.Models.Interlocks import InterlockRecord
 from Otto_API.Models.Interlocks import PlcInterlockSnapshot
-from Otto_API.Interlocks.Post import setInterlockState
+from Otto_API.Models.Results import RecordSyncResult
+from Otto_API.Models.Results import TypedOperationResult
+from Otto_API.WebAPI.Interlocks import fetchInterlocks
+from Otto_API.WebAPI.Interlocks import postInterlockState
 
 
 def _log():
@@ -266,39 +271,42 @@ def _readPlcSnapshot(rows):
 
 
 def _extendWarningsAndIssues(targetWarnings, targetIssues, result):
-    targetWarnings.extend(list((result or {}).get("warnings") or []))
-    targetIssues.extend(list((result or {}).get("issues") or []))
+    targetWarnings.extend(list(getattr(result, "warnings", []) or []))
+    targetIssues.extend(list(getattr(result, "issues", []) or []))
 
 
 def _extendIssues(targetIssues, result):
-    targetIssues.extend(list((result or {}).get("issues") or []))
+    targetIssues.extend(list(getattr(result, "issues", []) or []))
 
 
 def _syncIssueResult(issueId, level, message, postResult=None):
-    result = {
-        "ok": False,
-        "level": level,
-        "message": message,
-        "issues": [
-            buildRuntimeIssue(
-                issueId,
-                "Otto_API.Interlocks.Sync",
-                level,
-                message,
-            )
-        ],
-    }
+    typedFields = {}
     if postResult is not None:
-        result["post_result"] = postResult
-    return result
+        typedFields["post_result"] = postResult
+    return TypedOperationResult(
+        False,
+        level,
+        message,
+        typedFields=typedFields,
+        sharedFields={
+            "issues": [
+                buildRuntimeIssue(
+                    issueId,
+                    "Otto_API.Interlocks.Sync",
+                    level,
+                    message,
+                )
+            ],
+        },
+    )
 
 
 def _collectDirectionalResult(warnings, issues, directionalResult, logger):
-    if not directionalResult.get("ok"):
-        warnings.append(directionalResult.get("message"))
+    if not directionalResult.ok:
+        warnings.append(directionalResult.message)
     _extendIssues(issues, directionalResult)
-    level = str(directionalResult.get("level") or "").lower()
-    message = str(directionalResult.get("message") or "")
+    level = str(directionalResult.level or "").lower()
+    message = str(directionalResult.message or "")
     if level == "error":
         logger.error("Otto API - " + message)
 
@@ -334,12 +342,12 @@ def _applyFromFleet(resolved, logger=None):
         return _syncIssueResult("interlocks.sync.fromfleet.unreadable_state.{}".format(fleetName), "warn", message)
 
     writeObservedTagValue(resolved.plc_state_path, fleetState, label="Interlock FromFleet sync", logger=logger)
-    return {
-        "ok": True,
-        "level": "info",
-        "message": "FromFleet synced [{}] -> [{}]".format(fleetName, resolved.plc_tag_name),
-        "issues": [],
-    }
+    return TypedOperationResult(
+        True,
+        "info",
+        "FromFleet synced [{}] -> [{}]".format(fleetName, resolved.plc_tag_name),
+        sharedFields={"issues": []},
+    )
 
 
 def _applyToFleet(
@@ -354,12 +362,12 @@ def _applyToFleet(
 ):
     fleetName = resolved.fleet_name
     if not resolved.shouldWriteToFleet(ignoreWriteEnable):
-        return {
-            "ok": True,
-            "level": "info",
-            "message": "{} disabled [{}] because WriteEnable is false".format(actionLabel, fleetName),
-            "issues": [],
-        }
+        return TypedOperationResult(
+            True,
+            "info",
+            "{} disabled [{}] because WriteEnable is false".format(actionLabel, fleetName),
+            sharedFields={"issues": []},
+        )
 
     fleetState = resolved.fleetState()
     plcState = resolved.targetState(plcStateOverride=plcStateOverride)
@@ -407,25 +415,31 @@ def _applyToFleet(
 
     if targetState == resolved.remoteState():
         _clearPendingState(resolved.fleet_row_path, logger)
-        return {
-            "ok": True,
-            "level": "info",
-            "message": "{} no-op [{}]; target already matches Fleet".format(actionLabel, fleetName),
-            "issues": [],
-        }
+        return TypedOperationResult(
+            True,
+            "info",
+            "{} no-op [{}]; target already matches Fleet".format(actionLabel, fleetName),
+            sharedFields={"issues": []},
+        )
 
     if pendingWrite and pendingWriteState == targetState and (nowEpochMs - lastWriteAttemptMs) < retryMs:
-        return {
-            "ok": True,
-            "level": "info",
-            "message": "{} waiting [{}] for retry backoff".format(actionLabel, fleetName),
-            "issues": [],
-        }
+        return TypedOperationResult(
+            True,
+            "info",
+            "{} waiting [{}] for retry backoff".format(actionLabel, fleetName),
+            sharedFields={"issues": []},
+        )
 
     if not pendingWrite or pendingWriteState != targetState:
         pendingWriteStartedMs = nowEpochMs
 
-    postResult = setInterlockState(resolved.interlockId(), targetState, mask=65535)
+    postResult = postInterlockState(
+        getOttoOperationsUrl(),
+        resolved.interlockId(),
+        targetState,
+        mask=65535,
+        postFunc=httpPost,
+    )
     _writePendingState(
         resolved.fleet_row_path,
         True,
@@ -436,19 +450,22 @@ def _applyToFleet(
         nowEpochMs,
         logger,
     )
-    message = postResult.get("message") or "{} posted [{}]".format(actionLabel, fleetName)
-    return {
-        "ok": bool(postResult.get("ok")),
-        "level": postResult.get("level"),
-        "message": message,
-        "post_result": postResult,
-        "issues": [] if bool(postResult.get("ok")) else _syncIssueResult(
+    message = postResult.message or "{} posted [{}]".format(actionLabel, fleetName)
+    issues = []
+    if not postResult.ok:
+        issues = _syncIssueResult(
             "interlocks.sync.{}.post_failed.{}".format(actionKey, fleetName),
-            postResult.get("level"),
+            postResult.level,
             message,
             postResult=postResult,
-        )["issues"],
-    }
+        ).issues
+    return TypedOperationResult(
+        bool(postResult.ok),
+        postResult.level,
+        message,
+        typedFields={"post_result": postResult},
+        sharedFields={"issues": issues},
+    )
 
 
 def updateInterlocks():
@@ -457,13 +474,13 @@ def updateInterlocks():
     """
     logger = _log()
 
-    getResult = getInterlocks()
-    if not getResult.get("ok") and str(getResult.get("level")) == "error":
+    getResult = fetchInterlocks(getApiBaseUrl(), httpGet)
+    if not getResult.ok and str(getResult.level) == "error":
         return getResult
 
-    records = list(getResult.get("records") or [])
-    recordsByName = getResult.get("records_by_name") or {}
-    instanceNameByRawName = getResult.get("instance_name_by_name") or {}
+    records = list(getResult.records or [])
+    recordsByName = getResult.records_by_name or {}
+    instanceNameByRawName = getResult.instance_name_by_name or {}
 
     applyResult = applyInterlockSync(
         records,
@@ -476,8 +493,8 @@ def updateInterlocks():
     issues = []
     _extendWarningsAndIssues(warnings, issues, getResult)
     _extendWarningsAndIssues(warnings, issues, mappingState)
-    duplicateInfoByName = mappingState.get("duplicate_info_by_name") or {}
-    mappingRows = list(mappingState.get("rows") or [])
+    duplicateInfoByName = mappingState.duplicate_info_by_name or {}
+    mappingRows = list(mappingState.rows or [])
     plcSnapshotByTagName = _readPlcSnapshot(mappingRows)
     resolvedRows = [
         _coerceResolvedSyncRow(
@@ -489,13 +506,13 @@ def updateInterlocks():
         )
         for row in list(mappingRows or [])
     ]
-    if not applyResult.get("ok"):
-        warnings.append(applyResult.get("message"))
+    if not applyResult.ok:
+        warnings.append(applyResult.message)
         issues.append(buildRuntimeIssue(
             "interlocks.sync.apply_result",
             "Otto_API.Interlocks.Sync",
-            applyResult.get("level"),
-            applyResult.get("message"),
+            applyResult.level,
+            applyResult.message,
         ))
 
     directionalResults = []
@@ -509,7 +526,7 @@ def updateInterlocks():
 
     hasError = False
     for result in [getResult, applyResult, mappingState] + list(directionalResults or []):
-        if str(result.get("level") or "").lower() == "error":
+        if str(result.level or "").lower() == "error":
             hasError = True
             break
 
@@ -526,7 +543,7 @@ def updateInterlocks():
     if hasError:
         message = "Interlocks sync failed"
 
-    return buildTypedOperationResult(
+    return TypedOperationResult(
         ok,
         level,
         message,

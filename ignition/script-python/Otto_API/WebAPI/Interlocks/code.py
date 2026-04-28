@@ -1,18 +1,22 @@
+import time
+
 from Otto_API.Common.HttpHelpers import httpGet
+from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ParseHelpers import parseJsonResponse
-from Otto_API.Common.ResultHelpers import buildRecordSyncResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
-from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Interlocks.Helpers import buildInterlockInstanceMap
 from Otto_API.Models.Interlocks import InterlockRecord
+from Otto_API.Models.Results import RecordSyncResult
+from Otto_API.Models.Results import TypedOperationResult
 
 
 INTERLOCK_FETCH_LIMIT = 100
+ISSUE_SOURCE = "Otto_API.WebAPI.Interlocks"
 
 
 def _log():
-    return system.util.getLogger("Otto_API.Interlocks.Get")
+    return system.util.getLogger("Otto_API.WebAPI.Interlocks")
 
 
 def _normalizeInterlockRecord(rawRecord, warnings, issues):
@@ -27,7 +31,7 @@ def _normalizeInterlockRecord(rawRecord, warnings, issues):
         warnings.append(warning)
         issues.append(buildRuntimeIssue(
             "interlocks.get.missing_id_or_name",
-            "Otto_API.Interlocks.Get",
+            ISSUE_SOURCE,
             "warn",
             warning,
         ))
@@ -43,7 +47,7 @@ def _normalizeInterlockRecord(rawRecord, warnings, issues):
         warnings.append(warning)
         issues.append(buildRuntimeIssue(
             "interlocks.get.non_numeric_state.{}".format(name),
-            "Otto_API.Interlocks.Get",
+            ISSUE_SOURCE,
             "warn",
             warning,
         ))
@@ -52,19 +56,22 @@ def _normalizeInterlockRecord(rawRecord, warnings, issues):
     return InterlockRecord(interlockId, created, name, state)
 
 
-def getInterlocks():
+def fetchInterlocks(apiBaseUrl, getFunc=httpGet):
     """
     Fetch and normalize OTTO interlocks keyed by interlock name.
     Duplicate names are allowed but later rows win with warnings.
     """
     logger = _log()
-    url = getApiBaseUrl().rstrip("/") + "/interlocks/?fields=%2A&offset=0&limit={}".format(INTERLOCK_FETCH_LIMIT)
+    url = "{}/interlocks/?fields=%2A&offset=0&limit={}".format(
+        str(apiBaseUrl or "").strip().rstrip("/"),
+        INTERLOCK_FETCH_LIMIT,
+    )
 
     try:
-        response = httpGet(url=url, headerValues=jsonHeaders())
+        response = getFunc(url=url, headerValues=jsonHeaders())
         if not response:
             logger.error("Otto API - HTTP GET failed for /Interlocks/")
-            return buildRecordSyncResult(
+            return RecordSyncResult(
                 False,
                 "error",
                 "HTTP GET failed for /Interlocks/",
@@ -75,7 +82,7 @@ def getInterlocks():
                     "issues": [
                         buildRuntimeIssue(
                             "interlocks.get.http_get_failed",
-                            "Otto_API.Interlocks.Get",
+                            ISSUE_SOURCE,
                             "error",
                             "HTTP GET failed for /Interlocks/",
                         )
@@ -92,7 +99,7 @@ def getInterlocks():
 
         if not isinstance(data, list):
             logger.error("Otto API - Interlocks JSON decode error: results was not a list")
-            return buildRecordSyncResult(
+            return RecordSyncResult(
                 False,
                 "error",
                 "Interlocks JSON decode error - results was not a list",
@@ -103,7 +110,7 @@ def getInterlocks():
                     "issues": [
                         buildRuntimeIssue(
                             "interlocks.get.results_not_list",
-                            "Otto_API.Interlocks.Get",
+                            ISSUE_SOURCE,
                             "error",
                             "Interlocks JSON decode error - results was not a list",
                         )
@@ -121,16 +128,12 @@ def getInterlocks():
                 warnings.append(warning)
                 issues.append(buildRuntimeIssue(
                     "interlocks.get.non_numeric_count",
-                    "Otto_API.Interlocks.Get",
+                    ISSUE_SOURCE,
                     "warn",
                     warning,
                 ))
                 reportedCount = None
 
-        # Warn here because "count" is the total matching interlock count across OTTO,
-        # while this request only asks for the first page up to INTERLOCK_FETCH_LIMIT.
-        # When count exceeds the requested limit, more matching records may exist than
-        # what we actually fetched in this response.
         if reportedCount is not None and reportedCount > INTERLOCK_FETCH_LIMIT:
             warning = "Interlocks response count [{}] exceeds supported limit [{}]; results are truncated".format(
                 reportedCount,
@@ -139,7 +142,7 @@ def getInterlocks():
             warnings.append(warning)
             issues.append(buildRuntimeIssue(
                 "interlocks.get.limit_exceeded",
-                "Otto_API.Interlocks.Get",
+                ISSUE_SOURCE,
                 "warn",
                 warning,
             ))
@@ -157,7 +160,7 @@ def getInterlocks():
                 warnings.append(warning)
                 issues.append(buildRuntimeIssue(
                     "interlocks.get.duplicate_name.{}".format(name),
-                    "Otto_API.Interlocks.Get",
+                    ISSUE_SOURCE,
                     "warn",
                     warning,
                 ))
@@ -171,11 +174,11 @@ def getInterlocks():
                 logger.error("Otto API - " + str(errorText))
                 errorIssues.append(buildRuntimeIssue(
                     "interlocks.get.instance_collision",
-                    "Otto_API.Interlocks.Get",
+                    ISSUE_SOURCE,
                     "error",
                     str(errorText),
                 ))
-            return buildRecordSyncResult(
+            return RecordSyncResult(
                 False,
                 "error",
                 "Interlock instance-name collision detected",
@@ -199,7 +202,7 @@ def getInterlocks():
                 len(warnings),
             )
 
-        return buildRecordSyncResult(
+        return RecordSyncResult(
             ok,
             level,
             message,
@@ -214,7 +217,7 @@ def getInterlocks():
         )
     except Exception as exc:
         logger.error("Otto API - /Interlocks/ fetch failed - " + str(exc))
-        return buildRecordSyncResult(
+        return RecordSyncResult(
             False,
             "error",
             "Interlocks fetch failed - " + str(exc),
@@ -225,10 +228,92 @@ def getInterlocks():
                 "issues": [
                     buildRuntimeIssue(
                         "interlocks.get.fetch_exception",
-                        "Otto_API.Interlocks.Get",
+                        ISSUE_SOURCE,
                         "error",
                         "Interlocks fetch failed - " + str(exc),
                     )
                 ],
+            },
+        )
+
+
+def _buildRpcPayload(interlockId, state, mask):
+    return {
+        "id": int(time.time() * 1000),
+        "jsonrpc": "2.0",
+        "method": "setInterlockState",
+        "params": {
+            "id": str(interlockId),
+            "mask": int(mask),
+            "state": int(state),
+        },
+    }
+
+
+def postInterlockState(
+    operationsUrl,
+    interlockId,
+    state,
+    mask=65535,
+    postFunc=httpPost,
+):
+    """
+    Set one OTTO interlock state through the shared operations endpoint.
+    """
+    if not interlockId:
+        return TypedOperationResult(
+            False,
+            "warn",
+            "No interlock id supplied for setInterlockState",
+            dataFields={
+                "interlock_id": interlockId,
+                "state": state,
+                "mask": mask,
+            },
+        )
+
+    try:
+        payload = _buildRpcPayload(interlockId, state, mask)
+        response = postFunc(
+            url=operationsUrl,
+            postData=system.util.jsonEncode(payload),
+        )
+        responsePayload = system.util.jsonDecode(response)
+        if isinstance(responsePayload, dict) and responsePayload.get("error") is not None:
+            errorText = responsePayload.get("error")
+            return TypedOperationResult(
+                False,
+                "error",
+                "setInterlockState failed for [{}]: {}".format(interlockId, errorText),
+                dataFields={
+                    "interlock_id": interlockId,
+                    "state": int(state),
+                    "mask": int(mask),
+                    "response_text": response,
+                    "payload": payload,
+                },
+            )
+
+        return TypedOperationResult(
+            True,
+            "info",
+            "setInterlockState queued for [{}] -> {}".format(interlockId, int(state)),
+            dataFields={
+                "interlock_id": interlockId,
+                "state": int(state),
+                "mask": int(mask),
+                "response_text": response,
+                "payload": payload,
+            },
+        )
+    except Exception as exc:
+        return TypedOperationResult(
+            False,
+            "error",
+            "setInterlockState failed for [{}]: {}".format(interlockId, exc),
+            dataFields={
+                "interlock_id": interlockId,
+                "state": state,
+                "mask": mask,
             },
         )
