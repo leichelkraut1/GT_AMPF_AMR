@@ -5,7 +5,6 @@ from Otto_API.Common.RuntimeHistory import timestampString
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagIO import writeRequiredTagValues
-from Otto_API.Missions.Records import coerceMissionRecord
 from MainController.Robot.Actions import callMissionCommand
 from MainController.WorkflowConfig import normalizeWorkflowNumber
 
@@ -73,7 +72,6 @@ def _writeMissionRuntimeValue(context, keyName, value):
 
 
 def _missionContext(missionRecord):
-    missionRecord = coerceMissionRecord(missionRecord)
     missionName = str(missionRecord.name or "")
     missionId = str(missionRecord.id or "")
     instancePath = str(missionRecord.instance_path or missionRecord.path or "")

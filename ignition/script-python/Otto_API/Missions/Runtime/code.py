@@ -9,7 +9,7 @@ from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagIO import writeRequiredTagValues
 
 from Otto_API.Missions.Buckets import UNASSIGNED_FOLDER
-from Otto_API.Missions.Records import coerceMissionRecord
+from Otto_API.Missions.Records import MissionRecord
 
 
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
@@ -78,10 +78,9 @@ def parse_workflow_number_from_mission_name(missionName):
 
 
 def record_mission_state_change(nowTimestamp, robotFolder, mission, oldStatus, newStatus):
-    missionRecord = coerceMissionRecord(mission)
-    workflowNumber = missionRecord.workflow_number
+    workflowNumber = mission.workflow_number
     if workflowNumber is None:
-        workflowNumber = parse_workflow_number_from_mission_name(missionRecord.name)
+        workflowNumber = parse_workflow_number_from_mission_name(mission.name)
 
     appendRuntimeDatasetRow(
         "mission_state_history",
@@ -89,8 +88,8 @@ def record_mission_state_change(nowTimestamp, robotFolder, mission, oldStatus, n
         [
             nowTimestamp,
             robotFolder,
-            str(missionRecord.id or ""),
-            str(missionRecord.name or ""),
+            str(mission.id or ""),
+            str(mission.name or ""),
             str(oldStatus or ""),
             str(newStatus or ""),
             workflowNumber or 0,
@@ -138,8 +137,7 @@ def record_mission_status_if_changed(
     """
     Append mission-state history only when the mission instance's last logged state changes.
     """
-    missionRecord = coerceMissionRecord(mission)
-    newStatus = str(missionRecord.mission_status or "")
+    newStatus = str(mission.mission_status or "")
     runtimePath = mission_runtime_tag_path(
         instancePath,
         "last_logged_status",
@@ -156,7 +154,7 @@ def record_mission_status_if_changed(
     record_mission_state_change(
         nowTimestamp,
         robotFolder,
-        missionRecord,
+        mission,
         previousStatus,
         newStatus
     )
@@ -238,7 +236,7 @@ def record_removed_mission_if_needed(instancePath, folderPath, nowTimestamp, log
     record_mission_state_change(
         nowTimestamp,
         robotFolder,
-        coerceMissionRecord({
+        MissionRecord.fromDict({
             "id": missionId,
             "name": missionName,
         }),

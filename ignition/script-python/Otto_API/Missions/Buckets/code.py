@@ -3,7 +3,6 @@ import re
 from Otto_API.Common.SyncHelpers import sanitizeTagName
 from Otto_API.Common.TagPaths import getFleetRobotsPath
 from Otto_API.Missions.MissionActions import resolveMissionRobotId
-from Otto_API.Missions.Records import coerceMissionRecord
 from Otto_API.Robots.SyncHelpers import readRobotInventoryMetadata
 
 
@@ -23,9 +22,8 @@ def make_instance_name(mission):
     """
     Creates a readable and mostly-unique mission tag name.
     """
-    missionRecord = coerceMissionRecord(mission)
-    name = sanitizeTagName(missionRecord.name)
-    short = missionRecord.id[:8]
+    name = sanitizeTagName(mission.name)
+    short = mission.id[:8]
     return "{}_{}".format(name, short)
 
 

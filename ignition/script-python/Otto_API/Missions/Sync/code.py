@@ -10,7 +10,6 @@ from Otto_API.Missions.Runtime import mission_runtime_tag_path
 from Otto_API.Missions.Runtime import read_previous_mission_status
 from Otto_API.Missions.Runtime import read_previous_mission_value
 from Otto_API.Missions.Runtime import record_mission_status_if_changed
-from Otto_API.Missions.Records import coerceMissionRecord
 
 
 MISSION_RAW_TAG_FIELDS = (
@@ -45,17 +44,16 @@ def mission_to_tag_values(mission):
     """
     Convert a mission record into api_Mission field values.
     """
-    missionRecord = coerceMissionRecord(mission)
     values = {
-        "ID": missionRecord.id,
-        "Assigned_Robot": missionRecord.assigned_robot,
-        "Force_Robot": missionRecord.force_robot,
-        "Mission_Status": missionRecord.mission_status,
-        "Name": missionRecord.name,
+        "ID": mission.id,
+        "Assigned_Robot": mission.assigned_robot,
+        "Force_Robot": mission.force_robot,
+        "Mission_Status": mission.mission_status,
+        "Name": mission.name,
     }
 
     for tagName, fieldName in MISSION_RAW_TAG_FIELDS:
-        values[tagName] = _rawMissionValue(missionRecord, fieldName)
+        values[tagName] = _rawMissionValue(mission, fieldName)
 
     return values
 
@@ -64,8 +62,7 @@ def write_mission_data(instancePath, mission, logger):
     """
     Write mission fields into api_Mission only when the payload actually changed.
     """
-    missionRecord = coerceMissionRecord(mission)
-    values = mission_to_tag_values(missionRecord)
+    values = mission_to_tag_values(mission)
     signature = build_mission_write_signature(values)
     runtimePath = mission_runtime_tag_path(
         instancePath,
@@ -109,12 +106,10 @@ def sync_mission_into_bucket(
     """
     Move a mission into the requested bucket, write its data, and record history.
     """
-    missionRecord = coerceMissionRecord(mission)
-
     def removalReason():
         return "moved to {}".format(bucket.capitalize())
 
-    instanceName = make_instance_name(missionRecord)
+    instanceName = make_instance_name(mission)
     paths = build_mission_bucket_paths(
         activePath,
         completedPath,
@@ -158,10 +153,10 @@ def sync_mission_into_bucket(
             logger.info("Created mission instance: {}".format(targetPath))
 
     carry_forward_last_logged_status(targetPath, lastLoggedStatus)
-    write_mission_data(targetPath, missionRecord, logger)
+    write_mission_data(targetPath, mission, logger)
     record_mission_status_if_changed(
         targetPath,
-        missionRecord,
+        mission,
         robotFolder,
         previousStatus,
         nowTimestamp,
