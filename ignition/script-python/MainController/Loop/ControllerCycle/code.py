@@ -7,6 +7,7 @@ from Otto_API.Robots import Get as RobotGet
 from Otto_API.System import Get as SystemGet
 
 from MainController.Robot.Cycle import runRobotWorkflowCycleSnapshot
+from MainController.Robot.Records import _coerceRobotCycleSnapshot
 from MainController.Robot.Reservations import attachReservedWorkflows
 from MainController.Robot.Reservations import buildReservedWorkflowsFromSnapshots
 from MainController.Robot.Snapshot import readRobotCycleSnapshots
@@ -269,10 +270,11 @@ def runAllRobotWorkflowCycles(
     results = []
     plcSyncResults = []
     for snapshot in snapshots:
+        snapshot = _coerceRobotCycleSnapshot(snapshot)
         try:
             cycleResult = runRobotWorkflowCycleSnapshot(snapshot)
         except Exception as exc:
-            cycleResult = _robotCycleExceptionResult(snapshot["robot_name"], exc)
+            cycleResult = _robotCycleExceptionResult(snapshot.robot_name, exc)
         results.append(cycleResult)
         syncResult = dict(dict(cycleResult.get("data") or {}).get("plc_sync_result") or {})
         if syncResult:

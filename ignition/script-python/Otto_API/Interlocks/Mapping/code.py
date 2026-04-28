@@ -1,4 +1,4 @@
-from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.ResultHelpers import buildTypedOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import normalizeTagValue
 from Otto_API.Common.TagIO import readTagValues
@@ -90,7 +90,9 @@ def _normalizeMappingRows(configRows):
         writeEnable = normalizeBool(row.get("WriteEnable"), True)
 
         if not fleetName or not plcTagName or not direction:
-            warning = "Interlock mapping row [{}] has blank FleetName, PlcTagName, or Direction".format(plcTagName or "<unknown>")
+            warning = (
+                "Interlock mapping row [{}] has blank FleetName, PlcTagName, or Direction"
+            ).format(plcTagName or "<unknown>")
             warnings.append(warning)
             issues.append(buildRuntimeIssue(
                 "interlocks.mapping.blank_config.{}".format(plcTagName or "unknown"),
@@ -124,7 +126,10 @@ def _normalizeMappingRows(configRows):
 
         existing = mappingByName.get(fleetName)
         if existing is not None:
-            warning = "Duplicate Interlock Mapping: FleetName [{}] is mapped more than once; replacing [{} / {}] with [{} / {}] and using the later row".format(
+            warning = (
+                "Duplicate Interlock Mapping: FleetName [{}] is mapped more than once; "
+                "replacing [{} / {}] with [{} / {}] and using the later row"
+            ).format(
                 fleetName,
                 existing.PlcTagName,
                 existing.Direction,
@@ -148,14 +153,8 @@ def _normalizeMappingRows(configRows):
 
         mappingByName[fleetName] = normalizedRow
 
-    normalizedRows = [mappingByName[name].toDict() for name in sorted(mappingByName.keys())]
-    serializedMappingByName = {}
-    serializedDuplicateInfoByName = {}
-    for fleetName, row in list(mappingByName.items()):
-        serializedMappingByName[fleetName] = row.toDict()
-    for fleetName, duplicateInfo in list(duplicateInfoByName.items()):
-        serializedDuplicateInfoByName[fleetName] = duplicateInfo.toDict()
-    return normalizedRows, serializedMappingByName, serializedDuplicateInfoByName, warnings, issues
+    normalizedRows = [mappingByName[name] for name in sorted(mappingByName.keys())]
+    return normalizedRows, mappingByName, duplicateInfoByName, warnings, issues
 
 
 def readInterlockMappings():
@@ -190,7 +189,7 @@ def readInterlockMappings():
             ))
             configRows = []
 
-    normalizedRows, serializedMappingByName, duplicateInfoByName, rowWarnings, rowIssues = _normalizeMappingRows(configRows)
+    normalizedRows, mappingByName, duplicateInfoByName, rowWarnings, rowIssues = _normalizeMappingRows(configRows)
     warnings.extend(list(rowWarnings or []))
     issues.extend(list(rowIssues or []))
 
@@ -203,22 +202,19 @@ def readInterlockMappings():
     if warnings:
         message = "Interlock mapping loaded with {} issue(s)".format(len(warnings))
 
-    return buildOperationResult(
+    return buildTypedOperationResult(
         ok,
         level,
         message,
-        data={
+        typedFields={
             "rows": normalizedRows,
-            "mapping_by_name": serializedMappingByName,
+            "mapping_by_name": mappingByName,
             "duplicate_info_by_name": duplicateInfoByName,
+        },
+        sharedFields={
             "warnings": warnings,
             "issues": issues,
         },
-        rows=normalizedRows,
-        mapping_by_name=serializedMappingByName,
-        duplicate_info_by_name=duplicateInfoByName,
-        warnings=warnings,
-        issues=issues,
     )
 
 

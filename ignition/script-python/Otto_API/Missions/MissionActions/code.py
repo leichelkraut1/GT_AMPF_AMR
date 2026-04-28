@@ -2,24 +2,15 @@ import json
 import time
 import uuid
 
-from Otto_API.Missions.Records import MissionRecord
+from Otto_API.Missions.Records import coerceMissionRecord
+from Otto_API.Missions.Records import coerceMissionRecords
 from Otto_API.Common.SyncHelpers import sanitizeTagName
-
-
-def _coerceMissionRecord(missionRecord):
-    if isinstance(missionRecord, MissionRecord):
-        return missionRecord
-    return MissionRecord.fromDict(missionRecord)
-
-
-def _coerceMissionRecords(missionRecords):
-    return [_coerceMissionRecord(missionRecord) for missionRecord in list(missionRecords or [])]
 
 
 def _matchingMissionRecordsForRobot(robotId, missionRecords):
     return [
         missionRecord
-        for missionRecord in _coerceMissionRecords(missionRecords)
+        for missionRecord in coerceMissionRecords(missionRecords)
         if missionRecord.matchesRobotId(robotId)
     ]
 
@@ -109,7 +100,7 @@ def resolveMissionRobotId(missionRecord):
     3. forced_robot
     Accepts either lowercase or title-cased tag-style keys.
     """
-    missionRecord = _coerceMissionRecord(missionRecord)
+    missionRecord = coerceMissionRecord(missionRecord)
     return missionRecord.assignedRobotId()
 
 
@@ -117,7 +108,7 @@ def activeMissionStatusPriority(missionStatus):
     """
     Rank active mission statuses so true-active missions win over queued sidecars.
     """
-    missionRecord = MissionRecord.fromDict({"mission_status": missionStatus})
+    missionRecord = coerceMissionRecord({"mission_status": missionStatus})
     return missionRecord.activeStatusPriority()
 
 
@@ -125,7 +116,7 @@ def sortActiveMissionRecords(missionRecords):
     """
     Return mission records in deterministic controller/finalize priority order.
     """
-    return sorted(_coerceMissionRecords(missionRecords), key=lambda missionRecord: missionRecord.activeSortKey())
+    return sorted(coerceMissionRecords(missionRecords), key=lambda missionRecord: missionRecord.activeSortKey())
 
 
 def selectCurrentActiveMissionRecord(missionRecords):

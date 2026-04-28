@@ -1,4 +1,4 @@
-from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Common.ResultHelpers import buildTypedOperationResult
 from Otto_API.Common.TagIO import deleteTagPath
 from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagIO import writeObservedTagValues
@@ -49,12 +49,11 @@ def applyInterlockSync(records, instanceNameByRawName=None, logger=None):
     logger = logger or system.util.getLogger("Otto_API.Interlocks.Apply")
     basePath = getFleetInterlocksPath()
     if not tagExists(basePath):
-        return buildOperationResult(
+        return buildTypedOperationResult(
             False,
             "warn",
             "Fleet interlock root is missing: {}".format(basePath),
-            data={"row_names": []},
-            row_names=[],
+            sharedFields={"row_names": []},
         )
 
     wantedNames = []
@@ -89,12 +88,9 @@ def applyInterlockSync(records, instanceNameByRawName=None, logger=None):
         deleteTagPath(basePath + "/" + childName)
         logger.info("Otto API - Removed stale interlock tag row: " + str(childName))
 
-    return buildOperationResult(
+    return buildTypedOperationResult(
         True,
         "info",
         "Synced {} Fleet interlock row(s)".format(len(wantedNames)),
-        data={
-            "row_names": list(wantedNames),
-        },
-        row_names=list(wantedNames),
+        sharedFields={"row_names": list(wantedNames)},
     )

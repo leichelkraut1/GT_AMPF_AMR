@@ -5,6 +5,7 @@ from Otto_API.Common.RuntimeHistory import timestampString
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagIO import writeRequiredTagValues
+from Otto_API.Missions.Records import coerceMissionRecord
 from MainController.Robot.Actions import callMissionCommand
 from MainController.WorkflowConfig import normalizeWorkflowNumber
 
@@ -72,17 +73,17 @@ def _writeMissionRuntimeValue(context, keyName, value):
 
 
 def _missionContext(missionRecord):
-    missionRecord = dict(missionRecord or {})
-    missionName = str(missionRecord.get("mission_name") or missionRecord.get("name") or "")
-    missionId = str(missionRecord.get("id") or "")
-    instancePath = str(missionRecord.get("instance_path") or missionRecord.get("path") or "")
+    missionRecord = coerceMissionRecord(missionRecord)
+    missionName = str(missionRecord.name or "")
+    missionId = str(missionRecord.id or "")
+    instancePath = str(missionRecord.instance_path or missionRecord.path or "")
     return {
         "record": missionRecord,
         "instance_path": instancePath,
         "mission_name": missionName,
         "mission_id": missionId,
         "mission_label": missionName or missionId or instancePath or "mission",
-        "workflow_number": normalizeWorkflowNumber(missionRecord.get("workflow_number")) or 0,
+        "workflow_number": normalizeWorkflowNumber(missionRecord.workflow_number) or 0,
     }
 
 
@@ -164,7 +165,7 @@ def _recordMissionCommandHistory(
 
 def _clearTargetActionName(missionRecord):
     """Choose the clear action for one active mission record."""
-    missionStatus = str(dict(missionRecord or {}).get("mission_status") or "").upper()
+    missionStatus = str(missionRecord.mission_status or "").upper()
     if missionStatus == "STARVED":
         return "finalize_mission"
     return "cancel_mission"
