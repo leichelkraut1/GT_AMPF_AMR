@@ -28,7 +28,7 @@
               "dom": {
                 "onClick": {
                   "config": {
-                    "script": "\timport Otto_API.Fleet.Refresh\n\tlogger = system.util.getLogger(\"Perspective.StatusPage\")\n\tresult = Otto_API.Fleet.Refresh.refreshFleetData()\n\tlogger.info(\"Refresh Fleet Data - {}\".format(str(result.get(\"message\") or \"completed\")))\n\treturn"
+                    "script": "\timport Otto_API.Fleet.Refresh\n\tlogger \u003d system.util.getLogger(\"Perspective.StatusPage\")\n\tresult \u003d Otto_API.Fleet.Refresh.refreshFleetData()\n\tlogger.info(\"Refresh Fleet Data - {}\".format(str(result.get(\"message\") or \"completed\")))\n\treturn"
                   },
                   "scope": "G",
                   "type": "script"
@@ -45,7 +45,7 @@
             "props": {
               "style": {
                 "marginRight": "8px",
-                "marginTop": "8px"
+                "marginTop": "0px"
               },
               "text": "Refresh Fleet Data"
             },

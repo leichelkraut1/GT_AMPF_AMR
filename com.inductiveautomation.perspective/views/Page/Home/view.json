@@ -109,6 +109,18 @@
           "grow": 1
         },
         "type": "ia.container.coord"
+      },
+      {
+        "meta": {
+          "name": "Image"
+        },
+        "position": {
+          "basis": "100px"
+        },
+        "props": {
+          "source": "/system/images/FAS Logo 900x900.png"
+        },
+        "type": "ia.display.image"
       }
     ],
     "meta": {

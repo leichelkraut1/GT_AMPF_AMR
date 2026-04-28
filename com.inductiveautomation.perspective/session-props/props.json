@@ -63,12 +63,13 @@
     }
   },
   "props": {
-    "address": "10.137.23.253",
+    "address": "127.0.0.1",
     "device": {},
     "geolocation": {},
     "locale": "en-US",
     "offline": {},
     "securityLevels": [],
+    "theme": "dark",
     "timeZoneId": "America/Los_Angeles"
   }
 }

@@ -199,12 +199,29 @@
           }
         },
         "type": "ia.navigation.menutree"
+      },
+      {
+        "meta": {
+          "name": "Image"
+        },
+        "position": {
+          "basis": "100px",
+          "shrink": 0
+        },
+        "props": {
+          "fit": {
+            "mode": "contain"
+          },
+          "source": "/system/images/FAS Logo.PNG"
+        },
+        "type": "ia.display.image"
       }
     ],
     "meta": {
       "name": "root"
     },
     "props": {
+      "direction": "column",
       "style": {
         "classes": "Menu/Menu"
       }
