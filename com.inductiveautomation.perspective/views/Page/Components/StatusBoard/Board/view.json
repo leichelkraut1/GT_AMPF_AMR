@@ -503,7 +503,7 @@
             "mode": "contain"
           },
           "style": {
-            "marginTop": "100px"
+            "marginTop": "50px"
           }
         },
         "type": "ia.display.image"
