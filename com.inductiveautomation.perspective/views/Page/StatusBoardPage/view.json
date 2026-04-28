@@ -44,6 +44,17 @@
         "type": "ia.display.view"
       }
     ],
+    "events": {
+      "system": {
+        "onStartup": {
+          "config": {
+            "script": "\tsystem.perspective.closeDock(\"menu\")"
+          },
+          "scope": "G",
+          "type": "script"
+        }
+      }
+    },
     "meta": {
       "name": "root"
     },

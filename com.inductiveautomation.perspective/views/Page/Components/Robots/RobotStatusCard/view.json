@@ -161,7 +161,7 @@
   },
   "props": {
     "defaultSize": {
-      "height": 340,
+      "height": 365,
       "width": 304
     }
   },
@@ -270,7 +270,7 @@
           "name": "PrimaryStatusLine"
         },
         "position": {
-          "basis": "26px",
+          "basis": "40px",
           "shrink": 0
         },
         "propConfig": {
@@ -329,13 +329,14 @@
           }
         },
         "props": {
+          "alignVertical": "bottom",
           "style": {
             "fontSize": "14px",
             "fontWeight": "600",
             "lineHeight": "1.15",
-            "marginTop": "-4px",
+            "marginTop": "-1px",
             "whiteSpace": "normal",
-            "wordBreak": "break-word"
+            "wordBreak": "normal"
           }
         },
         "type": "ia.display.label"
@@ -421,7 +422,7 @@
           "alignItems": "baseline",
           "style": {
             "columnGap": "4px",
-            "marginTop": "2px"
+            "marginTop": "0px"
           }
         },
         "type": "ia.container.flex"
@@ -956,9 +957,9 @@
             "fontWeight": "600",
             "lineHeight": "1.3",
             "marginLeft": "10px",
-            "marginTop": "-2px",
+            "marginTop": "-0px",
             "whiteSpace": "normal",
-            "wordBreak": "break-word"
+            "wordBreak": "normal"
           }
         },
         "type": "ia.display.label"

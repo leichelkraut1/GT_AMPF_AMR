@@ -1,24 +1,13 @@
 {
-  "custom": {
-    "themePrimaryText": "#111827",
-    "themeMutedText": "#6b7280",
-    "workflowConfig": null,
-    "notReadyReasonLookup": null
-  },
+  "custom": {},
   "params": {},
   "propConfig": {
-    "custom.themePrimaryText": {
+    "custom.notReadyReasonLookup": {
       "binding": {
         "config": {
-          "path": "session.props.theme"
+          "expression": "runScript(\"MainController.State.StatusBoardStore.notReadyReasonLookupDataset\", 0)"
         },
-        "transforms": [
-          {
-            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
-            "type": "script"
-          }
-        ],
-        "type": "property"
+        "type": "expr"
       },
       "persistent": false
     },
@@ -37,6 +26,21 @@
       },
       "persistent": false
     },
+    "custom.themePrimaryText": {
+      "binding": {
+        "config": {
+          "path": "session.props.theme"
+        },
+        "transforms": [
+          {
+            "code": "\tif \"dark\" in str(value or \"\").lower():\n\t\treturn \"#f3f4f6\"\n\treturn \"#111827\"",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": false
+    },
     "custom.workflowConfig": {
       "binding": {
         "config": {
@@ -45,15 +49,6 @@
           "tagPath": "[Otto_FleetManager]Fleet/Config/WorkflowConfig"
         },
         "type": "tag"
-      },
-      "persistent": false
-    },
-    "custom.notReadyReasonLookup": {
-      "binding": {
-        "config": {
-          "expression": "runScript(\"MainController.State.StatusBoardStore.notReadyReasonLookupDataset\", 0)"
-        },
-        "type": "expr"
       },
       "persistent": false
     }
@@ -74,16 +69,6 @@
           "basis": "34px",
           "shrink": 0
         },
-        "props": {
-          "style": {
-            "fontSize": "26px",
-            "fontWeight": "700",
-            "paddingLeft": "4px",
-            "paddingTop": "0px"
-          },
-          "text": "Robots"
-        },
-        "type": "ia.display.label",
         "propConfig": {
           "props.style.color": {
             "binding": {
@@ -93,7 +78,17 @@
               "type": "property"
             }
           }
-        }
+        },
+        "props": {
+          "style": {
+            "fontSize": "26px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "0px"
+          },
+          "text": "Robots"
+        },
+        "type": "ia.display.label"
       },
       {
         "meta": {
@@ -102,14 +97,6 @@
         "position": {
           "shrink": 0
         },
-        "props": {
-          "path": "Page/Components/Robots/RobotStatusCard",
-          "style": {
-            "paddingBottom": "4px"
-          },
-          "wrap": "wrap"
-        },
-        "type": "ia.display.flex-repeater",
         "propConfig": {
           "props.instances": {
             "binding": {
@@ -118,14 +105,22 @@
               },
               "transforms": [
                 {
-                  "code": "\timport MainController.State.StatusBoardStore\n\n\tdef _dataset_value(dataset, row_index, column_index):\n\t\ttry:\n\t\t\treturn dataset.getValueAt(row_index, column_index)\n\t\texcept Exception:\n\t\t\treturn None\n\n\tdef _normalize(value):\n\t\tif value is None:\n\t\t\treturn \"\"\n\t\ttext = str(value).strip()\n\t\tif not text or text.lower() == \"null\":\n\t\t\treturn \"\"\n\t\treturn text\n\n\tdef _lookup_dataset(dataset, lookup_value, lookup_column, result_column, default_value=\"\"):\n\t\tif dataset is None:\n\t\t\treturn default_value\n\t\ttry:\n\t\t\trow_count = dataset.getRowCount()\n\t\texcept Exception:\n\t\t\treturn default_value\n\t\tlookup_text = _normalize(lookup_value)\n\t\tfor row_index in range(row_count):\n\t\t\tcandidate = _normalize(_dataset_value(dataset, row_index, lookup_column))\n\t\t\tif lookup_text == candidate:\n\t\t\t\treturn _normalize(_dataset_value(dataset, row_index, result_column)) or default_value\n\t\treturn default_value\n\n\tcards = MainController.State.StatusBoardStore.robotCards()\n\tworkflowConfig = self.view.custom.workflowConfig\n\tnotReadyReasonLookup = self.view.custom.notReadyReasonLookup\n\tfor card in list(cards or []):\n\t\tactive_workflow = card.get(\"activeWorkflowNumber\")\n\t\tnot_ready_reason = _normalize(card.get(\"notReadyReason\"))\n\t\tresolved_mission_type = _lookup_dataset(workflowConfig, active_workflow, 0, 4, \"\") if active_workflow else \"\"\n\t\tresolved_not_ready_reason = _lookup_dataset(notReadyReasonLookup, not_ready_reason, 0, 1, not_ready_reason) if not_ready_reason else \"\"\n\t\tcard[\"workflowConfig\"] = workflowConfig\n\t\tcard[\"notReadyReasonLookup\"] = notReadyReasonLookup\n\t\tcard[\"resolvedMissionType\"] = resolved_mission_type\n\t\tcard[\"resolvedNotReadyReason\"] = resolved_not_ready_reason\n\treturn cards",
+                  "code": "\timport MainController.State.StatusBoardStore\n\n\tdef _dataset_value(dataset, row_index, column_index):\n\t\ttry:\n\t\t\treturn dataset.getValueAt(row_index, column_index)\n\t\texcept Exception:\n\t\t\treturn None\n\n\tdef _normalize(value):\n\t\tif value is None:\n\t\t\treturn \"\"\n\t\ttext \u003d str(value).strip()\n\t\tif not text or text.lower() \u003d\u003d \"null\":\n\t\t\treturn \"\"\n\t\treturn text\n\n\tdef _lookup_dataset(dataset, lookup_value, lookup_column, result_column, default_value\u003d\"\"):\n\t\tif dataset is None:\n\t\t\treturn default_value\n\t\ttry:\n\t\t\trow_count \u003d dataset.getRowCount()\n\t\texcept Exception:\n\t\t\treturn default_value\n\t\tlookup_text \u003d _normalize(lookup_value)\n\t\tfor row_index in range(row_count):\n\t\t\tcandidate \u003d _normalize(_dataset_value(dataset, row_index, lookup_column))\n\t\t\tif lookup_text \u003d\u003d candidate:\n\t\t\t\treturn _normalize(_dataset_value(dataset, row_index, result_column)) or default_value\n\t\treturn default_value\n\n\tcards \u003d MainController.State.StatusBoardStore.robotCards()\n\tworkflowConfig \u003d self.view.custom.workflowConfig\n\tnotReadyReasonLookup \u003d self.view.custom.notReadyReasonLookup\n\tfor card in list(cards or []):\n\t\tactive_workflow \u003d card.get(\"activeWorkflowNumber\")\n\t\tnot_ready_reason \u003d _normalize(card.get(\"notReadyReason\"))\n\t\tresolved_mission_type \u003d _lookup_dataset(workflowConfig, active_workflow, 0, 4, \"\") if active_workflow else \"\"\n\t\tresolved_not_ready_reason \u003d _lookup_dataset(notReadyReasonLookup, not_ready_reason, 0, 1, not_ready_reason) if not_ready_reason else \"\"\n\t\tcard[\"workflowConfig\"] \u003d workflowConfig\n\t\tcard[\"notReadyReasonLookup\"] \u003d notReadyReasonLookup\n\t\tcard[\"resolvedMissionType\"] \u003d resolved_mission_type\n\t\tcard[\"resolvedNotReadyReason\"] \u003d resolved_not_ready_reason\n\treturn cards",
                   "type": "script"
                 }
               ],
               "type": "expr"
             }
           }
-        }
+        },
+        "props": {
+          "path": "Page/Components/Robots/RobotStatusCard",
+          "style": {
+            "paddingBottom": "4px"
+          },
+          "wrap": "wrap"
+        },
+        "type": "ia.display.flex-repeater"
       },
       {
         "meta": {
@@ -134,6 +129,16 @@
         "position": {
           "basis": "34px",
           "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
         },
         "props": {
           "style": {
@@ -144,7 +149,45 @@
           },
           "text": "Containers"
         },
-        "type": "ia.display.label",
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ContainerCards"
+        },
+        "position": {
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.instances": {
+            "binding": {
+              "config": {
+                "expression": "now(3000)"
+              },
+              "transforms": [
+                {
+                  "code": "\tdef _rowseq(path):\n\t\treturn system.tag.browse(path).getResults()\n\n\tdef _rowseq_val(row, key, default\u003dNone):\n\t\tif isinstance(row, dict):\n\t\t\treturn row.get(key, default)\n\t\tgetter \u003d getattr(row, \"get\", None)\n\t\tif getter is not None:\n\t\t\ttry:\n\t\t\t\treturn getter(key)\n\t\t\texcept Exception:\n\t\t\t\tpass\n\t\treturn getattr(row, key, default)\n\n\tdef _is_udt(row):\n\t\ttag_type \u003d str(_rowseq_val(row, \"tagType\", \"\") or \"\").lower()\n\t\treturn \"udtinstance\" in tag_type\n\n\tdef _fullpath(row):\n\t\treturn str(_rowseq_val(row, \"fullPath\", \"\") or \"\")\n\n\tplace_rows \u003d [row for row in _rowseq(\"[Otto_FleetManager]Fleet/Places\") if _is_udt(row)]\n\trobot_rows \u003d [row for row in _rowseq(\"[Otto_FleetManager]Fleet/Robots\") if _is_udt(row)]\n\tcontainer_rows \u003d [row for row in _rowseq(\"[Otto_FleetManager]Fleet/Containers\") if _is_udt(row)]\n\n\tplace_reads \u003d []\n\tfor row in place_rows:\n\t\tpath \u003d _fullpath(row)\n\t\tplace_reads.extend([path + \"/ID\", path + \"/Name\"])\n\tplace_values \u003d system.tag.readBlocking(place_reads) if place_reads else []\n\tplace_by_id \u003d {}\n\tfor index, row in enumerate(place_rows):\n\t\toffset \u003d index * 2\n\t\tplace_id \u003d str(place_values[offset].value or \"\") if offset \u003c len(place_values) and place_values[offset].quality.isGood() else \"\"\n\t\tplace_name \u003d str(place_values[offset + 1].value or \"\") if offset + 1 \u003c len(place_values) and place_values[offset + 1].quality.isGood() else \"\"\n\t\tif place_id:\n\t\t\tplace_by_id[place_id] \u003d place_name or place_id\n\n\trobot_reads \u003d []\n\tfor row in robot_rows:\n\t\tpath \u003d _fullpath(row)\n\t\trobot_reads.append(path + \"/ID\")\n\trobot_values \u003d system.tag.readBlocking(robot_reads) if robot_reads else []\n\trobot_by_id \u003d {}\n\tfor index, row in enumerate(robot_rows):\n\t\trobot_id \u003d str(robot_values[index].value or \"\") if index \u003c len(robot_values) and robot_values[index].quality.isGood() else \"\"\n\t\trobot_name \u003d str(_rowseq_val(row, \"name\", \"\") or \"\")\n\t\tif robot_id:\n\t\t\trobot_by_id[robot_id] \u003d robot_name or robot_id\n\n\tcontainer_reads \u003d []\n\tfor row in container_rows:\n\t\tpath \u003d _fullpath(row)\n\t\tcontainer_reads.extend([\n\t\t\tpath + \"/ID\",\n\t\t\tpath + \"/ContainerType\",\n\t\t\tpath + \"/State\",\n\t\t\tpath + \"/Place\",\n\t\t\tpath + \"/Robot\",\n\t\t])\n\tcontainer_values \u003d system.tag.readBlocking(container_reads) if container_reads else []\n\n\tinstances \u003d []\n\tfor index, row in enumerate(container_rows):\n\t\toffset \u003d index * 5\n\t\tcontainer_id \u003d str(container_values[offset].value or \"\") if offset \u003c len(container_values) and container_values[offset].quality.isGood() else \"\"\n\t\tcontainer_type \u003d str(container_values[offset + 1].value or \"\") if offset + 1 \u003c len(container_values) and container_values[offset + 1].quality.isGood() else \"\"\n\t\tstate \u003d str(container_values[offset + 2].value or \"\") if offset + 2 \u003c len(container_values) and container_values[offset + 2].quality.isGood() else \"\"\n\t\tplace_id \u003d str(container_values[offset + 3].value or \"\") if offset + 3 \u003c len(container_values) and container_values[offset + 3].quality.isGood() else \"\"\n\t\trobot_id \u003d str(container_values[offset + 4].value or \"\") if offset + 4 \u003c len(container_values) and container_values[offset + 4].quality.isGood() else \"\"\n\n\t\tif place_id and place_id in place_by_id:\n\t\t\tlocation_label \u003d \"Place: {}\".format(place_by_id[place_id])\n\t\telif place_id:\n\t\t\tlocation_label \u003d \"Place: {}\".format(place_id)\n\t\telif robot_id and robot_id in robot_by_id:\n\t\t\tlocation_label \u003d \"Robot: {}\".format(robot_by_id[robot_id])\n\t\telif robot_id:\n\t\t\tlocation_label \u003d \"Robot: {}\".format(robot_id)\n\t\telse:\n\t\t\tlocation_label \u003d \"Location: Unassigned\"\n\n\t\tinstances.append({\n\t\t\t\"containerId\": container_id,\n\t\t\t\"containerType\": container_type,\n\t\t\t\"state\": state,\n\t\t\t\"locationLabel\": location_label,\n\t\t\t\"viewOnly\": True,\n\t\t})\n\n\tinstances.sort(key\u003dlambda row: (str(row.get(\"containerType\") or \"\"), str(row.get(\"containerId\") or \"\")))\n\treturn instances",
+                  "type": "script"
+                }
+              ],
+              "type": "expr"
+            }
+          }
+        },
+        "props": {
+          "path": "Page/Components/Containers/ContainerCard",
+          "wrap": "wrap"
+        },
+        "type": "ia.display.flex-repeater"
+      },
+      {
+        "meta": {
+          "name": "SystemStatusTitle"
+        },
+        "position": {
+          "basis": "34px",
+          "shrink": 0
+        },
         "propConfig": {
           "props.style.color": {
             "binding": {
@@ -154,44 +197,6 @@
               "type": "property"
             }
           }
-        }
-      },
-      {
-        "meta": {
-          "name": "ContainerCards"
-        },
-        "position": {
-          "shrink": 0
-        },
-        "props": {
-          "path": "Page/Components/Containers/ContainerCard",
-          "wrap": "wrap"
-        },
-        "type": "ia.display.flex-repeater",
-        "propConfig": {
-          "props.instances": {
-            "binding": {
-              "config": {
-                "expression": "now(3000)"
-              },
-              "transforms": [
-                {
-                  "code": "\tdef _rowseq(path):\n\t\treturn system.tag.browse(path).getResults()\n\n\tdef _rowseq_val(row, key, default=None):\n\t\tif isinstance(row, dict):\n\t\t\treturn row.get(key, default)\n\t\tgetter = getattr(row, \"get\", None)\n\t\tif getter is not None:\n\t\t\ttry:\n\t\t\t\treturn getter(key)\n\t\t\texcept Exception:\n\t\t\t\tpass\n\t\treturn getattr(row, key, default)\n\n\tdef _is_udt(row):\n\t\ttag_type = str(_rowseq_val(row, \"tagType\", \"\") or \"\").lower()\n\t\treturn \"udtinstance\" in tag_type\n\n\tdef _fullpath(row):\n\t\treturn str(_rowseq_val(row, \"fullPath\", \"\") or \"\")\n\n\tplace_rows = [row for row in _rowseq(\"[Otto_FleetManager]Fleet/Places\") if _is_udt(row)]\n\trobot_rows = [row for row in _rowseq(\"[Otto_FleetManager]Fleet/Robots\") if _is_udt(row)]\n\tcontainer_rows = [row for row in _rowseq(\"[Otto_FleetManager]Fleet/Containers\") if _is_udt(row)]\n\n\tplace_reads = []\n\tfor row in place_rows:\n\t\tpath = _fullpath(row)\n\t\tplace_reads.extend([path + \"/ID\", path + \"/Name\"])\n\tplace_values = system.tag.readBlocking(place_reads) if place_reads else []\n\tplace_by_id = {}\n\tfor index, row in enumerate(place_rows):\n\t\toffset = index * 2\n\t\tplace_id = str(place_values[offset].value or \"\") if offset < len(place_values) and place_values[offset].quality.isGood() else \"\"\n\t\tplace_name = str(place_values[offset + 1].value or \"\") if offset + 1 < len(place_values) and place_values[offset + 1].quality.isGood() else \"\"\n\t\tif place_id:\n\t\t\tplace_by_id[place_id] = place_name or place_id\n\n\trobot_reads = []\n\tfor row in robot_rows:\n\t\tpath = _fullpath(row)\n\t\trobot_reads.append(path + \"/ID\")\n\trobot_values = system.tag.readBlocking(robot_reads) if robot_reads else []\n\trobot_by_id = {}\n\tfor index, row in enumerate(robot_rows):\n\t\trobot_id = str(robot_values[index].value or \"\") if index < len(robot_values) and robot_values[index].quality.isGood() else \"\"\n\t\trobot_name = str(_rowseq_val(row, \"name\", \"\") or \"\")\n\t\tif robot_id:\n\t\t\trobot_by_id[robot_id] = robot_name or robot_id\n\n\tcontainer_reads = []\n\tfor row in container_rows:\n\t\tpath = _fullpath(row)\n\t\tcontainer_reads.extend([\n\t\t\tpath + \"/ID\",\n\t\t\tpath + \"/ContainerType\",\n\t\t\tpath + \"/State\",\n\t\t\tpath + \"/Place\",\n\t\t\tpath + \"/Robot\",\n\t\t])\n\tcontainer_values = system.tag.readBlocking(container_reads) if container_reads else []\n\n\tinstances = []\n\tfor index, row in enumerate(container_rows):\n\t\toffset = index * 5\n\t\tcontainer_id = str(container_values[offset].value or \"\") if offset < len(container_values) and container_values[offset].quality.isGood() else \"\"\n\t\tcontainer_type = str(container_values[offset + 1].value or \"\") if offset + 1 < len(container_values) and container_values[offset + 1].quality.isGood() else \"\"\n\t\tstate = str(container_values[offset + 2].value or \"\") if offset + 2 < len(container_values) and container_values[offset + 2].quality.isGood() else \"\"\n\t\tplace_id = str(container_values[offset + 3].value or \"\") if offset + 3 < len(container_values) and container_values[offset + 3].quality.isGood() else \"\"\n\t\trobot_id = str(container_values[offset + 4].value or \"\") if offset + 4 < len(container_values) and container_values[offset + 4].quality.isGood() else \"\"\n\n\t\tif place_id and place_id in place_by_id:\n\t\t\tlocation_label = \"Place: {}\".format(place_by_id[place_id])\n\t\telif place_id:\n\t\t\tlocation_label = \"Place: {}\".format(place_id)\n\t\telif robot_id and robot_id in robot_by_id:\n\t\t\tlocation_label = \"Robot: {}\".format(robot_by_id[robot_id])\n\t\telif robot_id:\n\t\t\tlocation_label = \"Robot: {}\".format(robot_id)\n\t\telse:\n\t\t\tlocation_label = \"Location: Unassigned\"\n\n\t\tinstances.append({\n\t\t\t\"containerId\": container_id,\n\t\t\t\"containerType\": container_type,\n\t\t\t\"state\": state,\n\t\t\t\"locationLabel\": location_label,\n\t\t\t\"viewOnly\": True,\n\t\t})\n\n\tinstances.sort(key=lambda row: (str(row.get(\"containerType\") or \"\"), str(row.get(\"containerId\") or \"\")))\n\treturn instances",
-                  "type": "script"
-                }
-              ],
-              "type": "expr"
-            }
-          }
-        }
-      },
-      {
-        "meta": {
-          "name": "SystemStatusTitle"
-        },
-        "position": {
-          "basis": "34px",
-          "shrink": 0
         },
         "props": {
           "style": {
@@ -202,17 +207,7 @@
           },
           "text": "System Status"
         },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
-              },
-              "type": "property"
-            }
-          }
-        }
+        "type": "ia.display.label"
       },
       {
         "meta": {
@@ -221,14 +216,6 @@
         "position": {
           "shrink": 0
         },
-        "props": {
-          "path": "Page/Components/StatusBoard/StatusSummaryCard",
-          "style": {
-            "paddingBottom": "4px"
-          },
-          "wrap": "wrap"
-        },
-        "type": "ia.display.flex-repeater",
         "propConfig": {
           "props.instances": {
             "binding": {
@@ -244,7 +231,15 @@
               "type": "expr"
             }
           }
-        }
+        },
+        "props": {
+          "path": "Page/Components/StatusBoard/StatusSummaryCard",
+          "style": {
+            "paddingBottom": "4px"
+          },
+          "wrap": "wrap"
+        },
+        "type": "ia.display.flex-repeater"
       },
       {
         "meta": {
@@ -253,6 +248,16 @@
         "position": {
           "basis": "32px",
           "shrink": 0
+        },
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
         },
         "props": {
           "style": {
@@ -263,17 +268,7 @@
           },
           "text": "Subsystem Health"
         },
-        "type": "ia.display.label",
-        "propConfig": {
-          "props.style.color": {
-            "binding": {
-              "config": {
-                "path": "view.custom.themePrimaryText"
-              },
-              "type": "property"
-            }
-          }
-        }
+        "type": "ia.display.label"
       },
       {
         "meta": {
@@ -282,14 +277,6 @@
         "position": {
           "shrink": 0
         },
-        "props": {
-          "path": "Page/Components/StatusBoard/SubsystemHealthChip",
-          "style": {
-            "paddingBottom": "6px"
-          },
-          "wrap": "wrap"
-        },
-        "type": "ia.display.flex-repeater",
         "propConfig": {
           "props.instances": {
             "binding": {
@@ -305,7 +292,50 @@
               "type": "expr"
             }
           }
-        }
+        },
+        "props": {
+          "path": "Page/Components/StatusBoard/SubsystemHealthChip",
+          "style": {
+            "paddingBottom": "6px"
+          },
+          "wrap": "wrap"
+        },
+        "type": "ia.display.flex-repeater"
+      },
+      {
+        "meta": {
+          "name": "Image"
+        },
+        "position": {
+          "basis": "300px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.source": {
+            "binding": {
+              "config": {
+                "path": "session.props.theme"
+              },
+              "transforms": [
+                {
+                  "expression": "if({value}\u003d\"dark\",\"/system/images/FAS Logo TabloidWhite.png\",\"/system/images/FAS Logo Tabloid.png\")",
+                  "type": "expression"
+                }
+              ],
+              "type": "property"
+            }
+          }
+        },
+        "props": {
+          "fit": {
+            "height": 300,
+            "mode": "contain"
+          },
+          "style": {
+            "marginTop": "500px"
+          }
+        },
+        "type": "ia.display.image"
       }
     ],
     "meta": {

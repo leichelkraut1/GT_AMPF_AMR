@@ -63,7 +63,7 @@
     }
   },
   "props": {
-    "address": "127.0.0.1",
+    "address": "10.137.23.253",
     "device": {},
     "geolocation": {},
     "locale": "en-US",
