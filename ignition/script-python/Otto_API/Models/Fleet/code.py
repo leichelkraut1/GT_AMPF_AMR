@@ -43,6 +43,8 @@ class RobotReadinessContext(MappingRecordBase):
 
     @classmethod
     def fromDict(cls, record):
+        if isinstance(record, cls):
+            return record
         record = dict(record or {})
         return cls(
             record.get("min_charge"),
@@ -105,6 +107,8 @@ class RobotReadinessResult(MappingRecordBase):
 
     @classmethod
     def fromDict(cls, record):
+        if isinstance(record, cls):
+            return record
         record = dict(record or {})
         return cls(
             record.get("robot_name"),

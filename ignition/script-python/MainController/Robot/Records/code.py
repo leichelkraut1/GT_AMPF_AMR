@@ -2,8 +2,7 @@ from Otto_API.Common.RecordHelpers import MappingRecordBase
 from Otto_API.Common.RecordHelpers import coerceBool
 from Otto_API.Common.RecordHelpers import coerceInt
 from Otto_API.Common.RecordHelpers import coerceText
-from Otto_API.Models.Missions import coerceMissionRecord
-from Otto_API.Models.Missions import coerceMissionRecords
+from Otto_API.Models.Missions import MissionRecord
 
 from MainController.State.RobotStore import normalizeRobotState
 from MainController.WorkflowConfig import normalizeWorkflowNumber
@@ -44,13 +43,13 @@ def _sourceDict(value):
 def _coerceOptionalMissionRecord(missionRecord):
     if missionRecord is None:
         return None
-    return coerceMissionRecord(missionRecord)
+    return MissionRecord.fromDict(missionRecord)
 
 
 def _missionRecordToDict(missionRecord):
     if missionRecord is None:
         return None
-    return coerceMissionRecord(missionRecord).toDict()
+    return MissionRecord.fromDict(missionRecord).toDict()
 
 
 class _SpecRecord(MappingRecordBase):
@@ -156,7 +155,7 @@ class ActiveMissionSummary(_SpecRecord):
     )
     FIELD_SPECS = (
         ("count", 0, coerceInt),
-        ("missions", [], coerceMissionRecords),
+        ("missions", [], MissionRecord.listFromDicts),
         ("current_mission", None, _coerceOptionalMissionRecord),
         ("current_mission_status", "", _coerceUpperText),
         ("current_mission_id", "", coerceText),

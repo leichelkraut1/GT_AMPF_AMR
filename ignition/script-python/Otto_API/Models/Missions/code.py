@@ -83,6 +83,8 @@ class MissionRecord(RawBackedRecordBase):
 
     @classmethod
     def fromDict(cls, mission):
+        if isinstance(mission, cls):
+            return mission
         mission = dict(mission or {})
         return cls(
             mission.get("id"),
@@ -98,6 +100,10 @@ class MissionRecord(RawBackedRecordBase):
             mission.get("path"),
             rawData=mission,
         )
+
+    @classmethod
+    def listFromDicts(cls, missions):
+        return [cls.fromDict(mission) for mission in list(missions or [])]
 
     def isTerminal(self):
         return self.mission_status in TERMINAL_MISSION_STATUSES
@@ -134,23 +140,6 @@ class MissionRecord(RawBackedRecordBase):
             "current_mission_id": self.id,
             "current_mission_status": self.mission_status,
         }
-
-
-def isMissionRecord(value):
-    return isinstance(value, MissionRecord)
-
-
-def coerceMissionRecord(missionRecord):
-    if isMissionRecord(missionRecord):
-        return missionRecord
-    return MissionRecord.fromDict(missionRecord)
-
-
-def coerceMissionRecords(missionRecords):
-    return [
-        coerceMissionRecord(missionRecord)
-        for missionRecord in list(missionRecords or [])
-    ]
 
 
 class RobotMissionSummary(MappingRecordBase):

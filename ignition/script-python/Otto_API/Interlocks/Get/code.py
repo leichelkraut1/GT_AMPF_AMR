@@ -5,7 +5,7 @@ from Otto_API.Common.ResultHelpers import buildRecordSyncResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Interlocks.Helpers import buildInterlockInstanceMap
-from Otto_API.Interlocks.Records import InterlockRecord
+from Otto_API.Models.Interlocks import InterlockRecord
 
 
 INTERLOCK_FETCH_LIMIT = 100

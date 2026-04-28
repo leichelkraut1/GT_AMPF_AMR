@@ -26,6 +26,8 @@ class RobotSystemStateEntry(MappingRecordBase):
 
     @classmethod
     def fromDict(cls, entry):
+        if isinstance(entry, cls):
+            return entry
         entry = dict(entry or {})
         return cls(
             entry.get("robot"),
@@ -66,6 +68,8 @@ class RobotPlace(MappingRecordBase):
 
     @classmethod
     def fromDict(cls, record):
+        if isinstance(record, cls):
+            return record
         record = dict(record or {})
         return cls(
             record.get("place_id") or record.get("id"),
@@ -120,6 +124,8 @@ class RobotSnapshot(MappingRecordBase):
 
     @classmethod
     def fromDict(cls, snapshot):
+        if isinstance(snapshot, cls):
+            return snapshot
         snapshot = dict(snapshot or {})
         return cls(
             snapshot.get("robot_name"),

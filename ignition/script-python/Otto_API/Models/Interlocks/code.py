@@ -1,8 +1,8 @@
 from Otto_API.Common.RecordHelpers import MappingRecordBase
+from Otto_API.Common.RecordHelpers import coerceBool
 from Otto_API.Common.RecordHelpers import coerceInt
 from Otto_API.Common.RecordHelpers import coerceIntOrNone
 from Otto_API.Common.RecordHelpers import coerceText
-from Otto_API.Interlocks.Helpers import normalizeBool
 
 
 class InterlockRecord(MappingRecordBase):
@@ -16,6 +16,8 @@ class InterlockRecord(MappingRecordBase):
 
     @classmethod
     def fromDict(cls, rawRecord):
+        if isinstance(rawRecord, cls):
+            return rawRecord
         rawRecord = dict(rawRecord or {})
         return cls(
             rawRecord.get("id"),
@@ -24,18 +26,12 @@ class InterlockRecord(MappingRecordBase):
             rawRecord.get("state", 0),
         )
 
+    @classmethod
+    def listFromDicts(cls, rawRecords):
+        return [cls.fromDict(rawRecord) for rawRecord in list(rawRecords or [])]
+
     def hasValidId(self):
         return bool(self.id and self.name)
-
-
-def isInterlockRecord(value):
-    return isinstance(value, InterlockRecord)
-
-
-def coerceInterlockRecord(record):
-    if isInterlockRecord(record):
-        return record
-    return InterlockRecord.fromDict(record)
 
 
 class InterlockMappingRow(MappingRecordBase):
@@ -45,10 +41,12 @@ class InterlockMappingRow(MappingRecordBase):
         self.FleetName = coerceText(fleetName)
         self.PlcTagName = coerceText(plcTagName)
         self.Direction = coerceText(direction)
-        self.WriteEnable = normalizeBool(writeEnable, True)
+        self.WriteEnable = coerceBool(writeEnable, True)
 
     @classmethod
     def fromDict(cls, row):
+        if isinstance(row, cls):
+            return row
         row = dict(row or {})
         return cls(
             row.get("FleetName"),
@@ -56,6 +54,10 @@ class InterlockMappingRow(MappingRecordBase):
             row.get("Direction"),
             row.get("WriteEnable", True),
         )
+
+    @classmethod
+    def listFromDicts(cls, rows):
+        return [cls.fromDict(row) for row in list(rows or [])]
 
     def isFromFleet(self):
         return self.Direction == "FromFleet"
@@ -67,16 +69,6 @@ class InterlockMappingRow(MappingRecordBase):
         return bool(self.WriteEnable)
 
 
-def isInterlockMappingRow(value):
-    return isinstance(value, InterlockMappingRow)
-
-
-def coerceInterlockMappingRow(row):
-    if isInterlockMappingRow(row):
-        return row
-    return InterlockMappingRow.fromDict(row)
-
-
 class DuplicateInterlockMappingInfo(MappingRecordBase):
     FIELDS = (
         "fleet_name",
@@ -86,7 +78,14 @@ class DuplicateInterlockMappingInfo(MappingRecordBase):
         "winning_direction",
     )
 
-    def __init__(self, fleetName, replacedPlcTagName, replacedDirection, winningPlcTagName, winningDirection):
+    def __init__(
+        self,
+        fleetName,
+        replacedPlcTagName,
+        replacedDirection,
+        winningPlcTagName,
+        winningDirection,
+    ):
         self.fleet_name = coerceText(fleetName)
         self.replaced_plc_tag_name = coerceText(replacedPlcTagName)
         self.replaced_direction = coerceText(replacedDirection)
@@ -95,6 +94,8 @@ class DuplicateInterlockMappingInfo(MappingRecordBase):
 
     @classmethod
     def fromDict(cls, row):
+        if isinstance(row, cls):
+            return row
         row = dict(row or {})
         return cls(
             row.get("fleet_name"),
@@ -104,15 +105,9 @@ class DuplicateInterlockMappingInfo(MappingRecordBase):
             row.get("winning_direction"),
         )
 
-
-def isDuplicateInterlockMappingInfo(value):
-    return isinstance(value, DuplicateInterlockMappingInfo)
-
-
-def coerceDuplicateInterlockMappingInfo(duplicateInfo):
-    if isDuplicateInterlockMappingInfo(duplicateInfo):
-        return duplicateInfo
-    return DuplicateInterlockMappingInfo.fromDict(duplicateInfo)
+    @classmethod
+    def listFromDicts(cls, rows):
+        return [cls.fromDict(row) for row in list(rows or [])]
 
 
 class PlcInterlockSnapshot(MappingRecordBase):
@@ -121,7 +116,7 @@ class PlcInterlockSnapshot(MappingRecordBase):
     def __init__(self, plcTagName, state, forceZero=False):
         self.plc_tag_name = coerceText(plcTagName)
         self.state = coerceIntOrNone(state)
-        self.force_zero = normalizeBool(forceZero, False)
+        self.force_zero = coerceBool(forceZero, False)
 
     @classmethod
     def fromValues(cls, plcTagName, state, forceZero):

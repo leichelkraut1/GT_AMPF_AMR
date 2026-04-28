@@ -10,9 +10,9 @@ from Otto_API.Common.TagPaths import getPlcInterlocksPath
 from Otto_API.Common.TagProvisioning import ensureFolder
 from Otto_API.Common.TagProvisioning import ensureMemoryTag
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
-from Otto_API.Interlocks.Records import DuplicateInterlockMappingInfo
+from Otto_API.Models.Interlocks import DuplicateInterlockMappingInfo
 from Otto_API.Interlocks.Helpers import normalizeBool
-from Otto_API.Interlocks.Records import InterlockMappingRow
+from Otto_API.Models.Interlocks import InterlockMappingRow
 
 
 VALID_DIRECTIONS = ["FromFleet", "ToFleet"]

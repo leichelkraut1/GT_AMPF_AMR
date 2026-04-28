@@ -2,15 +2,14 @@ import json
 import time
 import uuid
 
-from Otto_API.Models.Missions import coerceMissionRecord
-from Otto_API.Models.Missions import coerceMissionRecords
+from Otto_API.Models.Missions import MissionRecord
 from Otto_API.Common.SyncHelpers import sanitizeTagName
 
 
 def _matchingMissionRecordsForRobot(robotId, missionRecords):
     return [
         missionRecord
-        for missionRecord in coerceMissionRecords(missionRecords)
+        for missionRecord in MissionRecord.listFromDicts(missionRecords)
         if missionRecord.matchesRobotId(robotId)
     ]
 
@@ -100,7 +99,7 @@ def resolveMissionRobotId(missionRecord):
     3. forced_robot
     Accepts either lowercase or title-cased tag-style keys.
     """
-    missionRecord = coerceMissionRecord(missionRecord)
+    missionRecord = MissionRecord.fromDict(missionRecord)
     return missionRecord.assignedRobotId()
 
 
@@ -108,7 +107,7 @@ def activeMissionStatusPriority(missionStatus):
     """
     Rank active mission statuses so true-active missions win over queued sidecars.
     """
-    missionRecord = coerceMissionRecord({"mission_status": missionStatus})
+    missionRecord = MissionRecord.fromDict({"mission_status": missionStatus})
     return missionRecord.activeStatusPriority()
 
 
@@ -116,7 +115,10 @@ def sortActiveMissionRecords(missionRecords):
     """
     Return mission records in deterministic controller/finalize priority order.
     """
-    return sorted(coerceMissionRecords(missionRecords), key=lambda missionRecord: missionRecord.activeSortKey())
+    return sorted(
+        MissionRecord.listFromDicts(missionRecords),
+        key=lambda missionRecord: missionRecord.activeSortKey(),
+    )
 
 
 def selectCurrentActiveMissionRecord(missionRecords):

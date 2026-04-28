@@ -13,10 +13,10 @@ from Otto_API.Interlocks.Apply import applyInterlockSync
 from Otto_API.Interlocks.Get import getInterlocks
 from Otto_API.Interlocks.Mapping import DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS
 from Otto_API.Interlocks.Mapping import readInterlockMappings
-from Otto_API.Interlocks.Records import coerceDuplicateInterlockMappingInfo
-from Otto_API.Interlocks.Records import coerceInterlockRecord
-from Otto_API.Interlocks.Records import coerceInterlockMappingRow
-from Otto_API.Interlocks.Records import PlcInterlockSnapshot
+from Otto_API.Models.Interlocks import DuplicateInterlockMappingInfo
+from Otto_API.Models.Interlocks import InterlockMappingRow
+from Otto_API.Models.Interlocks import InterlockRecord
+from Otto_API.Models.Interlocks import PlcInterlockSnapshot
 from Otto_API.Interlocks.Post import setInterlockState
 
 
@@ -46,12 +46,12 @@ def _fleetInterlockRowPath(interlockName, instanceNameByRawName):
 
 class _ResolvedInterlockSyncRow(object):
     def __init__(self, row, record, duplicateInfo, snapshot, fleetRowPath):
-        self.row = coerceInterlockMappingRow(row)
-        self.record = None if record is None else coerceInterlockRecord(record)
+        self.row = InterlockMappingRow.fromDict(row)
+        self.record = None if record is None else InterlockRecord.fromDict(record)
         self.duplicate_info = (
             None
             if duplicateInfo is None
-            else coerceDuplicateInterlockMappingInfo(duplicateInfo)
+            else DuplicateInterlockMappingInfo.fromDict(duplicateInfo)
         )
         if snapshot is None:
             self.snapshot = None
@@ -156,7 +156,7 @@ def _coerceResolvedSyncRow(
     if isinstance(rowOrResolved, _ResolvedInterlockSyncRow):
         return rowOrResolved
 
-    row = coerceInterlockMappingRow(rowOrResolved)
+    row = InterlockMappingRow.fromDict(rowOrResolved)
     fleetName = row.FleetName
     plcTagName = row.PlcTagName
     record = None if recordsByName is None else (recordsByName or {}).get(fleetName)
@@ -238,7 +238,7 @@ def _readPlcSnapshot(rows):
     defaultValues = []
 
     for row in list(rows or []):
-        row = coerceInterlockMappingRow(row)
+        row = InterlockMappingRow.fromDict(row)
         plcTagName = str(row.PlcTagName or "").strip()
         if not plcTagName or plcTagName in snapshotByPlcTagName:
             continue
