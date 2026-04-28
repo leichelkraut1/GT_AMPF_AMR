@@ -9,6 +9,7 @@ from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagIO import writeRequiredTagValues
 
 from Otto_API.Missions.Buckets import UNASSIGNED_FOLDER
+from Otto_API.Missions.Records import coerceMissionRecord
 
 
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
@@ -27,9 +28,8 @@ def warn_missing_mission_runtime_member(memberName, logger):
     _WARNED_MISSING_MISSION_RUNTIME_MEMBERS.add(memberName)
     if logger is not None:
         logger.warn(
-            "api_Mission is missing [{}]; mission anti-repeat behavior will be degraded until the UDT includes it".format(
-                memberName
-            )
+            "api_Mission is missing [{}]; mission anti-repeat behavior will be degraded "
+            "until the UDT includes it".format(memberName)
         )
 
 
@@ -78,17 +78,22 @@ def parse_workflow_number_from_mission_name(missionName):
 
 
 def record_mission_state_change(nowTimestamp, robotFolder, mission, oldStatus, newStatus):
+    missionRecord = coerceMissionRecord(mission)
+    workflowNumber = missionRecord.workflow_number
+    if workflowNumber is None:
+        workflowNumber = parse_workflow_number_from_mission_name(missionRecord.name)
+
     appendRuntimeDatasetRow(
         "mission_state_history",
         MISSION_STATE_HISTORY_HEADERS,
         [
             nowTimestamp,
             robotFolder,
-            str(mission.get("id") or ""),
-            str(mission.get("name") or ""),
+            str(missionRecord.id or ""),
+            str(missionRecord.name or ""),
             str(oldStatus or ""),
             str(newStatus or ""),
-            parse_workflow_number_from_mission_name(mission.get("name")) or 0,
+            workflowNumber or 0,
         ],
         maxRows=MISSION_STATE_HISTORY_MAX_ROWS,
     )
@@ -133,7 +138,8 @@ def record_mission_status_if_changed(
     """
     Append mission-state history only when the mission instance's last logged state changes.
     """
-    newStatus = str(mission.get("mission_status") or "")
+    missionRecord = coerceMissionRecord(mission)
+    newStatus = str(missionRecord.mission_status or "")
     runtimePath = mission_runtime_tag_path(
         instancePath,
         "last_logged_status",
@@ -150,7 +156,7 @@ def record_mission_status_if_changed(
     record_mission_state_change(
         nowTimestamp,
         robotFolder,
-        mission,
+        missionRecord,
         previousStatus,
         newStatus
     )
@@ -232,10 +238,10 @@ def record_removed_mission_if_needed(instancePath, folderPath, nowTimestamp, log
     record_mission_state_change(
         nowTimestamp,
         robotFolder,
-        {
+        coerceMissionRecord({
             "id": missionId,
             "name": missionName,
-        },
+        }),
         previousStatus,
         "REMOVED"
     )
