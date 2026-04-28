@@ -1,8 +1,8 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
-from Otto_API.Robots.Get import updateRobotOperationalState
-from Otto_API.Robots.Get import updateRobots
 from Otto_API.Services.Maps import updateMaps
 from Otto_API.Services.Places import updatePlaces
+from Otto_API.Services.Robots import updateRobotOperationalState
+from Otto_API.Services.Robots import updateRobots
 from Otto_API.Services.Workflows import updateWorkflows
 from Otto_API.TriggerHelpers import ensureMissionTriggerTags
 

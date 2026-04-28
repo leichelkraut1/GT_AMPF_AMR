@@ -28,7 +28,7 @@ The main entrypoint is:
 The cycle order is intentional:
 
 1. `SystemServices.readCachedServerStatus()`
-2. `RobotGet.updateRobotOperationalState()`
+2. `RobotServices.updateRobotOperationalState()`
 3. `ContainerServices.updateContainers()`
 4. `MissionSorting.run()`
 5. `runAllRobotWorkflowCycles(...)`
