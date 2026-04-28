@@ -36,7 +36,7 @@ def applyContainerSync(containerRecords, logger):
         for suffix, value in normalizedContainer["tag_values"].items():
             tagDict[instancePath + suffix] = value
 
-        writeObservedTagDict(tagDict, "Otto_API.Containers.Get container sync", logger)
+        writeObservedTagDict(tagDict, "Otto_API.Containers.Apply container sync", logger)
         writes.extend(tagDict.items())
 
     cleanupStaleUdtInstances(

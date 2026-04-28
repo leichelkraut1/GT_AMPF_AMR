@@ -1,9 +1,9 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.RuntimeHistory import recordRuntimeIssues
-from Otto_API.Containers import Get as ContainerGet
 from Otto_API.Missions import MissionSorting
 from Otto_API.Robots import Get as RobotGet
+from Otto_API.Services import Containers as ContainerServices
 from Otto_API.System import Get as SystemGet
 
 from MainController.Robot.Cycle import runRobotWorkflowCycleSnapshot
@@ -208,7 +208,7 @@ def _mainCycleResults(
     missionSortResult = MissionSorting.run()
     missionSummaryResult = _missionMirrorResult(missionSortResult)
     robotStateResult = RobotGet.updateRobotOperationalState()
-    containerStateResult = ContainerGet.updateContainers()
+    containerStateResult = ContainerServices.updateContainers()
     plcMappingState = readPlcMappings()
     plcPlaceSyncResult = _plcPlaceSyncResult(containerStateResult, plcMappingState)
     workflowResult, plcRobotSyncResult = _workflowCycleResults(

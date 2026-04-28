@@ -106,7 +106,7 @@
               "dom": {
                 "onClick": {
                   "config": {
-                    "script": "\timport Otto_API.Containers.Post\n\timport Otto_API.Containers.Get\n\tcontainerId = str(self.view.params.containerId or \"\").strip()\n\tif containerId:\n\t\tOtto_API.Containers.Post.deleteContainerById(containerId)\n\t\tOtto_API.Containers.Get.updateContainers()\n\tsystem.perspective.closePopup(str(self.view.params.popupId or \"\"))"
+                    "script": "\timport Otto_API.Services.Containers\n\tcontainerId = str(self.view.params.containerId or \"\").strip()\n\tif containerId:\n\t\tOtto_API.Services.Containers.deleteContainerById(containerId)\n\t\tOtto_API.Services.Containers.updateContainers()\n\tsystem.perspective.closePopup(str(self.view.params.popupId or \"\"))"
                   },
                   "scope": "G",
                   "type": "script"

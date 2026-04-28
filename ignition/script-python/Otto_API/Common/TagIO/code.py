@@ -132,6 +132,40 @@ def browseTagResults(path):
     return system.tag.browse(path).getResults()
 
 
+def browseResultValue(browseResult, key, defaultValue=None):
+    """Read one value from an Ignition browse row or local test browse row."""
+    if browseResult is None:
+        return defaultValue
+
+    if isinstance(browseResult, dict):
+        return browseResult.get(key, defaultValue)
+
+    getter = getattr(browseResult, "get", None)
+    if getter is not None:
+        try:
+            return getter(key)
+        except TypeError:
+            try:
+                return getter(key, defaultValue)
+            except Exception:
+                return defaultValue
+        except Exception:
+            return defaultValue
+
+    return getattr(browseResult, key, defaultValue)
+
+
+def browseUdtInstancePaths(path):
+    """Return full paths for UDT instances directly below a browsed tag path."""
+    instancePaths = []
+    for browseResult in list(browseTagResults(path) or []):
+        instancePath = str(browseResultValue(browseResult, "fullPath", "") or "")
+        tagType = str(browseResultValue(browseResult, "tagType", "") or "").lower()
+        if instancePath and "udtinstance" in tagType:
+            instancePaths.append(instancePath)
+    return instancePaths
+
+
 def tagExists(path):
     """Return True when the given tag path exists."""
     return system.tag.exists(path)

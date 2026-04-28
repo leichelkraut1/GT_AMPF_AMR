@@ -125,17 +125,18 @@ def resolveSelectedContainerLocation(selectedRowPath, locationConfig=None):
 
 def createContainerFromSelectedRowPath(selectedRowPath, templatePath=None, loggerName="FleetStatus.ContainerCreate"):
     """Create a container at the configured Fleet place or robot behind a selected PLC row path."""
-    import Otto_API.Containers.Get
-    import Otto_API.Containers.Post
+    import Otto_API.Services.Containers
 
     logger = system.util.getLogger(str(loggerName or "FleetStatus.ContainerCreate"))
     locationConfig = _loadContainerLocationConfig()
     selectedLocation = resolveSelectedContainerLocation(selectedRowPath, locationConfig=locationConfig)
     if selectedLocation is None:
+        message = (
+            "Skipping container create because the selected destination is not configured "
+            "in Fleet/Config/ContainerLocations: {}"
+        )
         logger.warn(
-            "Skipping container create because the selected destination is not configured in Fleet/Config/ContainerLocations: {}".format(
-                selectedRowPath
-            )
+            message.format(selectedRowPath)
         )
         return None
 
@@ -151,7 +152,7 @@ def createContainerFromSelectedRowPath(selectedRowPath, templatePath=None, logge
                 )
             )
             return None
-        result = Otto_API.Containers.Post.createContainerAtPlace(templatePath, placeId)
+        result = Otto_API.Services.Containers.createContainerAtPlace(templatePath, placeId)
     elif selectedLocation["type"] == "robot":
         robotId = normalizeTagValue(selectedLocation.get("resolved_id"))
         if not robotId:
@@ -162,7 +163,7 @@ def createContainerFromSelectedRowPath(selectedRowPath, templatePath=None, logge
                 )
             )
             return None
-        result = Otto_API.Containers.Post.createContainerAtRobot(templatePath, robotId)
+        result = Otto_API.Services.Containers.createContainerAtRobot(templatePath, robotId)
     else:
         logger.warn(
             "Skipping container create because the configured type is invalid for {}".format(
@@ -171,5 +172,5 @@ def createContainerFromSelectedRowPath(selectedRowPath, templatePath=None, logge
         )
         return None
 
-    Otto_API.Containers.Get.updateContainers()
+    Otto_API.Services.Containers.updateContainers()
     return result

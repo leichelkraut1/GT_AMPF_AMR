@@ -29,7 +29,7 @@ The cycle order is intentional:
 
 1. `SystemGet.readCachedServerStatus()`
 2. `RobotGet.updateRobotOperationalState()`
-3. `ContainerGet.updateContainers()`
+3. `ContainerServices.updateContainers()`
 4. `MissionSorting.run()`
 5. `runAllRobotWorkflowCycles(...)`
 
