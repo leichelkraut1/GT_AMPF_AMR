@@ -27,7 +27,7 @@ The main entrypoint is:
 
 The cycle order is intentional:
 
-1. `SystemGet.readCachedServerStatus()`
+1. `SystemServices.readCachedServerStatus()`
 2. `RobotGet.updateRobotOperationalState()`
 3. `ContainerServices.updateContainers()`
 4. `MissionSorting.run()`

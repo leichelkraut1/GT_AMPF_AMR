@@ -1,72 +1,95 @@
-from Otto_API.Common.HttpHelpers import httpGet
-from Otto_API.Common.HttpHelpers import jsonHeaders
-from Otto_API.Common.ParseHelpers import parseServerStatus
-from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import writeTagValueAsync
 from Otto_API.Common.TagPaths import getFleetSystemPath
+from Otto_API.Models.Results import OperationalResult
+from Otto_API.WebAPI.System import fetchServerStatus
 
 
 SYSTEM_BASE_PATH = getFleetSystemPath()
 
 
 def _log():
-    return system.util.getLogger("Otto_API.System.Get")
+    return system.util.getLogger("Otto_API.Services.System")
+
+
+def _statusResult(ok, level, message, value=None, issues=None):
+    issues = list(issues or [])
+    result = OperationalResult(
+        ok,
+        level,
+        message,
+        typedFields={"value": value},
+        dataFields={"issues": issues},
+    ).toDict()
+    result["issues"] = issues
+    return result
 
 
 def getServerStatus():
     """
     Read Fleet Manager server state and mirror it into Fleet/System/ServerStatus.
     """
-    url = getApiBaseUrl() + "/system/state/"
     logger = _log()
 
     try:
-        response = httpGet(url=url, headerValues=jsonHeaders())
-        if response:
-            status = parseServerStatus(response)
+        fetchResult = fetchServerStatus(getApiBaseUrl())
+        if fetchResult.ok:
+            status = fetchResult.value
             writeTagValueAsync(SYSTEM_BASE_PATH + "/ServerStatus", status)
-            return buildOperationResult(
+            return _statusResult(
                 True,
                 "info",
                 "Server status updated",
-                data={"value": status},
                 value=status,
                 issues=[],
             )
 
-        writeTagValueAsync(SYSTEM_BASE_PATH + "/ServerStatus", "ResponseError")
-        message = "Otto Fleet Manager did not respond"
-        return buildOperationResult(
+        if fetchResult.level == "warn":
+            writeTagValueAsync(SYSTEM_BASE_PATH + "/ServerStatus", "ResponseError")
+            return _statusResult(
+                False,
+                "warn",
+                fetchResult.message,
+                value=None,
+                issues=[
+                    buildRuntimeIssue(
+                        "server_status.http_no_response",
+                        "Otto_API.Services.System",
+                        "warn",
+                        fetchResult.message,
+                    )
+                ],
+            )
+
+        logger.error("Otto API - {}".format(fetchResult.message))
+        return _statusResult(
             False,
-            "warn",
-            message,
-            data={"value": None},
+            "error",
+            fetchResult.message,
             value=None,
             issues=[
                 buildRuntimeIssue(
-                    "server_status.http_no_response",
-                    "Otto_API.System.Get",
-                    "warn",
-                    message,
+                    "server_status.fetch_failed",
+                    "Otto_API.Services.System",
+                    "error",
+                    fetchResult.message,
                 )
             ],
         )
     except Exception as exc:
         message = "Status update failed - {}".format(str(exc))
         logger.error("Otto API - {}".format(message))
-        return buildOperationResult(
+        return _statusResult(
             False,
             "error",
             message,
-            data={"value": None},
             value=None,
             issues=[
                 buildRuntimeIssue(
                     "server_status.fetch_failed",
-                    "Otto_API.System.Get",
+                    "Otto_API.Services.System",
                     "error",
                     message,
                 )
@@ -85,27 +108,25 @@ def readCachedServerStatus():
     )
     if status in [None, "", "ResponseError"]:
         message = "Cached server status is unavailable"
-        return buildOperationResult(
+        return _statusResult(
             False,
             "warn",
             message,
-            data={"value": status},
             value=status,
             issues=[
                 buildRuntimeIssue(
                     "server_status.cached_unavailable",
-                    "Otto_API.System.Get",
+                    "Otto_API.Services.System",
                     "warn",
                     message,
                 )
             ],
         )
 
-    return buildOperationResult(
+    return _statusResult(
         True,
         "info",
         "Cached server status read",
-        data={"value": status},
         value=status,
         issues=[],
     )
