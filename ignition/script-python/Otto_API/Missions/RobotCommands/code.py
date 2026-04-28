@@ -2,10 +2,10 @@ from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagIO import readRequiredTagValue
 from Otto_API.Common.TagPaths import getFleetMissionsPath
 from Otto_API.Common.TagPaths import getFleetRobotsPath
-from Otto_API.Missions import Post
 from Otto_API.Missions.MissionActions import findActiveMissionIdForRobot
 from Otto_API.Missions.MissionActions import findActiveMissionIdsForRobot
 from Otto_API.Missions.MissionTreeHelpers import readMissionRobotAwareRecords
+from Otto_API.Services import Missions
 
 
 ACTIVE_MISSIONS_ROOT = getFleetMissionsPath() + "/Active"
@@ -54,7 +54,7 @@ def finalizeActiveMissionForRobot(robotName, finalizeMissionId=None):
 		return _warnResult(message)
 
 	if finalizeMissionId is None:
-		finalizeMissionId = Post.finalizeMissionId
+		finalizeMissionId = Missions.finalizeMissionId
 	return finalizeMissionId(missionId)
 
 
@@ -78,7 +78,7 @@ def cancelActiveMissionsForRobot(robotName, cancelMissionIds=None):
 		return _warnResult(message)
 
 	if cancelMissionIds is None:
-		cancelMissionIds = Post.cancelMissionIds
+		cancelMissionIds = Missions.cancelMissionIds
 	result = cancelMissionIds(missionIds)
 	if result.get("ok"):
 		ottoLogger.info("Canceled {} mission(s) for robot [{}]".format(len(missionIds), robotName))

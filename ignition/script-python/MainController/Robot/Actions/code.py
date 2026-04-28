@@ -1,4 +1,4 @@
-from Otto_API.Missions import Post
+from Otto_API.Services import Missions
 
 from MainController.WorkflowConfig import buildMissionName
 from MainController.WorkflowConfig import robotIdTagPath
@@ -8,10 +8,17 @@ from MainController.WorkflowConfig import workflowTemplateTagPath
 def callCreateMission(robotName, workflowNumber, createMission=None):
     """Create a mission for the selected workflow using the configured OTTO template."""
     if createMission is None:
-        createMission = Post.createMission
+        createMission = Missions.createMission
 
     templateTagPath = workflowTemplateTagPath(workflowNumber)
     missionName = buildMissionName(workflowNumber, robotName)
+    if not templateTagPath or not missionName:
+        return {
+            "ok": False,
+            "level": "error",
+            "message": "Workflow [{}] is not configured for robot [{}]".format(workflowNumber, robotName),
+        }
+
     return createMission(
         templateTagPath=templateTagPath,
         robotTagPath=robotIdTagPath(robotName),
@@ -22,14 +29,14 @@ def callCreateMission(robotName, workflowNumber, createMission=None):
 def callFinalizeMissionId(missionId, finalizeMissionId=None):
     """Finalize one explicit mission id."""
     if finalizeMissionId is None:
-        finalizeMissionId = Post.finalizeMissionId
+        finalizeMissionId = Missions.finalizeMissionId
     return finalizeMissionId(missionId)
 
 
 def callCancelMissionIds(missionIds, cancelMissionIds=None):
     """Cancel an explicit list of mission ids."""
     if cancelMissionIds is None:
-        cancelMissionIds = Post.cancelMissionIds
+        cancelMissionIds = Missions.cancelMissionIds
     return cancelMissionIds(missionIds)
 
 

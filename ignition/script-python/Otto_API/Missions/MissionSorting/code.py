@@ -1,6 +1,7 @@
 from Otto_API.AttachmentPhaseHelpers import deriveMissionAttachmentState
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
+from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import readRequiredTagValue
 from Otto_API.Common.TagIO import writeRequiredTagValues
@@ -13,13 +14,13 @@ from Otto_API.Missions.Buckets import classify_mission_bucket
 from Otto_API.Missions.Buckets import readRobotFolderMappings
 from Otto_API.Missions.Buckets import resolve_mission_robot_folder
 from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
-from Otto_API.Missions.Get import getMissions
 from Otto_API.Missions.Maintenance import cleanup_stale_bucket
 from Otto_API.Missions.Maintenance import cleanup_terminal_folder
 from Otto_API.Models.Missions import RobotMissionSummary
 from Otto_API.Missions.Sync import mission_to_tag_values
 from Otto_API.Missions.Sync import sync_mission_into_bucket
 from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
+from Otto_API.WebAPI.Missions import fetchMissions
 
 
 BASE = getFleetMissionsPath()
@@ -133,6 +134,18 @@ def _readMaxCompletedCount():
         getMissionMaxCompletedCountPath(),
         "Mission max completed count"
     ) or 0)
+
+
+def _fetchMissionRecords(logger, debug, missionStatus=None, limit=None, ordering=None):
+    result = fetchMissions(
+        getApiBaseUrl(),
+        missionStatus=missionStatus,
+        limit=limit,
+        ordering=ordering,
+        logger=logger,
+        debug=debug,
+    )
+    return list(result.records or [])
 
 
 class _MissionSortingFailure(RuntimeError):
@@ -274,16 +287,16 @@ def run():
         nowDate = system.date.now()
         nowTimestamp = system.date.format(nowDate, "yyyy-MM-dd HH:mm:ss.SSS")
 
-        missions.extend(getMissions(
+        missions.extend(_fetchMissionRecords(
             logger,
             debug,
-            mission_status=ACTIVE_STATUSES
+            missionStatus=ACTIVE_STATUSES
         ) or [])
 
-        missions.extend(getMissions(
+        missions.extend(_fetchMissionRecords(
             logger,
             debug,
-            mission_status=FAILED_STATUSES,
+            missionStatus=FAILED_STATUSES,
             limit=MAX_FAILED
         ) or [])
 
@@ -421,10 +434,10 @@ def runTerminalMaintenance():
         completedWanted = set()
         removed = []
 
-        missions = list(getMissions(
+        missions = list(_fetchMissionRecords(
             logger,
             debug,
-            mission_status=TERMINAL_STATUSES,
+            missionStatus=TERMINAL_STATUSES,
             limit=maxCompleted,
             ordering="-created",
         ) or [])

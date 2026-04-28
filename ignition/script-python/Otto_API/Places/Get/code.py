@@ -25,6 +25,12 @@ def updatePlaces():
         )
         if errorResult is not None:
             return errorResult
+        if data is None or response is None:
+            return buildSyncResult(
+                False,
+                "error",
+                "Places list response was empty after successful fetch",
+            )
 
         return applyPlaceSync(data, response, ottoLogger)
 
