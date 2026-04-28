@@ -26,6 +26,8 @@ class ContainerCreateFields(MappingRecordBase):
 
     @classmethod
     def fromDict(cls, fields):
+        if isinstance(fields, cls):
+            return fields
         fields = dict(fields or {})
         return cls(
             fields.get("id"),
@@ -36,6 +38,10 @@ class ContainerCreateFields(MappingRecordBase):
             fields.get("place"),
             fields.get("robot"),
         )
+
+    @classmethod
+    def listFromDicts(cls, rows):
+        return [cls.fromDict(row) for row in list(rows or [])]
 
     def toPayloadFields(self):
         payload = {}
@@ -59,6 +65,21 @@ class ContainerLocationTarget(MappingRecordBase):
     def __init__(self, kind, value):
         self.kind = coerceText(kind).lower()
         self.value = coerceText(value, None)
+
+    @classmethod
+    def fromDict(cls, target):
+        if isinstance(target, cls):
+            return target
+        target = dict(target or {})
+        return cls(target.get("kind") or target.get("type"), target.get("value"))
+
+    @classmethod
+    def fromKindValue(cls, kind, value):
+        if isinstance(kind, cls):
+            return kind
+        if str(kind or "").strip().lower() == "robot":
+            return cls.forRobot(value)
+        return cls.forPlace(value)
 
     @classmethod
     def forPlace(cls, placeId):
