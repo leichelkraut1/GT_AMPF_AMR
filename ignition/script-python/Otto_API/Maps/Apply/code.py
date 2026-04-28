@@ -36,7 +36,7 @@ def applyMapSync(mapItems, responseText, activeMapId, logger):
             ensureUdtInstancePath(instancePath, "api_Map")
             logger.info("Otto API - Created new map tag instance: " + instanceName)
 
-        writeObservedTagDict(tagDict, "Otto_API.Maps.Get map sync", logger)
+        writeObservedTagDict(tagDict, "Otto_API.Maps.Apply map sync", logger)
         writes.extend(tagDict.items())
 
     cleanupStaleUdtInstances(

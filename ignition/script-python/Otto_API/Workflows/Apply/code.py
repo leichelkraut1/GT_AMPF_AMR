@@ -28,7 +28,7 @@ def applyWorkflowSync(templateItems, logger):
             ensureUdtInstancePath(instancePath, "api_Mission")
             logger.info("Otto API - Created Workflow: " + instanceName)
 
-        writeObservedTagDict(missionDict, "Otto_API.Workflows.Get workflow sync", logger)
+        writeObservedTagDict(missionDict, "Otto_API.Workflows.Apply workflow sync", logger)
         writes.extend(missionDict.items())
 
     cleanupStaleUdtInstances(

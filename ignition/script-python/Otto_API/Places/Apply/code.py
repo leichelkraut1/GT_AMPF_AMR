@@ -78,7 +78,7 @@ def applyPlaceSync(placeRecords, responseText, logger):
         for suffix, value in normalizedPlace["tag_values"].items():
             tagDict[instancePath + suffix] = value
 
-        writeObservedTagDict(tagDict, "Otto_API.Places.Get place sync", logger)
+        writeObservedTagDict(tagDict, "Otto_API.Places.Apply place sync", logger)
         writes.extend(tagDict.items())
 
         recipeValueWrites, recipeBoolWrites = buildPlaceRecipeWrites(
@@ -86,11 +86,11 @@ def applyPlaceSync(placeRecords, responseText, logger):
             normalizedPlace["recipes"]
         )
         if recipeBoolWrites:
-            writeObservedTagDict(recipeBoolWrites, "Otto_API.Places.Get place recipe bool sync", logger)
+            writeObservedTagDict(recipeBoolWrites, "Otto_API.Places.Apply place recipe bool sync", logger)
             writes.extend(recipeBoolWrites.items())
 
         if recipeValueWrites:
-            writeObservedTagDict(recipeValueWrites, "Otto_API.Places.Get place recipe value sync", logger)
+            writeObservedTagDict(recipeValueWrites, "Otto_API.Places.Apply place recipe value sync", logger)
             writes.extend(recipeValueWrites.items())
 
     cleanupStaleUdtInstances(
