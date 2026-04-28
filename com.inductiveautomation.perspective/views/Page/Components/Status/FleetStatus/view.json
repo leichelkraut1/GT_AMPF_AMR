@@ -1658,6 +1658,48 @@
       },
       {
         "meta": {
+          "hasDelegate": true,
+          "name": "CrxSectionTitle"
+        },
+        "position": {
+          "basis": "32px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": "20px",
+            "fontWeight": "700",
+            "paddingLeft": "4px",
+            "paddingTop": "6px"
+          },
+          "text": "CRX Status"
+        },
+        "type": "ia.display.label",
+        "propConfig": {
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "path": "view.custom.themePrimaryText"
+              },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": {
+          "name": "CRX_Control_Group"
+        },
+        "position": {
+          "shrink": 0
+        },
+        "props": {
+          "path": "Page/Components/Robots/CRX_Control_Group"
+        },
+        "type": "ia.display.view"
+      },
+      {
+        "meta": {
           "name": "ContainersSectionTitle"
         },
         "position": {
