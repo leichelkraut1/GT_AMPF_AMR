@@ -20,7 +20,6 @@ class OperationalResult(object):
         typedFields=None,
         dataFields=None,
         sharedFields=None,
-        topLevelFields=None,
     ):
         self.ok = bool(ok)
         self.level = str(level or "").strip()
@@ -28,12 +27,10 @@ class OperationalResult(object):
         self._typed_field_names = []
         self._data_field_names = []
         self._shared_field_names = []
-        self._top_level_field_names = []
 
         typedFields = dict(typedFields or {})
         dataFields = dict(dataFields or {})
         sharedFields = dict(sharedFields or {})
-        topLevelFields = dict(topLevelFields or {})
 
         dataPayload = {}
         for fieldName, value in list(typedFields.items()):
@@ -50,10 +47,6 @@ class OperationalResult(object):
             setattr(self, fieldName, value)
             self._shared_field_names.append(fieldName)
             dataPayload[fieldName] = _typedValueToData(value)
-
-        for fieldName, value in list(topLevelFields.items()):
-            setattr(self, fieldName, value)
-            self._top_level_field_names.append(fieldName)
 
         self.data = dataPayload
 
@@ -78,14 +71,12 @@ class OperationalResult(object):
     def isHealthy(self):
         return bool(self.ok)
 
-    def _topLevelFields(self):
+    def _serializedSharedFields(self):
         fields = {}
         fieldNames = list(self._typed_field_names or [])
         fieldNames.extend(list(self._shared_field_names or []))
         for fieldName in fieldNames:
             fields[fieldName] = _typedValueToData(getattr(self, fieldName))
-        for fieldName in list(self._top_level_field_names or []):
-            fields[fieldName] = getattr(self, fieldName)
         return fields
 
     def toDict(self):
@@ -95,7 +86,7 @@ class OperationalResult(object):
             "message": self.message,
             "data": _typedValueToData(self.data),
         }
-        result.update(self._topLevelFields())
+        result.update(self._serializedSharedFields())
         return result
 
 

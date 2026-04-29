@@ -275,6 +275,8 @@ def _coerceRuntimeIssues(items):
         nestedIssues = None
         if isinstance(item, dict):
             nestedIssues = item.get("issues")
+            if not nestedIssues:
+                nestedIssues = dict(item.get("data") or {}).get("issues")
         else:
             nestedIssues = getattr(item, "issues", None)
 

@@ -16,9 +16,4 @@ def buildCycleResult(ok, level, message, robotName=None, state=None, action=None
         level,
         message,
         dataFields=payload,
-        topLevelFields={
-            "robot_name": robotName,
-            "state": state,
-            "action": action,
-        },
     ).toDict()

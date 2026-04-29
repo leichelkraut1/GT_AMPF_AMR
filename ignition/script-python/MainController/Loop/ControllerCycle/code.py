@@ -84,7 +84,6 @@ def _mergeResults(label, *results):
             "info",
             "{} healthy".format(label),
             dataFields={"results": []},
-            topLevelFields={"results": []},
         ).toDict()
 
     unhealthy = [result for result in normalizedResults if not result.get("ok", False)]
@@ -94,7 +93,6 @@ def _mergeResults(label, *results):
             "info",
             "{} healthy".format(label),
             dataFields={"results": normalizedResults},
-            topLevelFields={"results": normalizedResults},
         ).toDict()
 
     level = "error" if any(str(result.get("level") or "").lower() == "error" for result in unhealthy) else "warn"
@@ -107,7 +105,6 @@ def _mergeResults(label, *results):
         level,
         message,
         dataFields={"results": normalizedResults},
-        topLevelFields={"results": normalizedResults},
     ).toDict()
 
 
@@ -119,11 +116,6 @@ def _robotCycleExceptionResult(robotName, exc):
         "error",
         message,
         dataFields={
-            "robot_name": robotName,
-            "state": "fault",
-            "action": "robot_cycle_exception",
-        },
-        topLevelFields={
             "robot_name": robotName,
             "state": "fault",
             "action": "robot_cycle_exception",
@@ -144,7 +136,6 @@ def _missionMirrorResult(missionSortResult):
             "info",
             "Mission summary mirror healthy",
             dataFields={"robot_summary_by_folder": robotSummaryByFolder},
-            topLevelFields={"issues": []},
         ).toDict()
     except Exception as exc:
         message = "Mission summary mirror failed: {}".format(str(exc))
@@ -152,15 +143,17 @@ def _missionMirrorResult(missionSortResult):
             False,
             "warn",
             message,
-            dataFields={"robot_summary_by_folder": robotSummaryByFolder},
-            topLevelFields={"issues": [
-                buildRuntimeIssue(
-                    "mission_sorting.summary_mirror_failed",
-                    "MainController.Loop.ControllerCycle",
-                    "warn",
-                    message,
-                )
-            ]},
+            dataFields={
+                "robot_summary_by_folder": robotSummaryByFolder,
+                "issues": [
+                    buildRuntimeIssue(
+                        "mission_sorting.summary_mirror_failed",
+                        "MainController.Loop.ControllerCycle",
+                        "warn",
+                        message,
+                    )
+                ],
+            },
         ).toDict()
 
 
@@ -172,7 +165,6 @@ def _plcPlaceSyncResult(containerStateResult, plcMappingState):
         "warn",
         "Skipped PLC place sync because container state is stale",
         dataFields={"rows": [], "writes": []},
-        topLevelFields={"rows": [], "writes": []},
     ).toDict()
 
 
@@ -192,7 +184,8 @@ def _workflowCycleResults(
         cancelMissionIds=cancelMissionIds,
     )
     plcRobotSyncResult = dict(
-        workflowResult.get("plc_robot_sync")
+        dict(workflowResult.get("data") or {}).get("plc_robot_sync")
+        or workflowResult.get("plc_robot_sync")
         or OperationalResult(True, "info", "PLC robot sync healthy").toDict()
     )
     return workflowResult, plcRobotSyncResult
@@ -290,8 +283,7 @@ def runAllRobotWorkflowCycles(
         ok,
         level,
         "Processed workflow cycles for {} robot(s)".format(len(results)),
-        dataFields={"results": results},
-        topLevelFields={
+        dataFields={
             "results": results,
             "plc_robot_sync": plcRobotSyncResult,
         },
@@ -348,5 +340,4 @@ def runMainControllerCycle(
         level,
         "MainController cycle completed",
         dataFields=dict(results),
-        topLevelFields=results,
     ).toDict()

@@ -4,6 +4,7 @@ from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagPaths import getFleetPlacesPath
 from Otto_API.Models.Results import OperationalResult
 
+from MainController.State.PlcMappingStore import plcMappingData
 from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.Paths import plcPlaceRowPath
 
@@ -68,9 +69,10 @@ def mirrorPlcPlaces(plcMappingState=None):
     """
     if plcMappingState is None:
         plcMappingState = readPlcMappings()
-    placeMappings = plcMappingState.get("place_tag_name_to_plc_tag") or {}
+    mappingData = plcMappingData(plcMappingState)
+    placeMappings = mappingData.get("place_tag_name_to_plc_tag") or {}
 
-    if not plcMappingState.get("place_dataset_ok", True):
+    if not mappingData.get("place_dataset_ok", True):
         warningText = "Skipped PLC place sync because PlaceTagNameMapping is unreadable"
         issue = buildRuntimeIssue(
             "container_mirror.place_dataset_unreadable",
@@ -81,7 +83,7 @@ def mirrorPlcPlaces(plcMappingState=None):
         payload = {
             "rows": [],
             "writes": [],
-            "warnings": list(plcMappingState.get("warnings") or []),
+            "warnings": list(mappingData.get("warnings") or []),
             "issues": [issue],
         }
         return OperationalResult(
@@ -89,7 +91,6 @@ def mirrorPlcPlaces(plcMappingState=None):
             "warn",
             warningText,
             dataFields=payload,
-            topLevelFields=payload,
         ).toDict()
 
     if not placeMappings:
@@ -99,7 +100,6 @@ def mirrorPlcPlaces(plcMappingState=None):
             "info",
             "No PLC place rows configured",
             dataFields=payload,
-            topLevelFields=payload,
         ).toDict()
 
     fleetOccupancy = _fleetPlaceOccupancyByTagName(placeMappings.keys())
@@ -193,5 +193,4 @@ def mirrorPlcPlaces(plcMappingState=None):
         level,
         message,
         dataFields=payload,
-        topLevelFields=payload,
     ).toDict()

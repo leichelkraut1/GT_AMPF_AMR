@@ -48,9 +48,19 @@ def resolvePlcRobotTagName(fleetRobotName, mappingState=None):
 
     if mappingState is None:
         mappingState = readPlcMappings()
+    mappingData = plcMappingData(mappingState)
     return normalizeTagValue(
-        (mappingState.get("robot_name_to_plc_tag") or {}).get(fleetRobotName)
+        (mappingData.get("robot_name_to_plc_tag") or {}).get(fleetRobotName)
     )
+
+
+def plcMappingData(mappingState):
+    """Return the normalized PLC mapping payload from a mapping result or payload dict."""
+    mappingState = dict(mappingState or {})
+    data = mappingState.get("data")
+    if isinstance(data, dict):
+        return data
+    return mappingState
 
 
 def ensurePlcMappingTags():
@@ -289,7 +299,6 @@ def readPlcMappings():
         level,
         message,
         dataFields=payload,
-        topLevelFields=payload,
     ).toDict()
 
 
@@ -301,7 +310,6 @@ def _syncFleetTagRows(basePath, typeId, wantedNames, datasetOk, warnings, logger
             "warn",
             "Skipped {} row sync because mapping dataset is unreadable".format(label),
             dataFields=payload,
-            topLevelFields=payload,
         ).toDict()
 
     ensureFolder(basePath)
@@ -326,7 +334,6 @@ def _syncFleetTagRows(basePath, typeId, wantedNames, datasetOk, warnings, logger
         "info" if ok else "warn",
         "Synced {} row(s) for {}".format(len(list(wantedNames or [])), label),
         dataFields=payload,
-        topLevelFields=payload,
     ).toDict()
 
 
@@ -336,13 +343,14 @@ def syncPlcFleetTags(mappingState=None):
     ensurePlcMappingTags()
     if mappingState is None:
         mappingState = readPlcMappings()
-    warnings = list(mappingState.get("warnings") or [])
+    mappingData = plcMappingData(mappingState)
+    warnings = list(mappingData.get("warnings") or [])
 
     robotResult = _syncFleetTagRows(
         PLC_ROBOTS_BASE,
         "PLC_RobotInterface",
-        sorted(list((mappingState.get("robot_name_to_plc_tag") or {}).values())),
-        bool(mappingState.get("robot_dataset_ok")),
+        sorted(list((mappingData.get("robot_name_to_plc_tag") or {}).values())),
+        bool(mappingData.get("robot_dataset_ok")),
         warnings,
         logger,
         "PLC robot tags",
@@ -350,8 +358,8 @@ def syncPlcFleetTags(mappingState=None):
     placeResult = _syncFleetTagRows(
         PLC_PLACES_BASE,
         "PLC_PlaceInterface",
-        sorted(list((mappingState.get("place_tag_name_to_plc_tag") or {}).values())),
-        bool(mappingState.get("place_dataset_ok")),
+        sorted(list((mappingData.get("place_tag_name_to_plc_tag") or {}).values())),
+        bool(mappingData.get("place_dataset_ok")),
         warnings,
         logger,
         "PLC place tags",
@@ -368,5 +376,4 @@ def syncPlcFleetTags(mappingState=None):
         level,
         "Synced PLC Fleet tags",
         dataFields=payload,
-        topLevelFields=payload,
     ).toDict()

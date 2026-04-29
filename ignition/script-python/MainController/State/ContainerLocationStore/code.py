@@ -4,6 +4,7 @@ from Otto_API.Common.TagPaths import getContainerLocationsPath
 from Otto_API.Common.TagPaths import getFleetPlacesPath
 from Otto_API.Common.TagPaths import getFleetRobotsPath
 
+from MainController.State.PlcMappingStore import plcMappingData
 from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.Paths import plcPlaceRowPath
 from MainController.State.Paths import plcRobotRowPath
@@ -54,8 +55,9 @@ def _configuredLocations():
 def _loadContainerLocationConfig():
     """Load the configured create subset and resolve it through the current PLC mappings once."""
     mappingState = readPlcMappings()
-    robotMapping = mappingState.get("robot_name_to_plc_tag") or {}
-    placeMapping = mappingState.get("place_tag_name_to_plc_tag") or {}
+    mappingData = plcMappingData(mappingState)
+    robotMapping = mappingData.get("robot_name_to_plc_tag") or {}
+    placeMapping = mappingData.get("place_tag_name_to_plc_tag") or {}
     locations = []
 
     for row in _configuredLocations():

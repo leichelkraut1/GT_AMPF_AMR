@@ -12,6 +12,7 @@ from MainController.State.FleetStatusStore import mainPlcCommsDisplay
 from MainController.State.FleetStatusStore import phaseHealthRows
 from MainController.State.Paths import plcRobotPaths
 from MainController.State.Paths import runtimePaths
+from MainController.State.PlcMappingStore import plcMappingData
 from MainController.State.PlcMappingStore import readPlcMappings
 from Otto_API.Models.Fleet import ROBOT_NAMES
 
@@ -199,7 +200,7 @@ def subsystemHealthCards():
 
 def robotCards():
     mappingState = readPlcMappings()
-    robotNameToPlcTag = mappingState.get("robot_name_to_plc_tag") or {}
+    robotNameToPlcTag = plcMappingData(mappingState).get("robot_name_to_plc_tag") or {}
     fleetRobotsBase = getFleetRobotsPath()
     mainControlRobotsBase = getMainControlRobotsPath()
     cards = []
