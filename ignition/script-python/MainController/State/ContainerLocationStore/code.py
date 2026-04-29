@@ -13,6 +13,18 @@ from MainController.State.Paths import plcRobotRowPath
 
 CONTAINER_LOCATION_HEADERS = ["FleetLocationTagName", "Type"]
 DEFAULT_CONTAINER_TEMPLATE_PATH = "[Otto_FleetManager]Fleet/Containers/Templates/Container1"
+_LOCATION_TYPE_CONFIG = {
+    "place": {
+        "mapping_attr": "place_tag_name_to_plc_tag",
+        "row_path": plcPlaceRowPath,
+        "id_path": lambda fleetLocationTagName: getFleetPlacesPath() + "/{}/ID".format(fleetLocationTagName),
+    },
+    "robot": {
+        "mapping_attr": "robot_name_to_plc_tag",
+        "row_path": plcRobotRowPath,
+        "id_path": lambda fleetLocationTagName: getFleetRobotsPath() + "/{}/ID".format(fleetLocationTagName),
+    },
+}
 
 
 def _readDatasetRows(path, headers):
@@ -47,43 +59,37 @@ def _configuredLocations():
     return _readDatasetRows(getContainerLocationsPath(), CONTAINER_LOCATION_HEADERS)
 
 
+def _buildLocationConfig(row, mappingState):
+    fleetLocationTagName = normalizeTagValue(row.get("FleetLocationTagName"))
+    locationType = normalizeTagValue(row.get("Type")).lower()
+    typeConfig = _LOCATION_TYPE_CONFIG.get(locationType)
+    if not fleetLocationTagName or typeConfig is None:
+        return None
+
+    mapping = getattr(mappingState, typeConfig["mapping_attr"])
+    plcTagName = normalizeTagValue(mapping.get(fleetLocationTagName))
+    if not plcTagName:
+        return None
+
+    return {
+        "type": locationType,
+        "fleet_location_tag_name": fleetLocationTagName,
+        "plc_tag_name": plcTagName,
+        "row_path": typeConfig["row_path"](plcTagName),
+        "id_path": typeConfig["id_path"](fleetLocationTagName),
+    }
+
+
 def _loadContainerLocationConfig():
     """Load the configured create subset and resolve it through the current PLC mappings once."""
     mappingState = readPlcMappings()
     mappingState = PlcMappingState.fromDict(mappingState)
-    robotMapping = mappingState.robot_name_to_plc_tag
-    placeMapping = mappingState.place_tag_name_to_plc_tag
     locations = []
 
     for row in _configuredLocations():
-        fleetLocationTagName = normalizeTagValue(row.get("FleetLocationTagName"))
-        locationType = normalizeTagValue(row.get("Type")).lower()
-        if not fleetLocationTagName or locationType not in ["place", "robot"]:
-            continue
-
-        if locationType == "place":
-            plcTagName = normalizeTagValue(placeMapping.get(fleetLocationTagName))
-            if not plcTagName:
-                continue
-            locations.append({
-                "type": "place",
-                "fleet_location_tag_name": fleetLocationTagName,
-                "plc_tag_name": plcTagName,
-                "row_path": plcPlaceRowPath(plcTagName),
-                "id_path": getFleetPlacesPath() + "/{}/ID".format(fleetLocationTagName),
-            })
-            continue
-
-        plcTagName = normalizeTagValue(robotMapping.get(fleetLocationTagName))
-        if not plcTagName:
-            continue
-        locations.append({
-            "type": "robot",
-            "fleet_location_tag_name": fleetLocationTagName,
-            "plc_tag_name": plcTagName,
-            "row_path": plcRobotRowPath(plcTagName),
-            "id_path": getFleetRobotsPath() + "/{}/ID".format(fleetLocationTagName),
-        })
+        location = _buildLocationConfig(row, mappingState)
+        if location is not None:
+            locations.append(location)
 
     resolvedIds = _resolvedLocationIds(locations)
     for location in locations:
@@ -139,29 +145,12 @@ def createContainerFromSelectedRowPath(selectedRowPath, templatePath=None, logge
 
     templatePath = normalizeTagValue(templatePath) or DEFAULT_CONTAINER_TEMPLATE_PATH
     fleetLocationTagName = selectedLocation["fleet_location_tag_name"]
-    if selectedLocation["type"] == "place":
-        placeId = normalizeTagValue(selectedLocation.get("resolved_id"))
-        if not placeId:
-            logger.warn(
-                "Skipping container create for [{}] because place [{}] no longer resolves".format(
-                    selectedRowPath,
-                    fleetLocationTagName,
-                )
-            )
-            return None
-        result = Otto_API.Services.Containers.createContainerAtPlace(templatePath, placeId)
-    elif selectedLocation["type"] == "robot":
-        robotId = normalizeTagValue(selectedLocation.get("resolved_id"))
-        if not robotId:
-            logger.warn(
-                "Skipping container create for [{}] because robot [{}] no longer resolves".format(
-                    selectedRowPath,
-                    fleetLocationTagName,
-                )
-            )
-            return None
-        result = Otto_API.Services.Containers.createContainerAtRobot(templatePath, robotId)
-    else:
+    createFunctions = {
+        "place": Otto_API.Services.Containers.createContainerAtPlace,
+        "robot": Otto_API.Services.Containers.createContainerAtRobot,
+    }
+    createFunction = createFunctions.get(selectedLocation["type"])
+    if createFunction is None:
         logger.warn(
             "Skipping container create because the configured type is invalid for {}".format(
                 selectedRowPath
@@ -169,5 +158,17 @@ def createContainerFromSelectedRowPath(selectedRowPath, templatePath=None, logge
         )
         return None
 
+    locationId = normalizeTagValue(selectedLocation.get("resolved_id"))
+    if not locationId:
+        logger.warn(
+            "Skipping container create for [{}] because {} [{}] no longer resolves".format(
+                selectedRowPath,
+                selectedLocation["type"],
+                fleetLocationTagName,
+            )
+        )
+        return None
+
+    result = createFunction(templatePath, locationId)
     Otto_API.Services.Containers.updateContainers()
     return result

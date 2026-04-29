@@ -198,6 +198,30 @@ def _normalizeMappingRows(datasetRows, leftHeader, label, allowedLeftValues=None
     return mapping, warnings, issues
 
 
+def _readMappingDataset(tagResult, headers, label, issuePrefix):
+    """Read one PLC mapping dataset tag result into normalized dataset rows."""
+    if tagResult is None or not tagResult.quality.isGood():
+        warning = "{} is unreadable".format(label)
+        return [], False, [warning], [buildRuntimeIssue(
+            "plc_mapping.{}_dataset_unreadable".format(issuePrefix),
+            "MainController.State.PlcMappingStore",
+            "error",
+            warning,
+        )]
+
+    rows, errorMessage = datasetRows(tagResult.value, headers)
+    if rows is not None:
+        return rows, True, [], []
+
+    warning = "{} is invalid: {}".format(label, errorMessage)
+    return [], False, [warning], [buildRuntimeIssue(
+        "plc_mapping.{}_dataset_invalid".format(issuePrefix),
+        "MainController.State.PlcMappingStore",
+        "error",
+        warning,
+    )]
+
+
 def readPlcMappings():
     """
     Read, validate, and normalize the PLC/Fleet mapping datasets for the current cycle.
@@ -221,64 +245,20 @@ def readPlcMappings():
     robotResult = results[0] if len(results) > 0 else None
     placeResult = results[1] if len(results) > 1 else None
 
-    robotRows = []
-    placeRows = []
-    warnings = []
-    issues = []
-    robotDatasetOk = bool(robotResult is not None and robotResult.quality.isGood())
-    placeDatasetOk = bool(placeResult is not None and placeResult.quality.isGood())
-
-    if robotDatasetOk and robotResult is not None:
-        robotRows, errorMessage = datasetRows(
-            robotResult.value,
-            ROBOT_TAG_NAME_MAPPING_HEADERS,
-        )
-        if robotRows is None:
-            robotDatasetOk = False
-            warning = "RobotTagNameMapping is invalid: {}".format(errorMessage)
-            warnings.append(warning)
-            issues.append(buildRuntimeIssue(
-                "plc_mapping.robot_dataset_invalid",
-                "MainController.State.PlcMappingStore",
-                "error",
-                warning,
-            ))
-            robotRows = []
-    else:
-        warning = "RobotTagNameMapping is unreadable"
-        warnings.append(warning)
-        issues.append(buildRuntimeIssue(
-            "plc_mapping.robot_dataset_unreadable",
-            "MainController.State.PlcMappingStore",
-            "error",
-            warning,
-        ))
-
-    if placeDatasetOk and placeResult is not None:
-        placeRows, errorMessage = datasetRows(
-            placeResult.value,
-            PLACE_TAG_NAME_MAPPING_HEADERS,
-        )
-        if placeRows is None:
-            placeDatasetOk = False
-            warning = "PlaceTagNameMapping is invalid: {}".format(errorMessage)
-            warnings.append(warning)
-            issues.append(buildRuntimeIssue(
-                "plc_mapping.place_dataset_invalid",
-                "MainController.State.PlcMappingStore",
-                "error",
-                warning,
-            ))
-            placeRows = []
-    else:
-        warning = "PlaceTagNameMapping is unreadable"
-        warnings.append(warning)
-        issues.append(buildRuntimeIssue(
-            "plc_mapping.place_dataset_unreadable",
-            "MainController.State.PlcMappingStore",
-            "error",
-            warning,
-        ))
+    robotRows, robotDatasetOk, warnings, issues = _readMappingDataset(
+        robotResult,
+        ROBOT_TAG_NAME_MAPPING_HEADERS,
+        "RobotTagNameMapping",
+        "robot",
+    )
+    placeRows, placeDatasetOk, placeDatasetWarnings, placeDatasetIssues = _readMappingDataset(
+        placeResult,
+        PLACE_TAG_NAME_MAPPING_HEADERS,
+        "PlaceTagNameMapping",
+        "place",
+    )
+    warnings.extend(placeDatasetWarnings)
+    issues.extend(placeDatasetIssues)
 
     robotMappings, robotWarnings, robotIssues = _normalizeMappingRows(
         robotRows,

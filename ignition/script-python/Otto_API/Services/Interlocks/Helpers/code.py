@@ -80,25 +80,6 @@ class InterlockSyncDefinition(object):
         return self.fleet_row_path + "/" + str(leafName or "").strip()
 
 
-def buildInterlockSyncDefinition(
-    rowOrDefinition,
-    recordsByName=None,
-    instanceNameByRawName=None,
-    duplicateInfoByName=None,
-    plcSnapshotByTagName=None,
-):
-    """
-    Build one complete interlock sync definition from typed or raw inputs.
-    """
-    return coerceInterlockSyncDefinition(
-        rowOrDefinition,
-        recordsByName=recordsByName,
-        instanceNameByRawName=instanceNameByRawName,
-        duplicateInfoByName=duplicateInfoByName,
-        plcSnapshotByTagName=plcSnapshotByTagName,
-    )
-
-
 def coerceInterlockSyncDefinition(
     rowOrDefinition,
     recordsByName=None,
