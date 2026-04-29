@@ -1,4 +1,6 @@
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
+from Otto_API.Common.DatasetHelpers import datasetRows
+from Otto_API.Common.DatasetHelpers import datasetWithHeaders
 from Otto_API.Common.RecordHelpers import coerceBool
 from Otto_API.Common.TagIO import normalizeTagValue
 from Otto_API.Common.TagIO import readTagValues
@@ -60,37 +62,8 @@ def _log():
     return system.util.getLogger("Otto_API.TagSync.Interlocks.Mapping")
 
 
-def _datasetWithHeaders(headers, rows=None):
-    return system.dataset.toDataSet(list(headers or []), list(rows or []))
-
-
 def buildInterlockMappingDataset(rows=None):
-    return _datasetWithHeaders(INTERLOCK_MAPPING_HEADERS, rows)
-
-
-def _datasetRows(datasetValue, expectedHeaders):
-    if datasetValue is None or not hasattr(datasetValue, "getColumnCount"):
-        return None, "value is not a dataset"
-
-    actualHeaders = []
-    if hasattr(datasetValue, "getColumnNames"):
-        actualHeaders = [str(header or "") for header in list(datasetValue.getColumnNames() or [])]
-    else:
-        for columnIndex in range(datasetValue.getColumnCount()):
-            actualHeaders.append(str(datasetValue.getColumnName(columnIndex) or ""))
-    if list(actualHeaders) != list(expectedHeaders):
-        return None, "expected headers [{}], found [{}]".format(
-            ", ".join(list(expectedHeaders)),
-            ", ".join(actualHeaders),
-        )
-
-    rows = []
-    for rowIndex in range(datasetValue.getRowCount()):
-        row = {}
-        for header in list(expectedHeaders):
-            row[header] = datasetValue.getValueAt(rowIndex, header)
-        rows.append(row)
-    return rows, ""
+    return datasetWithHeaders(INTERLOCK_MAPPING_HEADERS, rows)
 
 
 def ensureInterlockTags():
@@ -212,7 +185,7 @@ def readInterlockMappings():
             warning,
         ))
     else:
-        configRows, errorMessage = _datasetRows(datasetResult.value, INTERLOCK_MAPPING_HEADERS)
+        configRows, errorMessage = datasetRows(datasetResult.value, INTERLOCK_MAPPING_HEADERS)
         if configRows is None:
             warning = "InterlockMapping is invalid: {}".format(errorMessage)
             warnings.append(warning)

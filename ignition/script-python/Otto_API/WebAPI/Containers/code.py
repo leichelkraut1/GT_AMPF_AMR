@@ -17,78 +17,74 @@ def _containerFieldsPayload(containerFields):
     return dict(containerFields or {})
 
 
-def buildCreateContainerPayload(containerFields, nowEpoch=None):
-    """
-    Build the JSON-RPC payload for createContainer.
-    """
+def _jsonRpcPayload(method, params, nowEpoch=None):
     if nowEpoch is None:
         nowEpoch = time.time()
 
     return {
         "id": int(nowEpoch),
         "jsonrpc": "2.0",
-        "method": "createContainer",
-        "params": {
-            "container": _containerFieldsPayload(containerFields)
-        }
+        "method": method,
+        "params": dict(params or {}),
     }
+
+
+def buildCreateContainerPayload(containerFields, nowEpoch=None):
+    """
+    Build the JSON-RPC payload for createContainer.
+    """
+    return _jsonRpcPayload(
+        "createContainer",
+        {
+            "container": _containerFieldsPayload(containerFields)
+        },
+        nowEpoch=nowEpoch,
+    )
 
 
 def buildUpdateContainerPlacePayload(containerId, placeId, nowEpoch=None):
     """
     Build the JSON-RPC payload for updateContainer(place=<placeId>).
     """
-    if nowEpoch is None:
-        nowEpoch = time.time()
-
-    return {
-        "id": int(nowEpoch),
-        "jsonrpc": "2.0",
-        "method": "updateContainer",
-        "params": {
+    return _jsonRpcPayload(
+        "updateContainer",
+        {
             "fields": {
                 "place": placeId
             },
             "id": containerId
-        }
-    }
+        },
+        nowEpoch=nowEpoch,
+    )
 
 
 def buildUpdateContainerRobotPayload(containerId, robotId, nowEpoch=None):
     """
     Build the JSON-RPC payload for updateContainer(robot=<robotId>).
     """
-    if nowEpoch is None:
-        nowEpoch = time.time()
-
-    return {
-        "id": int(nowEpoch),
-        "jsonrpc": "2.0",
-        "method": "updateContainer",
-        "params": {
+    return _jsonRpcPayload(
+        "updateContainer",
+        {
             "fields": {
                 "robot": robotId
             },
             "id": containerId
-        }
-    }
+        },
+        nowEpoch=nowEpoch,
+    )
 
 
 def buildDeleteContainerPayload(containerId, nowEpoch=None):
     """
     Build the JSON-RPC payload for deleteContainer.
     """
-    if nowEpoch is None:
-        nowEpoch = time.time()
-
-    return {
-        "id": int(nowEpoch),
-        "jsonrpc": "2.0",
-        "method": "deleteContainer",
-        "params": {
+    return _jsonRpcPayload(
+        "deleteContainer",
+        {
             "id": containerId
-        }
-    }
+        },
+        nowEpoch=nowEpoch,
+    )
 
 
 def interpretCreateContainerResponse(responseText):
@@ -310,6 +306,24 @@ def _applyContainerLocationTarget(containerFields, locationTarget):
     return containerFields.withPlace(locationTarget.value)
 
 
+def _postJsonRpcPayload(operationsUrl, payload, postFunc):
+    return postFunc(
+        url=operationsUrl,
+        postData=system.util.jsonEncode(payload),
+    )
+
+
+def _resultFromLogLevel(_result, logLevel, message, response, payload, **fields):
+    return _result(
+        ok=(logLevel == "info"),
+        level=logLevel,
+        message=message,
+        responseText=response,
+        payload=payload,
+        **fields
+    )
+
+
 def fetchContainers(apiBaseUrl, getFunc=httpGet):
     """
     Fetch OTTO container records.
@@ -358,20 +372,16 @@ def postCreateContainer(containerFields, operationsUrl, postFunc=httpPost):
     try:
         containerFields = ContainerCreateFields.fromDict(containerFields)
         payload = buildCreateContainerPayload(containerFields)
-        jsonBody = system.util.jsonEncode(payload)
-        response = postFunc(
-            url=operationsUrl,
-            postData=jsonBody,
-        )
+        response = _postJsonRpcPayload(operationsUrl, payload, postFunc)
 
         logLevel, message, containerId = interpretCreateContainerResponse(response)
-        return _result(
-            ok=(logLevel == "info"),
-            level=logLevel,
-            message=message,
+        return _resultFromLogLevel(
+            _result,
+            logLevel,
+            message,
+            response,
+            payload,
             containerId=containerId,
-            responseText=response,
-            payload=payload,
         )
     except Exception as e:
         return _result(
@@ -422,20 +432,10 @@ def postUpdateContainerPlace(containerId, placeId, operationsUrl, postFunc=httpP
 
     try:
         payload = buildUpdateContainerPlacePayload(containerId, placeId)
-        jsonBody = system.util.jsonEncode(payload)
-        response = postFunc(
-            url=operationsUrl,
-            postData=jsonBody,
-        )
+        response = _postJsonRpcPayload(operationsUrl, payload, postFunc)
 
         logLevel, message = interpretUpdateContainerPlaceResponse(response, containerId, placeId)
-        return _result(
-            ok=(logLevel == "info"),
-            level=logLevel,
-            message=message,
-            responseText=response,
-            payload=payload,
-        )
+        return _resultFromLogLevel(_result, logLevel, message, response, payload)
     except Exception as e:
         return _result(
             False,
@@ -457,20 +457,10 @@ def postUpdateContainerRobot(containerId, robotId, operationsUrl, postFunc=httpP
 
     try:
         payload = buildUpdateContainerRobotPayload(containerId, robotId)
-        jsonBody = system.util.jsonEncode(payload)
-        response = postFunc(
-            url=operationsUrl,
-            postData=jsonBody,
-        )
+        response = _postJsonRpcPayload(operationsUrl, payload, postFunc)
 
         logLevel, message = interpretUpdateContainerRobotResponse(response, containerId, robotId)
-        return _result(
-            ok=(logLevel == "info"),
-            level=logLevel,
-            message=message,
-            responseText=response,
-            payload=payload,
-        )
+        return _resultFromLogLevel(_result, logLevel, message, response, payload)
     except Exception as e:
         return _result(
             False,
@@ -490,20 +480,10 @@ def postDeleteContainer(containerId, operationsUrl, postFunc=httpPost):
 
     try:
         payload = buildDeleteContainerPayload(containerId)
-        jsonBody = system.util.jsonEncode(payload)
-        response = postFunc(
-            url=operationsUrl,
-            postData=jsonBody,
-        )
+        response = _postJsonRpcPayload(operationsUrl, payload, postFunc)
 
         logLevel, message = interpretDeleteContainerResponse(response, containerId)
-        return _result(
-            ok=(logLevel == "info"),
-            level=logLevel,
-            message=message,
-            responseText=response,
-            payload=payload,
-        )
+        return _resultFromLogLevel(_result, logLevel, message, response, payload)
     except Exception as e:
         return _result(
             False,

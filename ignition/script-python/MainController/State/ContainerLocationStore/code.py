@@ -1,3 +1,4 @@
+from Otto_API.Common.DatasetHelpers import datasetRows
 from Otto_API.Common.TagIO import normalizeTagValue
 from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagPaths import getContainerLocationsPath
@@ -14,20 +15,14 @@ CONTAINER_LOCATION_HEADERS = ["FleetLocationTagName", "Type"]
 DEFAULT_CONTAINER_TEMPLATE_PATH = "[Otto_FleetManager]Fleet/Containers/Templates/Container1"
 
 
-def _datasetRows(path, headers):
+def _readDatasetRows(path, headers):
     """Read one dataset tag and return normalized rows keyed by the requested headers."""
     result = readTagValues([path])[0]
     if not result.quality.isGood() or not hasattr(result.value, "getRowCount"):
         return []
 
-    dataset = result.value
-    rows = []
-    for rowIndex in range(dataset.getRowCount()):
-        row = {}
-        for header in list(headers or []):
-            row[header] = normalizeTagValue(dataset.getValueAt(rowIndex, header))
-        rows.append(row)
-    return rows
+    rows, _errorMessage = datasetRows(result.value, headers, normalizeTagValue)
+    return list(rows or [])
 
 
 def _resolvedLocationIds(locations):
@@ -49,7 +44,7 @@ def _resolvedLocationIds(locations):
 
 def _configuredLocations():
     """Read the configured Fleet location subset that should appear in the create dropdown."""
-    return _datasetRows(getContainerLocationsPath(), CONTAINER_LOCATION_HEADERS)
+    return _readDatasetRows(getContainerLocationsPath(), CONTAINER_LOCATION_HEADERS)
 
 
 def _loadContainerLocationConfig():

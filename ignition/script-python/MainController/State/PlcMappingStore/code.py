@@ -1,4 +1,6 @@
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
+from Otto_API.Common.DatasetHelpers import datasetRows
+from Otto_API.Common.DatasetHelpers import datasetWithHeaders
 from Otto_API.Common.SyncHelpers import cleanupStaleUdtInstances
 from Otto_API.Common.TagIO import normalizeTagValue
 from Otto_API.Common.TagIO import readTagValues
@@ -95,21 +97,17 @@ def _log():
     return system.util.getLogger("MainController.State.PlcMappingStore")
 
 
-def _datasetWithHeaders(headers, rows=None):
-    return system.dataset.toDataSet(list(headers or []), list(rows or []))
-
-
 def buildRobotTagNameMappingDataset():
     """Build the default robot mapping dataset with identity mappings for every configured robot."""
     rows = []
     for robotName in list(ROBOT_NAMES or []):
         rows.append([robotName, robotName])
-    return _datasetWithHeaders(ROBOT_TAG_NAME_MAPPING_HEADERS, rows)
+    return datasetWithHeaders(ROBOT_TAG_NAME_MAPPING_HEADERS, rows)
 
 
 def buildPlaceTagNameMappingDataset():
     """Build the default empty place mapping dataset."""
-    return _datasetWithHeaders(PLACE_TAG_NAME_MAPPING_HEADERS, [])
+    return datasetWithHeaders(PLACE_TAG_NAME_MAPPING_HEADERS, [])
 
 
 def resolvePlcRobotTagName(fleetRobotName, mappingState=None):
@@ -141,32 +139,6 @@ def ensurePlcMappingTags():
         "DataSet",
         buildPlaceTagNameMappingDataset(),
     )
-
-
-def _datasetRows(datasetValue, expectedHeaders):
-    """Return raw dataset rows when the value is a dataset with the expected headers."""
-    if datasetValue is None or not hasattr(datasetValue, "getColumnCount"):
-        return None, "value is not a dataset"
-
-    actualHeaders = []
-    if hasattr(datasetValue, "getColumnNames"):
-        actualHeaders = [str(header or "") for header in list(datasetValue.getColumnNames() or [])]
-    else:
-        for columnIndex in range(datasetValue.getColumnCount()):
-            actualHeaders.append(str(datasetValue.getColumnName(columnIndex) or ""))
-    if list(actualHeaders) != list(expectedHeaders):
-        return None, "expected headers [{}], found [{}]".format(
-            ", ".join(list(expectedHeaders)),
-            ", ".join(actualHeaders),
-        )
-
-    rows = []
-    for rowIndex in range(datasetValue.getRowCount()):
-        row = {}
-        for header in list(expectedHeaders):
-            row[header] = datasetValue.getValueAt(rowIndex, header)
-        rows.append(row)
-    return rows, ""
 
 
 def _normalizeMappingRows(datasetRows, leftHeader, label, allowedLeftValues=None):
@@ -257,7 +229,7 @@ def readPlcMappings():
     placeDatasetOk = bool(placeResult is not None and placeResult.quality.isGood())
 
     if robotDatasetOk and robotResult is not None:
-        robotRows, errorMessage = _datasetRows(
+        robotRows, errorMessage = datasetRows(
             robotResult.value,
             ROBOT_TAG_NAME_MAPPING_HEADERS,
         )
@@ -283,7 +255,7 @@ def readPlcMappings():
         ))
 
     if placeDatasetOk and placeResult is not None:
-        placeRows, errorMessage = _datasetRows(
+        placeRows, errorMessage = datasetRows(
             placeResult.value,
             PLACE_TAG_NAME_MAPPING_HEADERS,
         )
