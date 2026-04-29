@@ -5,6 +5,7 @@ from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagProvisioning import ensureFolder
 from Otto_API.Common.TagProvisioning import ensureMemoryTag
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
+from Otto_API.Models.Results import OperationHealth
 from Otto_API.Models.Results import OperationalResult
 
 from MainController.State.Paths import PLC_PLACES_BASE
@@ -17,6 +18,77 @@ from MainController.State.Paths import ROBOT_NAMES
 
 ROBOT_TAG_NAME_MAPPING_HEADERS = ["FleetRobotName", "PlcTagName"]
 PLACE_TAG_NAME_MAPPING_HEADERS = ["PlaceTagName", "PlcTagName"]
+
+
+class PlcMappingState(OperationHealth):
+    def __init__(
+        self,
+        ok=True,
+        level="info",
+        message="",
+        robotNameToPlcTag=None,
+        plcRobotTagToRobotName=None,
+        placeTagNameToPlcTag=None,
+        plcPlaceTagToPlaceTagName=None,
+        warnings=None,
+        issues=None,
+        robotDatasetOk=True,
+        placeDatasetOk=True,
+    ):
+        OperationHealth.__init__(self, ok, level, message, warnings, issues)
+        self.robot_name_to_plc_tag = dict(robotNameToPlcTag or {})
+        self.plc_robot_tag_to_robot_name = dict(plcRobotTagToRobotName or {})
+        self.place_tag_name_to_plc_tag = dict(placeTagNameToPlcTag or {})
+        self.plc_place_tag_to_place_tag_name = dict(plcPlaceTagToPlaceTagName or {})
+        self.robot_dataset_ok = bool(robotDatasetOk)
+        self.place_dataset_ok = bool(placeDatasetOk)
+
+    @classmethod
+    def fromDict(cls, mappingState):
+        if isinstance(mappingState, cls):
+            return mappingState
+        mappingState = dict(mappingState or {})
+        data = mappingState.get("data")
+        if isinstance(data, dict):
+            payload = dict(data or {})
+            payload["ok"] = mappingState.get("ok")
+            payload["level"] = mappingState.get("level")
+            payload["message"] = mappingState.get("message")
+        else:
+            payload = mappingState
+
+        warnings = list(payload.get("warnings") or [])
+        robotDatasetOk = bool(payload.get("robot_dataset_ok", True))
+        placeDatasetOk = bool(payload.get("place_dataset_ok", True))
+        ok = payload.get("ok")
+        if ok is None:
+            ok = robotDatasetOk and placeDatasetOk and not warnings
+
+        return cls(
+            ok,
+            payload.get("level") or ("info" if ok else "warn"),
+            payload.get("message") or "",
+            robotNameToPlcTag=payload.get("robot_name_to_plc_tag"),
+            plcRobotTagToRobotName=payload.get("plc_robot_tag_to_robot_name"),
+            placeTagNameToPlcTag=payload.get("place_tag_name_to_plc_tag"),
+            plcPlaceTagToPlaceTagName=payload.get("plc_place_tag_to_place_tag_name"),
+            warnings=warnings,
+            issues=payload.get("issues"),
+            robotDatasetOk=robotDatasetOk,
+            placeDatasetOk=placeDatasetOk,
+        )
+
+    def toDict(self):
+        data = self.healthDict()
+        data.update({
+            "robot_name_to_plc_tag": dict(self.robot_name_to_plc_tag or {}),
+            "plc_robot_tag_to_robot_name": dict(self.plc_robot_tag_to_robot_name or {}),
+            "place_tag_name_to_plc_tag": dict(self.place_tag_name_to_plc_tag or {}),
+            "plc_place_tag_to_place_tag_name": dict(self.plc_place_tag_to_place_tag_name or {}),
+            "robot_dataset_ok": self.robot_dataset_ok,
+            "place_dataset_ok": self.place_dataset_ok,
+        })
+        return data
 
 
 def _log():
@@ -48,19 +120,10 @@ def resolvePlcRobotTagName(fleetRobotName, mappingState=None):
 
     if mappingState is None:
         mappingState = readPlcMappings()
-    mappingData = plcMappingData(mappingState)
+    mappingState = PlcMappingState.fromDict(mappingState)
     return normalizeTagValue(
-        (mappingData.get("robot_name_to_plc_tag") or {}).get(fleetRobotName)
+        mappingState.robot_name_to_plc_tag.get(fleetRobotName)
     )
-
-
-def plcMappingData(mappingState):
-    """Return the normalized PLC mapping payload from a mapping result or payload dict."""
-    mappingState = dict(mappingState or {})
-    data = mappingState.get("data")
-    if isinstance(data, dict):
-        return data
-    return mappingState
 
 
 def ensurePlcMappingTags():
@@ -167,7 +230,7 @@ def readPlcMappings():
     """
     Read, validate, and normalize the PLC/Fleet mapping datasets for the current cycle.
 
-    Returned result/data shape:
+    Returned state shape:
     - robot_name_to_plc_tag: Fleet robot name -> PLC robot row tag name
     - plc_robot_tag_to_robot_name: reverse lookup of the above
     - place_tag_name_to_plc_tag: Fleet place tag name -> PLC place row tag name
@@ -176,8 +239,8 @@ def readPlcMappings():
     - place_dataset_ok: whether PlaceTagNameMapping was readable and structurally valid
     - warnings: non-fatal issues such as blank rows, unknown names, or duplicate remaps
 
-    Controller code passes this dict through several layers as plcMappingState, so this docstring is
-    the contract for what callers may safely expect to exist.
+    Controller code passes this typed state through several layers as plcMappingState, so this
+    docstring is the contract for what callers may safely expect to exist.
     """
     results = readTagValues([
         plcRobotTagNameMappingPath(),
@@ -284,22 +347,19 @@ def readPlcMappings():
         for placeTagName, plcTagName in placeMappings.items()
     ])
 
-    payload = {
-        "robot_name_to_plc_tag": robotMappings,
-        "plc_robot_tag_to_robot_name": plcRobotTagToRobotName,
-        "place_tag_name_to_plc_tag": placeMappings,
-        "plc_place_tag_to_place_tag_name": plcPlaceTagToPlaceName,
-        "warnings": warnings,
-        "issues": issues,
-        "robot_dataset_ok": robotDatasetOk,
-        "place_dataset_ok": placeDatasetOk,
-    }
-    return OperationalResult(
+    return PlcMappingState(
         ok,
         level,
         message,
-        dataFields=payload,
-    ).toDict()
+        robotNameToPlcTag=robotMappings,
+        plcRobotTagToRobotName=plcRobotTagToRobotName,
+        placeTagNameToPlcTag=placeMappings,
+        plcPlaceTagToPlaceTagName=plcPlaceTagToPlaceName,
+        warnings=warnings,
+        issues=issues,
+        robotDatasetOk=robotDatasetOk,
+        placeDatasetOk=placeDatasetOk,
+    )
 
 
 def _syncFleetTagRows(basePath, typeId, wantedNames, datasetOk, warnings, logger, label):
@@ -343,14 +403,14 @@ def syncPlcFleetTags(mappingState=None):
     ensurePlcMappingTags()
     if mappingState is None:
         mappingState = readPlcMappings()
-    mappingData = plcMappingData(mappingState)
-    warnings = list(mappingData.get("warnings") or [])
+    mappingState = PlcMappingState.fromDict(mappingState)
+    warnings = list(mappingState.warnings or [])
 
     robotResult = _syncFleetTagRows(
         PLC_ROBOTS_BASE,
         "PLC_RobotInterface",
-        sorted(list((mappingData.get("robot_name_to_plc_tag") or {}).values())),
-        bool(mappingData.get("robot_dataset_ok")),
+        sorted(list((mappingState.robot_name_to_plc_tag or {}).values())),
+        bool(mappingState.robot_dataset_ok),
         warnings,
         logger,
         "PLC robot tags",
@@ -358,8 +418,8 @@ def syncPlcFleetTags(mappingState=None):
     placeResult = _syncFleetTagRows(
         PLC_PLACES_BASE,
         "PLC_PlaceInterface",
-        sorted(list((mappingData.get("place_tag_name_to_plc_tag") or {}).values())),
-        bool(mappingData.get("place_dataset_ok")),
+        sorted(list((mappingState.place_tag_name_to_plc_tag or {}).values())),
+        bool(mappingState.place_dataset_ok),
         warnings,
         logger,
         "PLC place tags",

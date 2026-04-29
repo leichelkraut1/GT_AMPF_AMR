@@ -11,7 +11,34 @@ def _typedValueToData(value):
     return value
 
 
-class OperationalResult(object):
+class OperationHealth(object):
+    def __init__(self, ok, level, message, warnings=None, issues=None):
+        self.ok = bool(ok)
+        self.level = str(level or "").strip()
+        self.message = str(message or "")
+        self.warnings = list(warnings or [])
+        self.issues = list(issues or [])
+
+    def isError(self):
+        return str(self.level or "").lower() == "error"
+
+    def isWarn(self):
+        return str(self.level or "").lower() == "warn"
+
+    def isHealthy(self):
+        return bool(self.ok)
+
+    def healthDict(self):
+        return {
+            "ok": self.ok,
+            "level": self.level,
+            "message": self.message,
+            "warnings": _typedValueToData(self.warnings),
+            "issues": _typedValueToData(self.issues),
+        }
+
+
+class OperationalResult(OperationHealth):
     def __init__(
         self,
         ok,
@@ -21,9 +48,7 @@ class OperationalResult(object):
         dataFields=None,
         sharedFields=None,
     ):
-        self.ok = bool(ok)
-        self.level = str(level or "").strip()
-        self.message = str(message or "")
+        OperationHealth.__init__(self, ok, level, message)
         self._typed_field_names = []
         self._data_field_names = []
         self._shared_field_names = []
@@ -61,15 +86,6 @@ class OperationalResult(object):
             result.get("message"),
             dataFields=result.get("data"),
         )
-
-    def isError(self):
-        return str(self.level or "").lower() == "error"
-
-    def isWarn(self):
-        return str(self.level or "").lower() == "warn"
-
-    def isHealthy(self):
-        return bool(self.ok)
 
     def _serializedSharedFields(self):
         fields = {}

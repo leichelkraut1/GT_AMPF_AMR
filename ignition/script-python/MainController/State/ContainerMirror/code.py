@@ -4,7 +4,7 @@ from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagPaths import getFleetPlacesPath
 from Otto_API.Models.Results import OperationalResult
 
-from MainController.State.PlcMappingStore import plcMappingData
+from MainController.State.PlcMappingStore import PlcMappingState
 from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.Paths import plcPlaceRowPath
 
@@ -69,10 +69,10 @@ def mirrorPlcPlaces(plcMappingState=None):
     """
     if plcMappingState is None:
         plcMappingState = readPlcMappings()
-    mappingData = plcMappingData(plcMappingState)
-    placeMappings = mappingData.get("place_tag_name_to_plc_tag") or {}
+    plcMappingState = PlcMappingState.fromDict(plcMappingState)
+    placeMappings = plcMappingState.place_tag_name_to_plc_tag
 
-    if not mappingData.get("place_dataset_ok", True):
+    if not plcMappingState.place_dataset_ok:
         warningText = "Skipped PLC place sync because PlaceTagNameMapping is unreadable"
         issue = buildRuntimeIssue(
             "container_mirror.place_dataset_unreadable",
@@ -83,7 +83,7 @@ def mirrorPlcPlaces(plcMappingState=None):
         payload = {
             "rows": [],
             "writes": [],
-            "warnings": list(mappingData.get("warnings") or []),
+            "warnings": list(plcMappingState.warnings or []),
             "issues": [issue],
         }
         return OperationalResult(

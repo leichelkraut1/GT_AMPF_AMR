@@ -3,7 +3,7 @@ import time
 from Otto_API.AttachmentPhase import buildMissionControlFlags
 from MainController.State.MissionStore import readActiveMissionSummary
 from MainController.State.MissionStore import readRobotMirrorInputs
-from MainController.State.PlcMappingStore import plcMappingData
+from MainController.State.PlcMappingStore import PlcMappingState
 from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.PlcStore import readPlcInputs
 from MainController.State.RobotStore import readRobotState
@@ -17,8 +17,8 @@ _DEFAULT_PENDING_CREATE_TIMEOUT_MS = 30000
 
 def _resolveRobotPlcTagName(robotName, plcMappingState):
     """Resolve one robot's PLC row name from the already-read mapping state."""
-    mappingData = plcMappingData(plcMappingState)
-    return str(dict(mappingData.get("robot_name_to_plc_tag") or {}).get(robotName) or "")
+    plcMappingState = PlcMappingState.fromDict(plcMappingState)
+    return str((plcMappingState.robot_name_to_plc_tag or {}).get(robotName) or "")
 
 
 def _pendingCreateTimeoutMs():
@@ -53,7 +53,7 @@ def readRobotCycleSnapshot(
     plcTagName = _resolveRobotPlcTagName(robotName, plcMappingState)
     if not plcTagName:
         mappingFaultReason = "plc_robot_mapping_missing"
-        if not plcMappingData(plcMappingState).get("robot_dataset_ok", True):
+        if not PlcMappingState.fromDict(plcMappingState).robot_dataset_ok:
             mappingFaultReason = "plc_robot_mapping_unreadable"
     else:
         mappingFaultReason = ""

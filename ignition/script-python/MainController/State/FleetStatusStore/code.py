@@ -1,7 +1,7 @@
 from Otto_API.Common.TagIO import normalizeTagValue
 from Otto_API.Common.TagIO import readTagValues
 
-from MainController.State.PlcMappingStore import plcMappingData
+from MainController.State.PlcMappingStore import PlcMappingState
 from MainController.State.PlcMappingStore import readPlcMappings
 
 
@@ -73,9 +73,9 @@ def _loadFleetStatusModel(robotName="AMPF_AMR_RV1"):
     """Load one shared model for FleetStatus cards and tables."""
     robotName = normalizeTagValue(robotName) or "AMPF_AMR_RV1"
     mappingState = readPlcMappings()
-    mappingData = plcMappingData(mappingState)
+    mappingState = PlcMappingState.fromDict(mappingState)
     plcTagName = normalizeTagValue(
-        (mappingData.get("robot_name_to_plc_tag") or {}).get(robotName)
+        mappingState.robot_name_to_plc_tag.get(robotName)
     )
 
     paths = []
