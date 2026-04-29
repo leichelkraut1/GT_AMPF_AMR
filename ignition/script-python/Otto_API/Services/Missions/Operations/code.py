@@ -19,16 +19,32 @@ def _log():
     return system.util.getLogger("Otto_API.Services.Missions.Operations")
 
 
+class MissionOperationResult(OperationalResult):
+    def __init__(self, ok, level, message, missionId=None, responseText=None, payload=None):
+        self.mission_id = missionId
+        self.response_text = responseText
+        self.payload = payload
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            dataFields={
+                "mission_id": self.mission_id,
+                "response_text": self.response_text,
+                "payload": self.payload,
+            },
+        )
+
+
 def _buildResult(ok, level, message, missionId=None, responseText=None, payload=None):
-    return OperationalResult(
+    return MissionOperationResult(
         ok,
         level,
         message,
-        dataFields={
-            "mission_id": missionId,
-            "response_text": responseText,
-            "payload": payload,
-        },
+        missionId=missionId,
+        responseText=responseText,
+        payload=payload,
     ).toDict()
 
 

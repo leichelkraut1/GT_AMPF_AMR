@@ -24,6 +24,42 @@ def _writeResponseAndLogResult(result, logger):
     return logOperationResult(result.toDict(), logger)
 
 
+class ContainerOperationResult(OperationalResult):
+    def __init__(
+        self,
+        ok,
+        level,
+        message,
+        containerId=None,
+        placeId=None,
+        robotId=None,
+        responseText=None,
+        payload=None,
+        extraData=None,
+    ):
+        self.container_id = containerId
+        self.place_id = placeId
+        self.robot_id = robotId
+        self.response_text = responseText
+        self.payload = payload
+
+        dataFields = {
+            "container_id": self.container_id,
+            "place_id": self.place_id,
+            "robot_id": self.robot_id,
+            "response_text": self.response_text,
+            "payload": self.payload,
+        }
+        dataFields.update(dict(extraData or {}))
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            dataFields=dataFields,
+        )
+
+
 def _containerResult(
     ok,
     level,
@@ -35,15 +71,17 @@ def _containerResult(
     payload=None,
     extraData=None,
 ):
-    dataFields = {
-        "container_id": containerId,
-        "place_id": placeId,
-        "robot_id": robotId,
-        "response_text": responseText,
-        "payload": payload,
-    }
-    dataFields.update(dict(extraData or {}))
-    return OperationalResult(ok, level, message, dataFields=dataFields)
+    return ContainerOperationResult(
+        ok,
+        level,
+        message,
+        containerId=containerId,
+        placeId=placeId,
+        robotId=robotId,
+        responseText=responseText,
+        payload=payload,
+        extraData=extraData,
+    )
 
 
 def _runCreateFromTagPath(containerTagPath, targetLabel, targetId, createFunc):
