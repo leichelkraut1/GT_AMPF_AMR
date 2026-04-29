@@ -48,9 +48,8 @@ def resolvePlcRobotTagName(fleetRobotName, mappingState=None):
 
     if mappingState is None:
         mappingState = readPlcMappings()
-    mappingState = dict(mappingState or {})
     return normalizeTagValue(
-        dict(mappingState.get("robot_name_to_plc_tag") or {}).get(fleetRobotName)
+        (mappingState.get("robot_name_to_plc_tag") or {}).get(fleetRobotName)
     )
 
 
@@ -184,7 +183,7 @@ def readPlcMappings():
     robotDatasetOk = bool(robotResult is not None and robotResult.quality.isGood())
     placeDatasetOk = bool(placeResult is not None and placeResult.quality.isGood())
 
-    if robotDatasetOk:
+    if robotDatasetOk and robotResult is not None:
         robotRows, errorMessage = _datasetRows(
             robotResult.value,
             ROBOT_TAG_NAME_MAPPING_HEADERS,
@@ -210,7 +209,7 @@ def readPlcMappings():
             warning,
         ))
 
-    if placeDatasetOk:
+    if placeDatasetOk and placeResult is not None:
         placeRows, errorMessage = _datasetRows(
             placeResult.value,
             PLACE_TAG_NAME_MAPPING_HEADERS,
@@ -266,24 +265,33 @@ def readPlcMappings():
     elif not ok:
         message = "PLC FleetMapping degraded"
 
+    plcRobotTagToRobotName = dict([
+        (plcTagName, robotName)
+        for robotName, plcTagName in robotMappings.items()
+    ])
+    plcPlaceTagToPlaceName = dict([
+        (plcTagName, placeTagName)
+        for placeTagName, plcTagName in placeMappings.items()
+    ])
+
     return buildOperationResult(
         ok,
         level,
         message,
         data={
             "robot_name_to_plc_tag": robotMappings,
-            "plc_robot_tag_to_robot_name": dict([(plcTagName, robotName) for robotName, plcTagName in robotMappings.items()]),
+            "plc_robot_tag_to_robot_name": plcRobotTagToRobotName,
             "place_tag_name_to_plc_tag": placeMappings,
-            "plc_place_tag_to_place_tag_name": dict([(plcTagName, placeTagName) for placeTagName, plcTagName in placeMappings.items()]),
+            "plc_place_tag_to_place_tag_name": plcPlaceTagToPlaceName,
             "warnings": warnings,
             "issues": issues,
             "robot_dataset_ok": robotDatasetOk,
             "place_dataset_ok": placeDatasetOk,
         },
         robot_name_to_plc_tag=robotMappings,
-        plc_robot_tag_to_robot_name=dict([(plcTagName, robotName) for robotName, plcTagName in robotMappings.items()]),
+        plc_robot_tag_to_robot_name=plcRobotTagToRobotName,
         place_tag_name_to_plc_tag=placeMappings,
-        plc_place_tag_to_place_tag_name=dict([(plcTagName, placeTagName) for placeTagName, plcTagName in placeMappings.items()]),
+        plc_place_tag_to_place_tag_name=plcPlaceTagToPlaceName,
         warnings=warnings,
         issues=issues,
         robot_dataset_ok=robotDatasetOk,
@@ -329,13 +337,14 @@ def syncPlcFleetTags(mappingState=None):
     """Make PLC/Robots and PLC/Places match the validated PLC/Fleet mapping datasets exactly."""
     logger = _log()
     ensurePlcMappingTags()
-    mappingState = dict(mappingState or readPlcMappings() or {})
+    if mappingState is None:
+        mappingState = readPlcMappings()
     warnings = list(mappingState.get("warnings") or [])
 
     robotResult = _syncFleetTagRows(
         PLC_ROBOTS_BASE,
         "PLC_RobotInterface",
-        sorted(list(dict(mappingState.get("robot_name_to_plc_tag") or {}).values())),
+        sorted(list((mappingState.get("robot_name_to_plc_tag") or {}).values())),
         bool(mappingState.get("robot_dataset_ok")),
         warnings,
         logger,
@@ -344,7 +353,7 @@ def syncPlcFleetTags(mappingState=None):
     placeResult = _syncFleetTagRows(
         PLC_PLACES_BASE,
         "PLC_PlaceInterface",
-        sorted(list(dict(mappingState.get("place_tag_name_to_plc_tag") or {}).values())),
+        sorted(list((mappingState.get("place_tag_name_to_plc_tag") or {}).values())),
         bool(mappingState.get("place_dataset_ok")),
         warnings,
         logger,

@@ -66,8 +66,9 @@ def mirrorPlcPlaces(plcMappingState=None):
     Mirror Fleet place occupancy into mapped PLC/Places rows.
     Unresolved place mappings are warned and skipped so last-good values remain.
     """
-    plcMappingState = dict(plcMappingState or readPlcMappings() or {})
-    placeMappings = dict(plcMappingState.get("place_tag_name_to_plc_tag") or {})
+    if plcMappingState is None:
+        plcMappingState = readPlcMappings()
+    placeMappings = plcMappingState.get("place_tag_name_to_plc_tag") or {}
 
     if not plcMappingState.get("place_dataset_ok", True):
         warningText = "Skipped PLC place sync because PlaceTagNameMapping is unreadable"
@@ -134,7 +135,10 @@ def mirrorPlcPlaces(plcMappingState=None):
 
         placeOccupancy = fleetOccupancy.get(placeTagName)
         if placeOccupancy is None:
-            warning = "PLC place mapping [{} -> {}] did not resolve to a live Fleet place; holding last good value".format(
+            warning = (
+                "PLC place mapping [{} -> {}] did not resolve to a live "
+                "Fleet place; holding last good value"
+            ).format(
                 placeTagName,
                 plcTagName,
             )

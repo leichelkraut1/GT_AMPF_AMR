@@ -5,14 +5,46 @@ from MainController.State.PlcMappingStore import readPlcMappings
 
 
 RUNTIME_PHASE_ROWS = [
-    ("Fleet Server API", "[Otto_FleetManager]MainControl/Runtime/ServerStatusStatus", "[Otto_FleetManager]MainControl/Runtime/ServerStatusMessage"),
-    ("Robot Sync", "[Otto_FleetManager]MainControl/Runtime/RobotStateStatus", "[Otto_FleetManager]MainControl/Runtime/RobotStateMessage"),
-    ("Container Sync", "[Otto_FleetManager]MainControl/Runtime/ContainerStateStatus", "[Otto_FleetManager]MainControl/Runtime/ContainerStateMessage"),
-    ("Interlock Sync", "[Otto_FleetManager]MainControl/Runtime/InterlockSyncStatus", "[Otto_FleetManager]MainControl/Runtime/InterlockSyncMessage"),
-    ("PLC Place Fleet Sync", "[Otto_FleetManager]MainControl/Runtime/PLCPlaceFleetSyncStatus", "[Otto_FleetManager]MainControl/Runtime/PLCPlaceFleetSyncMessage"),
-    ("PLC Robot Fleet Sync", "[Otto_FleetManager]MainControl/Runtime/PLCRobotFleetSyncStatus", "[Otto_FleetManager]MainControl/Runtime/PLCRobotFleetSyncMessage"),
-    ("Mission Sorting", "[Otto_FleetManager]MainControl/Runtime/MissionSortingStatus", "[Otto_FleetManager]MainControl/Runtime/MissionSortingMessage"),
-    ("Workflow Cycles", "[Otto_FleetManager]MainControl/Runtime/WorkflowCyclesStatus", "[Otto_FleetManager]MainControl/Runtime/WorkflowCyclesMessage"),
+    (
+        "Fleet Server API",
+        "[Otto_FleetManager]MainControl/Runtime/ServerStatusStatus",
+        "[Otto_FleetManager]MainControl/Runtime/ServerStatusMessage",
+    ),
+    (
+        "Robot Sync",
+        "[Otto_FleetManager]MainControl/Runtime/RobotStateStatus",
+        "[Otto_FleetManager]MainControl/Runtime/RobotStateMessage",
+    ),
+    (
+        "Container Sync",
+        "[Otto_FleetManager]MainControl/Runtime/ContainerStateStatus",
+        "[Otto_FleetManager]MainControl/Runtime/ContainerStateMessage",
+    ),
+    (
+        "Interlock Sync",
+        "[Otto_FleetManager]MainControl/Runtime/InterlockSyncStatus",
+        "[Otto_FleetManager]MainControl/Runtime/InterlockSyncMessage",
+    ),
+    (
+        "PLC Place Fleet Sync",
+        "[Otto_FleetManager]MainControl/Runtime/PLCPlaceFleetSyncStatus",
+        "[Otto_FleetManager]MainControl/Runtime/PLCPlaceFleetSyncMessage",
+    ),
+    (
+        "PLC Robot Fleet Sync",
+        "[Otto_FleetManager]MainControl/Runtime/PLCRobotFleetSyncStatus",
+        "[Otto_FleetManager]MainControl/Runtime/PLCRobotFleetSyncMessage",
+    ),
+    (
+        "Mission Sorting",
+        "[Otto_FleetManager]MainControl/Runtime/MissionSortingStatus",
+        "[Otto_FleetManager]MainControl/Runtime/MissionSortingMessage",
+    ),
+    (
+        "Workflow Cycles",
+        "[Otto_FleetManager]MainControl/Runtime/WorkflowCyclesStatus",
+        "[Otto_FleetManager]MainControl/Runtime/WorkflowCyclesMessage",
+    ),
 ]
 
 
@@ -39,9 +71,9 @@ def _phaseMessageForStatus(status, message):
 def _loadFleetStatusModel(robotName="AMPF_AMR_RV1"):
     """Load one shared model for FleetStatus cards and tables."""
     robotName = normalizeTagValue(robotName) or "AMPF_AMR_RV1"
-    mappingState = dict(readPlcMappings() or {})
+    mappingState = readPlcMappings()
     plcTagName = normalizeTagValue(
-        dict(mappingState.get("robot_name_to_plc_tag") or {}).get(robotName)
+        (mappingState.get("robot_name_to_plc_tag") or {}).get(robotName)
     )
 
     paths = []
@@ -146,7 +178,11 @@ def phaseHealthRows(robotName="AMPF_AMR_RV1"):
     rows.append({
         "Subsystem": "Main PLC Comms",
         "Status": "Healthy" if plcHealthy else "Error",
-        "Message": "RV1 mapped ControlHealthy is true" if plcHealthy else "RV1 mapped ControlHealthy is false, missing, or bad quality",
+        "Message": (
+            "RV1 mapped ControlHealthy is true"
+            if plcHealthy
+            else "RV1 mapped ControlHealthy is false, missing, or bad quality"
+        ),
     })
     rows.append(dict(model.get("loop_row") or {}))
     return rows

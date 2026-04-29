@@ -198,8 +198,8 @@ def subsystemHealthCards():
 
 
 def robotCards():
-    mappingState = dict(readPlcMappings() or {})
-    robotNameToPlcTag = dict(mappingState.get("robot_name_to_plc_tag") or {})
+    mappingState = readPlcMappings()
+    robotNameToPlcTag = mappingState.get("robot_name_to_plc_tag") or {}
     fleetRobotsBase = getFleetRobotsPath()
     mainControlRobotsBase = getMainControlRobotsPath()
     cards = []
@@ -321,7 +321,11 @@ def containerCards():
             path + "/Place",
             path + "/Robot",
         ])
-    containerValues = readOptionalTagValues(containerPaths, defaultValues=[""] * len(containerPaths), allowEmptyString=True)
+    containerValues = readOptionalTagValues(
+        containerPaths,
+        defaultValues=[""] * len(containerPaths),
+        allowEmptyString=True,
+    )
 
     cards = []
     for index, _row in enumerate(containerRows):

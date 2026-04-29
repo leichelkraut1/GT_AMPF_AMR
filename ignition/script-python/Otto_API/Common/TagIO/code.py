@@ -188,7 +188,7 @@ def isWriteResultGood(result):
 
     if isinstance(result, dict):
         quality = result.get("quality")
-        if hasattr(quality, "isGood"):
+        if quality is not None and hasattr(quality, "isGood"):
             return bool(quality.isGood())
         return str(quality).strip().lower() == "good"
 

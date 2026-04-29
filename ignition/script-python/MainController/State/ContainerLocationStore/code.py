@@ -53,9 +53,9 @@ def _configuredLocations():
 
 def _loadContainerLocationConfig():
     """Load the configured create subset and resolve it through the current PLC mappings once."""
-    mappingState = dict(readPlcMappings() or {})
-    robotMapping = dict(mappingState.get("robot_name_to_plc_tag") or {})
-    placeMapping = dict(mappingState.get("place_tag_name_to_plc_tag") or {})
+    mappingState = readPlcMappings()
+    robotMapping = mappingState.get("robot_name_to_plc_tag") or {}
+    placeMapping = mappingState.get("place_tag_name_to_plc_tag") or {}
     locations = []
 
     for row in _configuredLocations():
