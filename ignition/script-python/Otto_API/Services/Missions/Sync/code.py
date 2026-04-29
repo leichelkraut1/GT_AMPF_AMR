@@ -1,5 +1,4 @@
 from Otto_API.AttachmentPhase import deriveMissionAttachmentState
-from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Common.TagIO import readOptionalTagValue
@@ -12,6 +11,7 @@ from Otto_API.Common.TagPaths import getMissionLastUpdateTsPath
 from Otto_API.Common.TagPaths import getMissionMaxCompletedCountPath
 from Otto_API.Models.Missions import RobotMissionSummary
 from Otto_API.Models.Missions import selectCurrentActiveMissionRecord
+from Otto_API.Models.Results import OperationalResult
 from Otto_API.TagSync.Missions.Buckets import classify_mission_bucket
 from Otto_API.TagSync.Missions.Buckets import readRobotFolderMappings
 from Otto_API.TagSync.Missions.Buckets import resolve_mission_robot_folder
@@ -101,11 +101,11 @@ def _buildSyncResult(
     removed = list(removed or [])
     robotSummaryByFolder = dict(robotSummaryByFolder or {})
     issues = list(issues or [])
-    return buildOperationResult(
+    return OperationalResult(
         ok,
         level,
         message,
-        data={
+        sharedFields={
             "active_wanted": activeWanted,
             "completed_wanted": completedWanted,
             "failed_wanted": failedWanted,
@@ -113,13 +113,7 @@ def _buildSyncResult(
             "robot_summary_by_folder": robotSummaryByFolder,
             "issues": issues,
         },
-        active_wanted=activeWanted,
-        completed_wanted=completedWanted,
-        failed_wanted=failedWanted,
-        removed=removed,
-        robot_summary_by_folder=robotSummaryByFolder,
-        issues=issues,
-    )
+    ).toDict()
 
 
 def _serializeRobotSummaryByFolder(robotSummaryByFolder, robotMappings):

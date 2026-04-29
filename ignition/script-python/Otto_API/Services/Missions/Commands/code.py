@@ -1,9 +1,9 @@
-from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagIO import readRequiredTagValue
 from Otto_API.Common.TagPaths import getFleetMissionsPath
 from Otto_API.Common.TagPaths import getFleetRobotsPath
 from Otto_API.Models.Missions import findActiveMissionIdForRobot
 from Otto_API.Models.Missions import findActiveMissionIdsForRobot
+from Otto_API.Models.Results import OperationalResult
 from Otto_API.Services.Missions.Operations import cancelMissionIds as cancelMissionIdsOperation
 from Otto_API.Services.Missions.Operations import finalizeMissionId as finalizeMissionIdOperation
 from Otto_API.TagSync.Missions.Tree import readMissionRobotAwareRecords
@@ -18,12 +18,11 @@ def _log():
 
 
 def _warnResult(message):
-    return buildOperationResult(
+    return OperationalResult(
         False,
         "warn",
         message,
-        data={},
-    )
+    ).toDict()
 
 
 def _resolveRobotId(robotName):

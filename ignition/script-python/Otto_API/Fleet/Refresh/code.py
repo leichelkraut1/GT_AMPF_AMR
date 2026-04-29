@@ -1,4 +1,4 @@
-from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Models.Results import OperationalResult
 from Otto_API.Services.Maps import updateMaps
 from Otto_API.Services.Places import updatePlaces
 from Otto_API.Services.Robots import updateRobotOperationalState
@@ -66,13 +66,12 @@ def refreshFleetData():
         workflowIds=workflowIds or None,
         robotIds=robotIds or None,
     )
-    triggerResult = buildOperationResult(
+    triggerResult = OperationalResult(
         True,
         "info",
         "Mission and container triggers refreshed",
-        data={"created_paths": list(triggerPaths or [])},
-        created_paths=list(triggerPaths or []),
-    )
+        sharedFields={"created_paths": list(triggerPaths or [])},
+    ).toDict()
 
     mapResult = updateMaps()
     placeResult = updatePlaces()
@@ -112,10 +111,9 @@ def refreshFleetData():
     elif hasWarn:
         message = "Fleet data refresh completed with warnings"
 
-    return buildOperationResult(
+    return OperationalResult(
         ok,
         level,
         message,
-        data={"results": dict(orderedResults)},
-        results=dict(orderedResults),
-    )
+        sharedFields={"results": dict(orderedResults)},
+    ).toDict()

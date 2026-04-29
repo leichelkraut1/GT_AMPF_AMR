@@ -1,28 +1,30 @@
 from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ParseHelpers import parseListPayload
-from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.TagIO import browseTagResults
 from Otto_API.Common.TagIO import deleteTagPath
 from Otto_API.Common.TagIO import writeObservedTagValues
+from Otto_API.Models.Results import OperationalResult
 
 
 def buildSyncResult(ok, level, message, records=None, writes=None, value=None, **extra):
     records = list(records or [])
     writes = list(writes or [])
-    return buildOperationResult(
+    result = OperationalResult(
         ok,
         level,
         message,
-        data={
+        dataFields={
             "records": records,
             "writes": writes,
             "value": value,
         },
-        records=records,
-        writes=writes,
-        **extra
     )
+    payload = result.toDict()
+    payload["records"] = records
+    payload["writes"] = writes
+    payload.update(dict(extra or {}))
+    return payload
 
 
 def listUdtInstanceNames(browseResults):
