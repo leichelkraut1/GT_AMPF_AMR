@@ -3,7 +3,7 @@ import re
 from Otto_API.Common.SyncHelpers import sanitizeTagName
 from Otto_API.Common.TagPaths import getFleetRobotsPath
 from Otto_API.Missions.MissionActions import resolveMissionRobotId
-from Otto_API.Robots.SyncHelpers import readRobotInventoryMetadata
+from Otto_API.TagSync.Robots import readRobotInventoryMetadata
 
 
 UNASSIGNED_FOLDER = "Unassigned"

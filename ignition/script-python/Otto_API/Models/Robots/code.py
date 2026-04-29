@@ -59,6 +59,76 @@ class RobotSystemStateEntry(MappingRecordBase):
                 return 0
 
 
+def selectDominantSystemState(entries, logger=None):
+    """
+    Select the dominant OTTO system-state entry.
+    """
+    bestEntry = None
+    bestPriority = None
+    bestCreated = None
+
+    for entry in list(entries or []):
+        if not isinstance(entry, RobotSystemStateEntry):
+            entry = RobotSystemStateEntry.fromDict(entry)
+        priority = entry.priority
+        createdValue = entry.createdSortValue(logger=logger)
+
+        if bestEntry is None:
+            bestEntry = entry
+            bestPriority = priority
+            bestCreated = createdValue
+            continue
+
+        if bestPriority is None or priority < bestPriority:
+            bestEntry = entry
+            bestPriority = priority
+            bestCreated = createdValue
+            continue
+
+        if priority == bestPriority and (
+            bestCreated is None or createdValue > bestCreated
+        ):
+            bestEntry = entry
+            bestPriority = priority
+            bestCreated = createdValue
+
+    return bestEntry
+
+
+def normalizeChargePercentage(rawValue):
+    """
+    Normalize OTTO battery values to 0-100 percent units.
+    """
+    if rawValue is None:
+        return None
+
+    try:
+        numericValue = float(rawValue)
+    except Exception:
+        return rawValue
+
+    if 0 <= numericValue <= 1:
+        return numericValue * 100
+    return numericValue
+
+
+def groupRecordsByRobot(records, robotKey="robot"):
+    """
+    Group records by robot identifier.
+
+    Accepts typed RobotSystemStateEntry objects or raw OTTO payload dicts.
+    """
+    grouped = {}
+    for record in list(records or []):
+        if isinstance(record, RobotSystemStateEntry):
+            robotId = record.robot
+        else:
+            robotId = dict(record or {}).get(robotKey)
+        if robotId is None:
+            continue
+        robotId = str(robotId).strip()
+        grouped.setdefault(robotId, []).append(record)
+    return grouped
 class RobotPlace(MappingRecordBase):
     FIELDS = ("place_id", "place_name")
 
