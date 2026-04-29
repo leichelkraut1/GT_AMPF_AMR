@@ -4,6 +4,7 @@ import time
 from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.HttpHelpers import jsonHeaders
+from Otto_API.Common.JsonRpc import postJsonRpcPayload
 from Otto_API.Common.ParseHelpers import parseListPayload
 from Otto_API.Models.Containers import ContainerCreateFields
 from Otto_API.Models.Containers import ContainerLocationTarget
@@ -306,13 +307,6 @@ def _applyContainerLocationTarget(containerFields, locationTarget):
     return containerFields.withPlace(locationTarget.value)
 
 
-def _postJsonRpcPayload(operationsUrl, payload, postFunc):
-    return postFunc(
-        url=operationsUrl,
-        postData=system.util.jsonEncode(payload),
-    )
-
-
 def _resultFromLogLevel(_result, logLevel, message, response, payload, **fields):
     return _result(
         ok=(logLevel == "info"),
@@ -372,7 +366,7 @@ def postCreateContainer(containerFields, operationsUrl, postFunc=httpPost):
     try:
         containerFields = ContainerCreateFields.fromDict(containerFields)
         payload = buildCreateContainerPayload(containerFields)
-        response = _postJsonRpcPayload(operationsUrl, payload, postFunc)
+        response = postJsonRpcPayload(operationsUrl, payload, postFunc)
 
         logLevel, message, containerId = interpretCreateContainerResponse(response)
         return _resultFromLogLevel(
@@ -432,7 +426,7 @@ def postUpdateContainerPlace(containerId, placeId, operationsUrl, postFunc=httpP
 
     try:
         payload = buildUpdateContainerPlacePayload(containerId, placeId)
-        response = _postJsonRpcPayload(operationsUrl, payload, postFunc)
+        response = postJsonRpcPayload(operationsUrl, payload, postFunc)
 
         logLevel, message = interpretUpdateContainerPlaceResponse(response, containerId, placeId)
         return _resultFromLogLevel(_result, logLevel, message, response, payload)
@@ -457,7 +451,7 @@ def postUpdateContainerRobot(containerId, robotId, operationsUrl, postFunc=httpP
 
     try:
         payload = buildUpdateContainerRobotPayload(containerId, robotId)
-        response = _postJsonRpcPayload(operationsUrl, payload, postFunc)
+        response = postJsonRpcPayload(operationsUrl, payload, postFunc)
 
         logLevel, message = interpretUpdateContainerRobotResponse(response, containerId, robotId)
         return _resultFromLogLevel(_result, logLevel, message, response, payload)
@@ -480,7 +474,7 @@ def postDeleteContainer(containerId, operationsUrl, postFunc=httpPost):
 
     try:
         payload = buildDeleteContainerPayload(containerId)
-        response = _postJsonRpcPayload(operationsUrl, payload, postFunc)
+        response = postJsonRpcPayload(operationsUrl, payload, postFunc)
 
         logLevel, message = interpretDeleteContainerResponse(response, containerId)
         return _resultFromLogLevel(_result, logLevel, message, response, payload)

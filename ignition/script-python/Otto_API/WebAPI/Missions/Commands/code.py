@@ -3,6 +3,7 @@ import time
 import uuid
 
 from Otto_API.Common.HttpHelpers import httpPost
+from Otto_API.Common.JsonRpc import postJsonRpcPayload
 from Otto_API.Common.SyncHelpers import sanitizeTagName
 from Otto_API.Models.Results import OperationalResult
 
@@ -59,19 +60,19 @@ def interpretCreateMissionResponse(responseText):
     try:
         respJson = json.loads(responseText)
     except Exception as e:
-        return ("error", "Fleet Manager returned non-JSON response: {}".format(str(e)))
+        return ("error", "Fleet Manager returned non-JSON response: {}".format(str(e)), None)
 
     if "result" in respJson:
         result = respJson["result"]
         missionId = result.get("uuid") or result.get("id")
         if missionId:
-            return ("info", "Mission created successfully - ID: {}".format(missionId))
-        return ("warn", "Mission created, but no mission ID found: {}".format(json.dumps(result)))
+            return ("info", "Mission created successfully - ID: {}".format(missionId), missionId)
+        return ("warn", "Mission created, but no mission ID found: {}".format(json.dumps(result)), None)
 
     if "error" in respJson:
-        return ("warn", "API Error: {}".format(json.dumps(respJson["error"])))
+        return ("warn", "API Error: {}".format(json.dumps(respJson["error"])), None)
 
-    return ("warn", "Unexpected response: {}".format(responseText))
+    return ("warn", "Unexpected response: {}".format(responseText), None)
 
 
 def buildFinalizeMissionPayload(missionId, nowEpoch=None):
@@ -220,15 +221,9 @@ def postCreateMission(
 ):
     try:
         missionPayload = buildCreateMissionPayload(templateDict, robotId, missionName)
-        response = postFunc(
-            url=operationsUrl,
-            postData=system.util.jsonEncode(missionPayload),
-        )
+        response = postJsonRpcPayload(operationsUrl, missionPayload, postFunc)
 
-        level, message = interpretCreateMissionResponse(response)
-        missionId = None
-        if "ID:" in message:
-            missionId = message.split("ID:", 1)[1].strip()
+        level, message, missionId = interpretCreateMissionResponse(response)
 
         return _missionResult(
             level == "info",
@@ -258,10 +253,7 @@ def postFinalizeMission(operationsUrl, missionId, postFunc=httpPost):
 
     try:
         missionPayload = buildFinalizeMissionPayload(missionId)
-        response = postFunc(
-            url=operationsUrl,
-            postData=system.util.jsonEncode(missionPayload),
-        )
+        response = postJsonRpcPayload(operationsUrl, missionPayload, postFunc)
 
         level, message = interpretFinalizeMissionResponse(response, missionId)
         return _missionResult(
@@ -292,10 +284,7 @@ def _postCancelMission(operationsUrl, missionId, postFunc):
 
     try:
         missionPayload = buildCancelMissionPayload(missionId)
-        response = postFunc(
-            url=operationsUrl,
-            postData=system.util.jsonEncode(missionPayload),
-        )
+        response = postJsonRpcPayload(operationsUrl, missionPayload, postFunc)
 
         level, message = interpretCancelMissionResponse(response, missionId)
         return _missionResult(

@@ -3,6 +3,7 @@ import time
 from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.HttpHelpers import jsonHeaders
+from Otto_API.Common.JsonRpc import postJsonRpcPayload
 from Otto_API.Common.ParseHelpers import parseJsonResponse
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Models.Interlocks import buildInterlockInstanceMap
@@ -302,10 +303,7 @@ def postInterlockState(
 
     try:
         payload = _buildRpcPayload(interlockId, state, mask)
-        response = postFunc(
-            url=operationsUrl,
-            postData=system.util.jsonEncode(payload),
-        )
+        response = postJsonRpcPayload(operationsUrl, payload, postFunc)
         responsePayload = system.util.jsonDecode(response)
         if isinstance(responsePayload, dict) and responsePayload.get("error") is not None:
             errorText = responsePayload.get("error")
