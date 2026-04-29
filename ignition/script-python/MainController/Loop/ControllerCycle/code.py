@@ -1,5 +1,6 @@
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.RuntimeHistory import recordRuntimeIssues
+from Otto_API.Common.RuntimeHistory import writeRuntimeFields
 from Otto_API.Models.Results import OperationHealth
 from Otto_API.Models.Results import OperationalResult
 from Otto_API.Services.Missions import Sync as MissionSync
@@ -17,7 +18,6 @@ from MainController.State.MissionMirror import writeMissionSortingRobotMirror
 from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.Paths import ROBOT_NAMES
 from MainController.State.Results import RobotCycleResult
-from MainController.State.RuntimeStore import writeRuntimeFields
 
 
 def _phaseStatus(result):
@@ -327,7 +327,9 @@ def runMainControllerCycle(
             results["plc_robot_sync"],
             missionPhaseResult,
             results["workflow_cycles"],
-        )
+        ),
+        required=True,
+        label="MainController runtime state",
     )
 
     ok = _mainCycleOk(results)

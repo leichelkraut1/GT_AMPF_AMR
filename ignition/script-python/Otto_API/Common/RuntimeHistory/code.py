@@ -2,6 +2,7 @@ import time
 
 from Otto_API.Common.RecordHelpers import MappingRecordBase
 from Otto_API.Common.TagIO import readOptionalTagValue
+from Otto_API.Common.TagIO import writeRequiredTagValues
 from Otto_API.Common.TagIO import writeTagValues
 from Otto_API.Common.TagPaths import getMainControlRuntimePath
 from Otto_API.Common.TagProvisioning import ensureFolder
@@ -161,7 +162,7 @@ def ensureRuntimeTags():
         )
 
 
-def writeRuntimeFields(fieldValues):
+def writeRuntimeFields(fieldValues, required=False, label=None):
     """
     Write shared runtime telemetry without importing MainController.
 
@@ -180,10 +181,17 @@ def writeRuntimeFields(fieldValues):
         writePaths.append(path)
         writeValues.append(value)
     if writePaths:
-        writeTagValues(
-            writePaths,
-            writeValues,
-        )
+        if required:
+            writeRequiredTagValues(
+                writePaths,
+                writeValues,
+                labels=[label or "Runtime state"] * len(writePaths),
+            )
+        else:
+            writeTagValues(
+                writePaths,
+                writeValues,
+            )
 
 
 def timestampString(nowEpochMs=None):

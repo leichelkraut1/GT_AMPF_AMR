@@ -1,3 +1,4 @@
+from Otto_API.Common.RuntimeHistory import runtimePaths
 from Otto_API.Common.TagIO import browseTagResults
 from Otto_API.Common.TagIO import normalizeTagValue
 from Otto_API.Common.TagIO import readOptionalTagValues
@@ -11,7 +12,6 @@ from MainController.State.FleetStatusStore import controllerHealthDisplay
 from MainController.State.FleetStatusStore import mainPlcCommsDisplay
 from MainController.State.FleetStatusStore import phaseHealthRows
 from MainController.State.Paths import plcRobotPaths
-from MainController.State.Paths import runtimePaths
 from MainController.State.PlcMappingStore import PlcMappingState
 from MainController.State.PlcMappingStore import readPlcMappings
 from Otto_API.Models.Fleet import ROBOT_NAMES

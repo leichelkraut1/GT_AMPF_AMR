@@ -53,8 +53,6 @@ The `MainController` code is split by responsibility:
   - top-level cycle entrypoints
 - `State/Paths`
   - stable tag-path construction and runner constants
-- `State/RuntimeStore`
-  - runtime loop reads/writes
 - `State/RobotStore`
   - controller state normalization and robot state reads/writes
 - `State/PlcStore`
@@ -496,5 +494,4 @@ If needed, deleting the full local `.ignition` cache tree is the broader reset:
 ```powershell
 Remove-Item "$env:USERPROFILE\.ignition" -Recurse -Force
 ```
-
 

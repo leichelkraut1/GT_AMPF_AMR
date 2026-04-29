@@ -35,8 +35,8 @@ def ensureMainControlRobotTags(robotName):
     ensureUdtInstancePath(robotPath, "MainControl_Robot")
 
 
-def ensureRuntimeTags():
-    """Create runtime telemetry and history dataset tags for the main loop."""
+def ensureControllerTags():
+    """Provision controller runtime, config, PLC mapping, and robot runner tags."""
     from MainController.State.PlcMappingStore import ensurePlcMappingTags
 
     ensureSharedRuntimeTags()

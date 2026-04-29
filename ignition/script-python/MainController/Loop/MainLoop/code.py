@@ -1,11 +1,38 @@
 import time
 
 from MainController.Loop import ControllerCycle
+from MainController.State.Coerce import toBool
 from Otto_API.Common.RuntimeHistory import timestampString
-from MainController.State.RuntimeStore import readRuntimeState
-from MainController.State.RuntimeStore import writeRuntimeFields
+from Otto_API.Common.RuntimeHistory import runtimePaths
+from Otto_API.Common.RuntimeHistory import writeRuntimeFields
+from Otto_API.Common.TagIO import readTagValues
 
 STALE_LOOP_RESET_MS = 30000
+
+
+def _writeRuntimeFields(fieldValues):
+    writeRuntimeFields(
+        fieldValues,
+        required=True,
+        label="MainController runtime state",
+    )
+
+
+def _readRuntimeState():
+    """Read only the runtime fields needed for overlap protection."""
+    paths = runtimePaths()
+    values = readTagValues([
+        paths["loop_is_running"],
+        paths["loop_last_start_ts"],
+        paths["loop_retry_after_ts"],
+        paths["loop_overlap_count"],
+    ])
+    return {
+        "loop_is_running": toBool(values[0].value if values[0].quality.isGood() else False),
+        "loop_last_start_ts": str(values[1].value or "") if values[1].quality.isGood() else "",
+        "loop_retry_after_ts": str(values[2].value or "") if values[2].quality.isGood() else "",
+        "loop_overlap_count": int(values[3].value or 0) if values[3].quality.isGood() else 0,
+    }
 
 
 def _parseRuntimeTimestampToEpochMillis(timestampText):
@@ -50,7 +77,7 @@ def _resetStaleRunningLoop(runtimeState, nowEpochMs):
     if durationMs is None:
         durationMs = STALE_LOOP_RESET_MS
 
-    writeRuntimeFields({
+    _writeRuntimeFields({
         "loop_is_running": False,
         "loop_retry_after_ts": "",
         "loop_last_end_ts": timestampString(endEpochMs),
@@ -77,7 +104,7 @@ def runMainControllerCycle(
     if nowEpochMs is None:
         nowEpochMs = int(time.time() * 1000)
 
-    runtimeState = readRuntimeState()
+    runtimeState = _readRuntimeState()
     if _isStaleRunningLoop(runtimeState, nowEpochMs):
         _resetStaleRunningLoop(runtimeState, nowEpochMs)
         runtimeState = dict(runtimeState or {})
@@ -86,7 +113,7 @@ def runMainControllerCycle(
     if runtimeState["loop_is_running"]:
         rawOverlapCount = runtimeState.get("loop_overlap_count")
         overlapCount = rawOverlapCount + 1 if isinstance(rawOverlapCount, int) else 1
-        writeRuntimeFields({
+        _writeRuntimeFields({
             "loop_overlap_count": overlapCount,
             "loop_last_result": "overlap_skipped",
         })
@@ -104,7 +131,7 @@ def runMainControllerCycle(
     startEpochMs = int(nowEpochMs)
     # Mark the loop as running before any controller work starts so the next timer
     # tick can detect overlap immediately.
-    writeRuntimeFields({
+    _writeRuntimeFields({
         "loop_is_running": True,
         "loop_last_start_ts": timestampString(startEpochMs),
         "loop_retry_after_ts": timestampString(startEpochMs + STALE_LOOP_RESET_MS),
@@ -126,7 +153,7 @@ def runMainControllerCycle(
         lastResult = "unknown"
         if result is not None:
             lastResult = str(result.get("level", "info")) + ":" + str(result.get("message", ""))
-        writeRuntimeFields({
+        _writeRuntimeFields({
             "loop_is_running": False,
             "loop_retry_after_ts": "",
             "loop_last_end_ts": timestampString(endEpochMs),

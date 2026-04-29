@@ -3,8 +3,8 @@ import re
 from Otto_API.Common.TagPaths import getFleetMissionsPath
 from Otto_API.Common.TagPaths import getFleetRobotsPath
 from Otto_API.Common.TagPaths import getMainControlRobotsPath
-from Otto_API.Common.TagPaths import getMainControlRuntimePath
 from Otto_API.Common.TagPaths import getPlcRootPath
+from Otto_API.Common.RuntimeHistory import RUNTIME_BASE
 
 from Otto_API.Models.Fleet import ROBOT_NAMES
 
@@ -16,7 +16,6 @@ PLC_BASE = getPlcRootPath()
 PLC_ROBOTS_BASE = PLC_BASE + "/Robots"
 PLC_PLACES_BASE = PLC_BASE + "/Places"
 PLC_FLEET_MAPPING_BASE = PLC_BASE + "/FleetMapping"
-RUNTIME_BASE = getMainControlRuntimePath()
 
 WORKFLOW_NAME_RE = re.compile(r"^WF(\d+)_")
 RETRY_DELAY_MS = 5000
@@ -118,46 +117,3 @@ def plcRobotTagNameMappingPath():
 
 def plcPlaceTagNameMappingPath():
     return PLC_FLEET_MAPPING_BASE + "/PlaceTagNameMapping"
-
-
-def runtimePaths():
-    """Shared runtime telemetry and history tags for the top-level loop."""
-    return {
-        "base": RUNTIME_BASE,
-        "loop_is_running": RUNTIME_BASE + "/LoopIsRunning",
-        "loop_last_start_ts": RUNTIME_BASE + "/LoopLastStartTs",
-        "loop_retry_after_ts": RUNTIME_BASE + "/LoopRetryAfterTs",
-        "loop_last_end_ts": RUNTIME_BASE + "/LoopLastEndTs",
-        "loop_last_duration_ms": RUNTIME_BASE + "/LoopLastDurationMs",
-        "loop_last_result": RUNTIME_BASE + "/LoopLastResult",
-        "loop_overlap_count": RUNTIME_BASE + "/LoopOverlapCount",
-        "interlock_sync_is_running": RUNTIME_BASE + "/InterlockSyncIsRunning",
-        "interlock_sync_last_start_ts": RUNTIME_BASE + "/InterlockSyncLastStartTs",
-        "interlock_sync_last_end_ts": RUNTIME_BASE + "/InterlockSyncLastEndTs",
-        "interlock_sync_last_duration_ms": RUNTIME_BASE + "/InterlockSyncLastDurationMs",
-        "interlock_sync_last_result": RUNTIME_BASE + "/InterlockSyncLastResult",
-        "interlock_sync_status": RUNTIME_BASE + "/InterlockSyncStatus",
-        "interlock_sync_message": RUNTIME_BASE + "/InterlockSyncMessage",
-        "runtime_issues": RUNTIME_BASE + "/RuntimeIssues",
-        "server_status_status": RUNTIME_BASE + "/ServerStatusStatus",
-        "server_status_message": RUNTIME_BASE + "/ServerStatusMessage",
-        "robot_state_status": RUNTIME_BASE + "/RobotStateStatus",
-        "robot_state_message": RUNTIME_BASE + "/RobotStateMessage",
-        "container_state_status": RUNTIME_BASE + "/ContainerStateStatus",
-        "container_state_message": RUNTIME_BASE + "/ContainerStateMessage",
-        "plc_robot_fleet_sync_status": RUNTIME_BASE + "/PLCRobotFleetSyncStatus",
-        "plc_robot_fleet_sync_message": RUNTIME_BASE + "/PLCRobotFleetSyncMessage",
-        "plc_place_fleet_sync_status": RUNTIME_BASE + "/PLCPlaceFleetSyncStatus",
-        "plc_place_fleet_sync_message": RUNTIME_BASE + "/PLCPlaceFleetSyncMessage",
-        "mission_sorting_status": RUNTIME_BASE + "/MissionSortingStatus",
-        "mission_sorting_message": RUNTIME_BASE + "/MissionSortingMessage",
-        "workflow_cycles_status": RUNTIME_BASE + "/WorkflowCyclesStatus",
-        "workflow_cycles_message": RUNTIME_BASE + "/WorkflowCyclesMessage",
-        "controller_fault_summary": RUNTIME_BASE + "/ControllerFaultSummary",
-        "command_history": RUNTIME_BASE + "/CommandHistory",
-        "mission_state_history": RUNTIME_BASE + "/MissionStateHistory",
-        "robot_state_history": RUNTIME_BASE + "/RobotStateHistory",
-        "http_history": RUNTIME_BASE + "/HttpHistory",
-        "http_get_history": RUNTIME_BASE + "/HttpGetHistory",
-        "http_post_history": RUNTIME_BASE + "/HttpPostHistory",
-    }
