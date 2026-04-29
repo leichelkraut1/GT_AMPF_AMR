@@ -6,6 +6,7 @@ from Otto_API.Common.TagIO import writeTagValues
 from Otto_API.Common.TagPaths import getMainControlRuntimePath
 from Otto_API.Common.TagProvisioning import ensureFolder
 from Otto_API.Common.TagProvisioning import ensureMemoryTag
+from Otto_API.Models.Results import OperationHealth
 
 
 RUNTIME_BASE = getMainControlRuntimePath()
@@ -81,6 +82,18 @@ class RuntimeIssue(MappingRecordBase):
         self.source = str(source or "").strip()
         self.level = str(level or "warn").strip()
         self.message = str(message or "").strip()
+
+    @classmethod
+    def fromDict(cls, issue):
+        if isinstance(issue, cls):
+            return issue
+        issue = dict(issue or {})
+        return cls(
+            issue.get("id"),
+            issue.get("source"),
+            issue.get("level"),
+            issue.get("message"),
+        )
 
 
 def runtimePaths():
@@ -237,17 +250,12 @@ def buildRuntimeIssue(issueId, source, level, message):
 
 
 def _issueField(issue, fieldName, defaultValue=""):
-    if hasattr(issue, fieldName):
-        value = getattr(issue, fieldName)
-        if value is None:
-            return defaultValue
-        return value
-    getter = getattr(issue, "get", None)
-    if getter is not None:
-        value = getter(fieldName, defaultValue)
-        if value is None:
-            return defaultValue
-        return value
+    if isinstance(issue, RuntimeIssue):
+        value = issue.toDict().get(fieldName, defaultValue)
+        return defaultValue if value is None else value
+    if isinstance(issue, dict):
+        value = issue.get(fieldName, defaultValue)
+        return defaultValue if value is None else value
     return defaultValue
 
 
@@ -269,7 +277,7 @@ def _coerceRuntimeIssues(items):
             issues.extend(_coerceRuntimeIssues(item))
             continue
         if _issueField(item, "id") and _issueField(item, "source") and _issueField(item, "message"):
-            issues.append(item)
+            issues.append(RuntimeIssue.fromDict(item))
             continue
 
         nestedIssues = None
@@ -277,8 +285,8 @@ def _coerceRuntimeIssues(items):
             nestedIssues = item.get("issues")
             if not nestedIssues:
                 nestedIssues = dict(item.get("data") or {}).get("issues")
-        else:
-            nestedIssues = getattr(item, "issues", None)
+        elif isinstance(item, OperationHealth):
+            nestedIssues = item.issues
 
         if nestedIssues:
             issues.extend(_coerceRuntimeIssues(nestedIssues))

@@ -22,10 +22,8 @@ def buildInterlockInstanceMap(records):
     errors = []
 
     for record in list(records or []):
-        if isinstance(record, dict):
-            rawName = str(record.get("name") or "").strip()
-        else:
-            rawName = str(getattr(record, "name", "") or "").strip()
+        record = InterlockRecord.fromDict(record)
+        rawName = str(record.name or "").strip()
         if not rawName:
             continue
 

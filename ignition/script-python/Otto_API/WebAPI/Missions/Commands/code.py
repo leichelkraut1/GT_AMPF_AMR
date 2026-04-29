@@ -136,16 +136,60 @@ def interpretCancelMissionResponse(responseText, missionId):
     return ("warn", "Unexpected response while canceling mission: {}".format(responseText))
 
 
-def _missionResult(ok, level, message, missionId=None, responseText=None, payload=None):
-    return OperationalResult(
+class MissionCommandResult(OperationalResult):
+    def __init__(self, ok, level, message, missionId=None, responseText=None, payload=None):
+        self.mission_id = missionId
+        self.response_text = responseText
+        self.payload = payload
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            dataFields={
+                "mission_id": self.mission_id,
+                "response_text": self.response_text,
+                "payload": self.payload,
+            },
+        )
+
+
+class MissionBatchCommandResult(OperationalResult):
+    def __init__(
+        self,
         ok,
         level,
         message,
-        dataFields={
-            "mission_id": missionId,
-            "response_text": responseText,
-            "payload": payload,
-        },
+        missionIds=None,
+        responseTexts=None,
+        payloads=None,
+    ):
+        self.mission_ids = list(missionIds or [])
+        self.response_texts = list(responseTexts or [])
+        self.payloads = list(payloads or [])
+        self.mission_id = self.mission_ids[0] if self.mission_ids else None
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            dataFields={
+                "mission_ids": self.mission_ids,
+                "response_texts": self.response_texts,
+                "payloads": self.payloads,
+                "mission_id": self.mission_id,
+            },
+        )
+
+
+def _missionResult(ok, level, message, missionId=None, responseText=None, payload=None):
+    return MissionCommandResult(
+        ok,
+        level,
+        message,
+        missionId=missionId,
+        responseText=responseText,
+        payload=payload,
     )
 
 
@@ -157,17 +201,13 @@ def _cancelBatchResult(
     responseTexts=None,
     payloads=None,
 ):
-    missionIds = list(missionIds or [])
-    return OperationalResult(
+    return MissionBatchCommandResult(
         ok,
         level,
         message,
-        dataFields={
-            "mission_ids": missionIds,
-            "response_texts": list(responseTexts or []),
-            "payloads": list(payloads or []),
-            "mission_id": missionIds[0] if missionIds else None,
-        },
+        missionIds=missionIds,
+        responseTexts=responseTexts,
+        payloads=payloads,
     )
 
 
@@ -299,20 +339,18 @@ def postCancelMissions(
         for missionId in targetMissionIds:
             result = _postCancelMission(operationsUrl, missionId, postFunc)
             if not result.ok:
-                resultData = dict(result.data or {})
                 return _cancelBatchResult(
                     False,
                     result.level or "warn",
                     result.message or "",
                     missionIds=canceledMissionIds,
-                    responseTexts=responseTexts + [resultData.get("response_text")],
-                    payloads=payloads + [resultData.get("payload")],
+                    responseTexts=responseTexts + [result.response_text],
+                    payloads=payloads + [result.payload],
                 )
 
             canceledMissionIds.append(missionId)
-            resultData = dict(result.data or {})
-            responseTexts.append(resultData.get("response_text"))
-            payloads.append(resultData.get("payload"))
+            responseTexts.append(result.response_text)
+            payloads.append(result.payload)
 
         return _cancelBatchResult(
             True,

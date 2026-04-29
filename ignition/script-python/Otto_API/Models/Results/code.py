@@ -48,29 +48,29 @@ class OperationalResult(OperationHealth):
         dataFields=None,
         sharedFields=None,
     ):
-        OperationHealth.__init__(self, ok, level, message)
-        self._typed_field_names = []
-        self._data_field_names = []
-        self._shared_field_names = []
-
         typedFields = dict(typedFields or {})
         dataFields = dict(dataFields or {})
         sharedFields = dict(sharedFields or {})
+        OperationHealth.__init__(
+            self,
+            ok,
+            level,
+            message,
+            warnings=sharedFields.get("warnings"),
+            issues=sharedFields.get("issues"),
+        )
+        self._typed_fields = typedFields
+        self._data_fields = dataFields
+        self._shared_fields = sharedFields
 
         dataPayload = {}
         for fieldName, value in list(typedFields.items()):
-            setattr(self, fieldName, value)
-            self._typed_field_names.append(fieldName)
             dataPayload[fieldName] = _typedValueToData(value)
 
         for fieldName, value in list(dataFields.items()):
-            setattr(self, fieldName, value)
-            self._data_field_names.append(fieldName)
             dataPayload[fieldName] = _typedValueToData(value)
 
         for fieldName, value in list(sharedFields.items()):
-            setattr(self, fieldName, value)
-            self._shared_field_names.append(fieldName)
             dataPayload[fieldName] = _typedValueToData(value)
 
         self.data = dataPayload
@@ -80,19 +80,29 @@ class OperationalResult(OperationHealth):
         if isinstance(result, cls):
             return result
         result = dict(result or {})
+        sharedFields = {}
+        if "warnings" in result:
+            sharedFields["warnings"] = result.get("warnings")
+        if "issues" in result:
+            sharedFields["issues"] = result.get("issues")
         return cls(
             result.get("ok"),
             result.get("level"),
             result.get("message"),
             dataFields=result.get("data"),
+            sharedFields=sharedFields,
         )
 
     def _serializedSharedFields(self):
         fields = {}
-        fieldNames = list(self._typed_field_names or [])
-        fieldNames.extend(list(self._shared_field_names or []))
-        for fieldName in fieldNames:
-            fields[fieldName] = _typedValueToData(getattr(self, fieldName))
+        fields.update(dict(
+            (fieldName, _typedValueToData(value))
+            for fieldName, value in dict(self._typed_fields or {}).items()
+        ))
+        fields.update(dict(
+            (fieldName, _typedValueToData(value))
+            for fieldName, value in dict(self._shared_fields or {}).items()
+        ))
         return fields
 
     def toDict(self):

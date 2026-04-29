@@ -25,6 +25,18 @@ INTERLOCK_METADATA_FIELD_SPECS = [
 INTERLOCK_TYPE_ID = "api_Interlock"
 
 
+class InterlockApplyResult(OperationalResult):
+    def __init__(self, ok, level, message, rowNames=None):
+        self.row_names = list(rowNames or [])
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            sharedFields={"row_names": self.row_names},
+        )
+
+
 def _ensureInterlockRow(rowPath):
     ensureUdtInstancePath(rowPath, INTERLOCK_TYPE_ID)
     # Keep child members explicit so the local test shim and gateway both expose
@@ -43,11 +55,11 @@ def applyInterlockSync(records, instanceNameByRawName=None, logger=None):
     logger = logger or system.util.getLogger("Otto_API.TagSync.Interlocks.Apply")
     basePath = getFleetInterlocksPath()
     if not tagExists(basePath):
-        return OperationalResult(
+        return InterlockApplyResult(
             False,
             "warn",
             "Fleet interlock root is missing: {}".format(basePath),
-            sharedFields={"row_names": []},
+            rowNames=[],
         )
 
     wantedNames = []
@@ -87,9 +99,9 @@ def applyInterlockSync(records, instanceNameByRawName=None, logger=None):
         deleteTagPath(basePath + "/" + childName)
         logger.info("Otto API - Removed stale interlock tag row: " + str(childName))
 
-    return OperationalResult(
+    return InterlockApplyResult(
         True,
         "info",
         "Synced {} Fleet interlock row(s)".format(len(wantedNames)),
-        sharedFields={"row_names": list(wantedNames)},
+        rowNames=wantedNames,
     )

@@ -15,7 +15,9 @@ from Otto_API.Common.TagIO import writeObservedTagValues
 from Otto_API.Common.TagPaths import getFleetInterlocksPath
 from Otto_API.Common.TagPaths import getInterlockWritebackRetryMsPath
 from Otto_API.Common.TagPaths import getPlcInterlocksPath
+from Otto_API.TagSync.Interlocks.Apply import InterlockApplyResult
 from Otto_API.TagSync.Interlocks.Apply import applyInterlockSync
+from Otto_API.TagSync.Interlocks.Mapping import InterlockMappingResult
 from Otto_API.TagSync.Interlocks.Mapping import DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS
 from Otto_API.TagSync.Interlocks.Mapping import readInterlockMappings
 from Otto_API.Models.Interlocks import DuplicateInterlockMappingInfo
@@ -25,6 +27,7 @@ from Otto_API.Models.Interlocks import PlcInterlockSnapshot
 from Otto_API.Models.Results import OperationalResult
 from Otto_API.Models.Results import RecordSyncResult
 from Otto_API.WebAPI.Interlocks import fetchInterlocks
+from Otto_API.WebAPI.Interlocks import InterlockFetchResult
 from Otto_API.WebAPI.Interlocks import postInterlockState
 
 
@@ -274,12 +277,49 @@ def _readPlcSnapshot(rows):
 
 
 def _extendWarningsAndIssues(targetWarnings, targetIssues, result):
-    targetWarnings.extend(list(getattr(result, "warnings", []) or []))
-    targetIssues.extend(list(getattr(result, "issues", []) or []))
+    targetWarnings.extend(list(result.warnings or []))
+    targetIssues.extend(list(result.issues or []))
 
 
 def _extendIssues(targetIssues, result):
-    targetIssues.extend(list(getattr(result, "issues", []) or []))
+    targetIssues.extend(list(result.issues or []))
+
+
+class InterlockSyncResult(OperationalResult):
+    def __init__(
+        self,
+        ok,
+        level,
+        message,
+        getResult=None,
+        applyResult=None,
+        mappingResult=None,
+        directionalResults=None,
+        warnings=None,
+        issues=None,
+    ):
+        self.get_result = getResult
+        self.apply_result = applyResult
+        self.mapping_result = mappingResult
+        self.directional_results = list(directionalResults or [])
+        self.warnings = list(warnings or [])
+        self.issues = list(issues or [])
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            typedFields={
+                "get_result": self.get_result,
+                "apply_result": self.apply_result,
+                "mapping_result": self.mapping_result,
+                "directional_results": self.directional_results,
+            },
+            sharedFields={
+                "warnings": self.warnings,
+                "issues": self.issues,
+            },
+        )
 
 
 def _syncIssue(issueId, level, message):
@@ -547,20 +587,16 @@ def updateInterlocks():
     if hasError:
         message = "Interlocks sync failed"
 
-    return OperationalResult(
+    return InterlockSyncResult(
         ok,
         level,
         message,
-        typedFields={
-            "get_result": getResult,
-            "apply_result": applyResult,
-            "mapping_result": mappingState,
-            "directional_results": directionalResults,
-        },
-        sharedFields={
-            "warnings": warnings,
-            "issues": issues,
-        },
+        getResult=getResult,
+        applyResult=applyResult,
+        mappingResult=mappingState,
+        directionalResults=directionalResults,
+        warnings=warnings,
+        issues=issues,
     )
 
 
