@@ -446,7 +446,7 @@
           "dom": {
             "onClick": {
               "config": {
-                "script": "\tplcTagName \u003d str(self.view.params.plcTagName or \"\").strip()\n\tif not plcTagName:\n\t\treturn\n\tsystem.tag.writeBlocking([\"[Otto_FleetManager]PLC/Interlocks/%s/ResetIntlock_HMI_PB\" % plcTagName], [1])"
+                "script": "\tplcTagName \u003d str(self.view.params.plcTagName or \"\").strip()\n\tif not plcTagName:\n\t\treturn\n\tsystem.tag.writeBlocking([\"[Otto_FleetManager]PLC/Interlocks/%s/ResetInterlock_HMI_PB\" % plcTagName], [1])"
               },
               "scope": "G",
               "type": "script"
