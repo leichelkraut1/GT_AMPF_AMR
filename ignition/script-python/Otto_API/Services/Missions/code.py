@@ -4,7 +4,7 @@ from Otto_API.Common.TagIO import getOttoOperationsUrl
 from Otto_API.Common.TagIO import readRequiredTagValue
 from Otto_API.Common.TagPaths import getFleetMissionsPath
 from Otto_API.Missions.MissionActions import parseTemplateJson
-from Otto_API.Missions.MissionTreeHelpers import readMissionIdRecords
+from Otto_API.TagSync.Missions.Tree import readMissionIdRecords
 from Otto_API.Models.Missions import MissionRecord
 from Otto_API.Models.Results import OperationalResult
 from Otto_API.WebAPI.Missions import postCancelMissions

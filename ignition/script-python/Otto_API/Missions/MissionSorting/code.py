@@ -10,16 +10,16 @@ from Otto_API.Common.TagPaths import getFleetRobotsPath
 from Otto_API.Common.TagPaths import getMissionLastUpdateSuccessPath
 from Otto_API.Common.TagPaths import getMissionLastUpdateTsPath
 from Otto_API.Common.TagPaths import getMissionMaxCompletedCountPath
-from Otto_API.Missions.Buckets import classify_mission_bucket
-from Otto_API.Missions.Buckets import readRobotFolderMappings
-from Otto_API.Missions.Buckets import resolve_mission_robot_folder
 from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
-from Otto_API.Missions.Maintenance import cleanup_stale_bucket
-from Otto_API.Missions.Maintenance import cleanup_terminal_folder
 from Otto_API.Models.Missions import RobotMissionSummary
-from Otto_API.Missions.Sync import mission_to_tag_values
-from Otto_API.Missions.Sync import sync_mission_into_bucket
-from Otto_API.Missions.MissionTreeHelpers import browseMissionInstances
+from Otto_API.TagSync.Missions.Buckets import classify_mission_bucket
+from Otto_API.TagSync.Missions.Buckets import readRobotFolderMappings
+from Otto_API.TagSync.Missions.Buckets import resolve_mission_robot_folder
+from Otto_API.TagSync.Missions.Maintenance import cleanup_stale_bucket
+from Otto_API.TagSync.Missions.Maintenance import cleanup_terminal_folder
+from Otto_API.TagSync.Missions.Sync import mission_to_tag_values
+from Otto_API.TagSync.Missions.Sync import sync_mission_into_bucket
+from Otto_API.TagSync.Missions.Tree import browseMissionInstances
 from Otto_API.WebAPI.Missions import fetchMissions
 
 

@@ -3,7 +3,7 @@ from java.util import Date
 from Otto_API.Common.TagIO import deleteTagPath
 from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TimeHelpers import parseIsoTimestampToEpochMillis
-from Otto_API.Missions.Runtime import record_removed_mission_if_needed
+from Otto_API.TagSync.Missions.Runtime import record_removed_mission_if_needed
 
 
 def parse_date(val):
@@ -80,7 +80,16 @@ def remove_instance(path, logger=None, debug=False, reason=None):
                 )
 
 
-def cleanup_terminal_folder(folderPath, retentionDays, maxCount, label, logger, browseMissionInstances, debug=False, protectedPaths=None):
+def cleanup_terminal_folder(
+    folderPath,
+    retentionDays,
+    maxCount,
+    label,
+    logger,
+    browseMissionInstances,
+    debug=False,
+    protectedPaths=None
+):
     """
     Enforce terminal mission retention and max count for the given folder.
     """
@@ -168,7 +177,15 @@ def cleanup_terminal_folder(folderPath, retentionDays, maxCount, label, logger, 
     return removed
 
 
-def cleanup_stale_bucket(folderPath, wantedPaths, label, logger, browseMissionInstances, debug=False, nowTimestamp=None):
+def cleanup_stale_bucket(
+    folderPath,
+    wantedPaths,
+    label,
+    logger,
+    browseMissionInstances,
+    debug=False,
+    nowTimestamp=None
+):
     """
     Remove mission instances in folderPath that are not present in wantedPaths.
     """

@@ -1,15 +1,15 @@
 from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagIO import writeRequiredTagValues
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
-from Otto_API.Missions.Buckets import build_mission_bucket_paths
-from Otto_API.Missions.Buckets import make_instance_name
-from Otto_API.Missions.Maintenance import remove_instance
-from Otto_API.Missions.Runtime import build_mission_write_signature
-from Otto_API.Missions.Runtime import carry_forward_last_logged_status
-from Otto_API.Missions.Runtime import mission_runtime_tag_path
-from Otto_API.Missions.Runtime import read_previous_mission_status
-from Otto_API.Missions.Runtime import read_previous_mission_value
-from Otto_API.Missions.Runtime import record_mission_status_if_changed
+from Otto_API.TagSync.Missions.Buckets import build_mission_bucket_paths
+from Otto_API.TagSync.Missions.Buckets import make_instance_name
+from Otto_API.TagSync.Missions.Maintenance import remove_instance
+from Otto_API.TagSync.Missions.Runtime import build_mission_write_signature
+from Otto_API.TagSync.Missions.Runtime import carry_forward_last_logged_status
+from Otto_API.TagSync.Missions.Runtime import mission_runtime_tag_path
+from Otto_API.TagSync.Missions.Runtime import read_previous_mission_status
+from Otto_API.TagSync.Missions.Runtime import read_previous_mission_value
+from Otto_API.TagSync.Missions.Runtime import record_mission_status_if_changed
 
 
 MISSION_RAW_TAG_FIELDS = (
@@ -92,6 +92,7 @@ def write_mission_data(instancePath, mission, logger):
     )
     return True
 
+
 def sync_mission_into_bucket(
     mission,
     robotFolder,
@@ -117,12 +118,16 @@ def sync_mission_into_bucket(
         robotFolder,
         instanceName
     )
-    previousStatus = read_previous_mission_status([
+    previousStatusValue = read_previous_mission_status([
         paths["active"],
         paths["completed"],
         paths["failed"],
     ])
-    lastLoggedStatus = read_previous_mission_value(
+    previousStatus = None
+    if previousStatusValue is not None:
+        previousStatus = str(previousStatusValue)
+
+    lastLoggedStatusValue = read_previous_mission_value(
         [
             paths["active"],
             paths["completed"],
@@ -132,6 +137,7 @@ def sync_mission_into_bucket(
         "",
         allowEmptyString=True
     )
+    lastLoggedStatus = str(lastLoggedStatusValue or "")
     removed = []
 
     for otherBucket in ["active", "completed", "failed"]:

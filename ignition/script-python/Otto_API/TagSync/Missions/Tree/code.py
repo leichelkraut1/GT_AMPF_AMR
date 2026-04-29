@@ -4,7 +4,7 @@ from Otto_API.Models.Missions import MissionRecord
 
 
 def _log():
-    return system.util.getLogger("Otto_API.Missions.MissionTreeHelpers")
+    return system.util.getLogger("Otto_API.TagSync.Missions.Tree")
 
 
 def _browseMissionInstancePaths(rootPath):

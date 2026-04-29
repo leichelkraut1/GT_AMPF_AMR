@@ -4,7 +4,7 @@ from Otto_API.Common.TagPaths import getFleetMissionsPath
 from Otto_API.Common.TagPaths import getFleetRobotsPath
 from Otto_API.Missions.MissionActions import findActiveMissionIdForRobot
 from Otto_API.Missions.MissionActions import findActiveMissionIdsForRobot
-from Otto_API.Missions.MissionTreeHelpers import readMissionRobotAwareRecords
+from Otto_API.TagSync.Missions.Tree import readMissionRobotAwareRecords
 from Otto_API.Services import Missions
 
 
