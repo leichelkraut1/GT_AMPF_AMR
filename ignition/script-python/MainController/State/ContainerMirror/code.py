@@ -1,8 +1,8 @@
-from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import isWriteResultGood
 from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagPaths import getFleetPlacesPath
+from Otto_API.Models.Results import OperationalResult
 
 from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.Paths import plcPlaceRowPath
@@ -72,46 +72,35 @@ def mirrorPlcPlaces(plcMappingState=None):
 
     if not plcMappingState.get("place_dataset_ok", True):
         warningText = "Skipped PLC place sync because PlaceTagNameMapping is unreadable"
-        return buildOperationResult(
+        issue = buildRuntimeIssue(
+            "container_mirror.place_dataset_unreadable",
+            "MainController.State.ContainerMirror",
+            "warn",
+            warningText,
+        )
+        payload = {
+            "rows": [],
+            "writes": [],
+            "warnings": list(plcMappingState.get("warnings") or []),
+            "issues": [issue],
+        }
+        return OperationalResult(
             False,
             "warn",
             warningText,
-            data={
-                "rows": [],
-                "writes": [],
-                "warnings": list(plcMappingState.get("warnings") or []),
-                "issues": [
-                    buildRuntimeIssue(
-                        "container_mirror.place_dataset_unreadable",
-                        "MainController.State.ContainerMirror",
-                        "warn",
-                        warningText,
-                    )
-                ],
-            },
-            rows=[],
-            writes=[],
-            warnings=list(plcMappingState.get("warnings") or []),
-            issues=[
-                buildRuntimeIssue(
-                    "container_mirror.place_dataset_unreadable",
-                    "MainController.State.ContainerMirror",
-                    "warn",
-                    warningText,
-                )
-            ],
-        )
+            dataFields=payload,
+            topLevelFields=payload,
+        ).toDict()
 
     if not placeMappings:
-        return buildOperationResult(
+        payload = {"rows": [], "writes": [], "warnings": []}
+        return OperationalResult(
             True,
             "info",
             "No PLC place rows configured",
-            data={"rows": [], "writes": [], "warnings": []},
-            rows=[],
-            writes=[],
-            warnings=[],
-        )
+            dataFields=payload,
+            topLevelFields=payload,
+        ).toDict()
 
     fleetOccupancy = _fleetPlaceOccupancyByTagName(placeMappings.keys())
     warnings = []
@@ -192,20 +181,17 @@ def mirrorPlcPlaces(plcMappingState=None):
     if warnings:
         message = "{} with {} warning(s)".format(message, len(warnings))
 
-    return buildOperationResult(
+    payload = {
+        "rows": mirroredRows,
+        "writes": list(zip(writePaths, writeValues)),
+        "warnings": warnings,
+        "issues": issues,
+        "failed_write_paths": failedWritePaths,
+    }
+    return OperationalResult(
         ok,
         level,
         message,
-        data={
-            "rows": mirroredRows,
-            "writes": list(zip(writePaths, writeValues)),
-            "warnings": warnings,
-            "issues": issues,
-            "failed_write_paths": failedWritePaths,
-        },
-        rows=mirroredRows,
-        writes=list(zip(writePaths, writeValues)),
-        warnings=warnings,
-        issues=issues,
-        failed_write_paths=failedWritePaths,
-    )
+        dataFields=payload,
+        topLevelFields=payload,
+    ).toDict()

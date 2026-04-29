@@ -1,6 +1,6 @@
-from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.RuntimeHistory import recordRuntimeIssues
+from Otto_API.Models.Results import OperationalResult
 from Otto_API.Services.Missions import Sync as MissionSync
 from Otto_API.Services import Containers as ContainerServices
 from Otto_API.Services import Robots as RobotServices
@@ -79,54 +79,56 @@ def _mergeResults(label, *results):
         normalizedResults.append(dict(result or {}))
 
     if not normalizedResults:
-        return buildOperationResult(
+        return OperationalResult(
             True,
             "info",
             "{} healthy".format(label),
-            data={"results": []},
-            results=[],
-        )
+            dataFields={"results": []},
+            topLevelFields={"results": []},
+        ).toDict()
 
     unhealthy = [result for result in normalizedResults if not result.get("ok", False)]
     if not unhealthy:
-        return buildOperationResult(
+        return OperationalResult(
             True,
             "info",
             "{} healthy".format(label),
-            data={"results": normalizedResults},
-            results=normalizedResults,
-        )
+            dataFields={"results": normalizedResults},
+            topLevelFields={"results": normalizedResults},
+        ).toDict()
 
     level = "error" if any(str(result.get("level") or "").lower() == "error" for result in unhealthy) else "warn"
     message = "; ".join([
         str(result.get("message") or "unhealthy")
         for result in unhealthy
     ]) or "{} degraded".format(label)
-    return buildOperationResult(
+    return OperationalResult(
         False,
         level,
         message,
-        data={"results": normalizedResults},
-        results=normalizedResults,
-    )
+        dataFields={"results": normalizedResults},
+        topLevelFields={"results": normalizedResults},
+    ).toDict()
 
 
 def _robotCycleExceptionResult(robotName, exc):
     message = "Robot [{}] workflow cycle failed: {}".format(robotName, str(exc))
     _log().error(message)
-    return buildOperationResult(
+    return OperationalResult(
         False,
         "error",
         message,
-        data={
+        dataFields={
             "robot_name": robotName,
             "state": "fault",
             "action": "robot_cycle_exception",
         },
-        robot_name=robotName,
-        state="fault",
-        action="robot_cycle_exception",
-    )
+        topLevelFields={
+            "robot_name": robotName,
+            "state": "fault",
+            "action": "robot_cycle_exception",
+        },
+    ).toDict()
 
 
 def _missionMirrorResult(missionSortResult):
@@ -137,42 +139,41 @@ def _missionMirrorResult(missionSortResult):
     )
     try:
         writeMissionSortingRobotMirror(robotSummaryByFolder)
-        return buildOperationResult(
+        return OperationalResult(
             True,
             "info",
             "Mission summary mirror healthy",
-            data={"robot_summary_by_folder": robotSummaryByFolder},
-            issues=[],
-        )
+            dataFields={"robot_summary_by_folder": robotSummaryByFolder},
+            topLevelFields={"issues": []},
+        ).toDict()
     except Exception as exc:
         message = "Mission summary mirror failed: {}".format(str(exc))
-        return buildOperationResult(
+        return OperationalResult(
             False,
             "warn",
             message,
-            data={"robot_summary_by_folder": robotSummaryByFolder},
-            issues=[
+            dataFields={"robot_summary_by_folder": robotSummaryByFolder},
+            topLevelFields={"issues": [
                 buildRuntimeIssue(
                     "mission_sorting.summary_mirror_failed",
                     "MainController.Loop.ControllerCycle",
                     "warn",
                     message,
                 )
-            ],
-        )
+            ]},
+        ).toDict()
 
 
 def _plcPlaceSyncResult(containerStateResult, plcMappingState):
     if containerStateResult.get("ok"):
         return mirrorPlcPlaces(plcMappingState=plcMappingState)
-    return buildOperationResult(
+    return OperationalResult(
         False,
         "warn",
         "Skipped PLC place sync because container state is stale",
-        data={"rows": [], "writes": []},
-        rows=[],
-        writes=[],
-    )
+        dataFields={"rows": [], "writes": []},
+        topLevelFields={"rows": [], "writes": []},
+    ).toDict()
 
 
 def _workflowCycleResults(
@@ -192,7 +193,7 @@ def _workflowCycleResults(
     )
     plcRobotSyncResult = dict(
         workflowResult.get("plc_robot_sync")
-        or buildOperationResult(True, "info", "PLC robot sync healthy")
+        or OperationalResult(True, "info", "PLC robot sync healthy").toDict()
     )
     return workflowResult, plcRobotSyncResult
 
@@ -285,14 +286,16 @@ def runAllRobotWorkflowCycles(
     ok = all(result.get("ok", False) or result.get("level") == "warn" for result in results)
     level = "info" if ok else "error"
     plcRobotSyncResult = _mergeResults("PLC robot sync", *plcSyncResults)
-    return buildOperationResult(
+    return OperationalResult(
         ok,
         level,
         "Processed workflow cycles for {} robot(s)".format(len(results)),
-        data={"results": results},
-        results=results,
-        plc_robot_sync=plcRobotSyncResult,
-    )
+        dataFields={"results": results},
+        topLevelFields={
+            "results": results,
+            "plc_robot_sync": plcRobotSyncResult,
+        },
+    ).toDict()
 
 
 def runMainControllerCycle(
@@ -340,10 +343,10 @@ def runMainControllerCycle(
     ok = _mainCycleOk(results)
     level = "info" if ok else "warn"
 
-    return buildOperationResult(
+    return OperationalResult(
         ok,
         level,
         "MainController cycle completed",
-        data=dict(results),
-        **results
-    )
+        dataFields=dict(results),
+        topLevelFields=results,
+    ).toDict()

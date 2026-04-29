@@ -1,4 +1,4 @@
-from Otto_API.Common.ResultHelpers import buildOperationResult
+from Otto_API.Models.Results import OperationalResult
 
 
 def buildCycleResult(ok, level, message, robotName=None, state=None, action=None, data=None):
@@ -11,12 +11,14 @@ def buildCycleResult(ok, level, message, robotName=None, state=None, action=None
     if data:
         payload.update(data)
 
-    return buildOperationResult(
+    return OperationalResult(
         ok,
         level,
         message,
-        data=payload,
-        robot_name=robotName,
-        state=state,
-        action=action,
-    )
+        dataFields=payload,
+        topLevelFields={
+            "robot_name": robotName,
+            "state": state,
+            "action": action,
+        },
+    ).toDict()

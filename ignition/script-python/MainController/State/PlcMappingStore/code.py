@@ -1,4 +1,3 @@
-from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.SyncHelpers import cleanupStaleUdtInstances
 from Otto_API.Common.TagIO import normalizeTagValue
@@ -6,6 +5,7 @@ from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagProvisioning import ensureFolder
 from Otto_API.Common.TagProvisioning import ensureMemoryTag
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
+from Otto_API.Models.Results import OperationalResult
 
 from MainController.State.Paths import PLC_PLACES_BASE
 from MainController.State.Paths import PLC_ROBOTS_BASE
@@ -274,41 +274,35 @@ def readPlcMappings():
         for placeTagName, plcTagName in placeMappings.items()
     ])
 
-    return buildOperationResult(
+    payload = {
+        "robot_name_to_plc_tag": robotMappings,
+        "plc_robot_tag_to_robot_name": plcRobotTagToRobotName,
+        "place_tag_name_to_plc_tag": placeMappings,
+        "plc_place_tag_to_place_tag_name": plcPlaceTagToPlaceName,
+        "warnings": warnings,
+        "issues": issues,
+        "robot_dataset_ok": robotDatasetOk,
+        "place_dataset_ok": placeDatasetOk,
+    }
+    return OperationalResult(
         ok,
         level,
         message,
-        data={
-            "robot_name_to_plc_tag": robotMappings,
-            "plc_robot_tag_to_robot_name": plcRobotTagToRobotName,
-            "place_tag_name_to_plc_tag": placeMappings,
-            "plc_place_tag_to_place_tag_name": plcPlaceTagToPlaceName,
-            "warnings": warnings,
-            "issues": issues,
-            "robot_dataset_ok": robotDatasetOk,
-            "place_dataset_ok": placeDatasetOk,
-        },
-        robot_name_to_plc_tag=robotMappings,
-        plc_robot_tag_to_robot_name=plcRobotTagToRobotName,
-        place_tag_name_to_plc_tag=placeMappings,
-        plc_place_tag_to_place_tag_name=plcPlaceTagToPlaceName,
-        warnings=warnings,
-        issues=issues,
-        robot_dataset_ok=robotDatasetOk,
-        place_dataset_ok=placeDatasetOk,
-    )
+        dataFields=payload,
+        topLevelFields=payload,
+    ).toDict()
 
 
 def _syncFleetTagRows(basePath, typeId, wantedNames, datasetOk, warnings, logger, label):
     if not datasetOk:
-        return buildOperationResult(
+        payload = {"row_names": [], "warnings": list(warnings or [])}
+        return OperationalResult(
             False,
             "warn",
             "Skipped {} row sync because mapping dataset is unreadable".format(label),
-            data={"row_names": [], "warnings": list(warnings or [])},
-            row_names=[],
-            warnings=list(warnings or []),
-        )
+            dataFields=payload,
+            topLevelFields=payload,
+        ).toDict()
 
     ensureFolder(basePath)
     for rowName in list(wantedNames or []):
@@ -323,14 +317,17 @@ def _syncFleetTagRows(basePath, typeId, wantedNames, datasetOk, warnings, logger
     )
 
     ok = not warnings
-    return buildOperationResult(
+    payload = {
+        "row_names": list(wantedNames or []),
+        "warnings": list(warnings or []),
+    }
+    return OperationalResult(
         ok,
         "info" if ok else "warn",
         "Synced {} row(s) for {}".format(len(list(wantedNames or [])), label),
-        data={"row_names": list(wantedNames or []), "warnings": list(warnings or [])},
-        row_names=list(wantedNames or []),
-        warnings=list(warnings or []),
-    )
+        dataFields=payload,
+        topLevelFields=payload,
+    ).toDict()
 
 
 def syncPlcFleetTags(mappingState=None):
@@ -362,14 +359,14 @@ def syncPlcFleetTags(mappingState=None):
 
     ok = bool(robotResult.get("ok")) and bool(placeResult.get("ok"))
     level = "info" if ok else "warn"
-    return buildOperationResult(
+    payload = {
+        "robot_result": robotResult,
+        "place_result": placeResult,
+    }
+    return OperationalResult(
         ok,
         level,
         "Synced PLC Fleet tags",
-        data={
-            "robot_result": robotResult,
-            "place_result": placeResult,
-        },
-        robot_result=robotResult,
-        place_result=placeResult,
-    )
+        dataFields=payload,
+        topLevelFields=payload,
+    ).toDict()
