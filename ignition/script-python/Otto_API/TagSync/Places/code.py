@@ -4,9 +4,76 @@ from Otto_API.Common.TagPaths import getFleetPlacesPath
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
 from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import cleanupStaleUdtInstances
+from Otto_API.Common.SyncHelpers import sanitizeTagName
 from Otto_API.Common.SyncHelpers import writeObservedTagDict
-from Otto_API.Places.Normalize import buildPlaceRecipeWrites
-from Otto_API.Places.Normalize import normalizePlaceRecord
+
+
+def buildPlaceInstanceName(placeRecord):
+    """
+    Build a safe Ignition instance name for a place record.
+    """
+    placeName = placeRecord.get("name")
+
+    if not placeName and not placeRecord.get("id"):
+        return None
+
+    return sanitizeTagName(placeName or "Place")
+
+
+def normalizePlaceRecord(placeRecord):
+    """
+    Normalize a place record and skip TEMPLATE entries.
+    """
+    if placeRecord.get("place_type") == "TEMPLATE":
+        return None
+
+    instanceName = buildPlaceInstanceName(placeRecord)
+    if not instanceName:
+        return None
+
+    recipes = placeRecord.get("recipes", {})
+    if not isinstance(recipes, dict):
+        recipes = {}
+
+    return {
+        "instance_name": instanceName,
+        "recipes": recipes,
+        "tag_values": {
+            "/Container_Types_Supported": placeRecord.get("container_types_supported"),
+            "/Created": placeRecord.get("created"),
+            "/Description": placeRecord.get("description"),
+            "/Enabled": placeRecord.get("enabled"),
+            "/Exit_Recipe": placeRecord.get("exit_recipe"),
+            "/Feature_Queue": placeRecord.get("feature_queue"),
+            "/ID": placeRecord.get("id"),
+            "/Metadata": placeRecord.get("metadata"),
+            "/Name": placeRecord.get("name"),
+            "/Ownership_Queue": placeRecord.get("ownership_queue"),
+            "/Place_Groups": placeRecord.get("place_groups"),
+            "/Place_Type": placeRecord.get("place_type"),
+            "/Primary_Marker_ID": placeRecord.get("primary_marker_id"),
+            "/Primary_Marker_Intent": placeRecord.get("primary_marker_intent"),
+            "/Source_ID": placeRecord.get("source_id"),
+            "/Zone": placeRecord.get("zone"),
+        }
+    }
+
+
+def buildPlaceRecipeWrites(instancePath, recipes):
+    """
+    Build value and enabled writes for place recipes.
+    """
+    valueWrites = {}
+    boolWrites = {}
+
+    for recipeName, recipeValue in dict(recipes or {}).items():
+        safeRecipeName = sanitizeTagName(recipeName)
+        valueWrites["{}/recipes/{}/Value".format(instancePath, safeRecipeName)] = recipeValue
+        boolWrites["{}/recipes/{}/Able".format(instancePath, safeRecipeName)] = (
+            1 if recipeValue is not None else 0
+        )
+
+    return valueWrites, boolWrites
 
 
 def _duplicateInstanceNames(normalizedPlaces):
@@ -78,7 +145,7 @@ def applyPlaceSync(placeRecords, responseText, logger):
         for suffix, value in normalizedPlace["tag_values"].items():
             tagDict[instancePath + suffix] = value
 
-        writeObservedTagDict(tagDict, "Otto_API.Places.Apply place sync", logger)
+        writeObservedTagDict(tagDict, "Otto_API.TagSync.Places place sync", logger)
         writes.extend(tagDict.items())
 
         recipeValueWrites, recipeBoolWrites = buildPlaceRecipeWrites(
@@ -86,11 +153,19 @@ def applyPlaceSync(placeRecords, responseText, logger):
             normalizedPlace["recipes"]
         )
         if recipeBoolWrites:
-            writeObservedTagDict(recipeBoolWrites, "Otto_API.Places.Apply place recipe bool sync", logger)
+            writeObservedTagDict(
+                recipeBoolWrites,
+                "Otto_API.TagSync.Places place recipe bool sync",
+                logger
+            )
             writes.extend(recipeBoolWrites.items())
 
         if recipeValueWrites:
-            writeObservedTagDict(recipeValueWrites, "Otto_API.Places.Apply place recipe value sync", logger)
+            writeObservedTagDict(
+                recipeValueWrites,
+                "Otto_API.TagSync.Places place recipe value sync",
+                logger
+            )
             writes.extend(recipeValueWrites.items())
 
     cleanupStaleUdtInstances(

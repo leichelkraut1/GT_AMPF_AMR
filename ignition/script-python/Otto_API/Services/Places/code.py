@@ -1,6 +1,6 @@
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Common.SyncHelpers import buildSyncResult
-from Otto_API.Places.Apply import applyPlaceSync
+from Otto_API.TagSync.Places import applyPlaceSync
 from Otto_API.WebAPI.Places import fetchPlaces
 
 
