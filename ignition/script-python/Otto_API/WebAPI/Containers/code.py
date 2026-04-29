@@ -1,9 +1,9 @@
-import json
-import time
-
 from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.HttpHelpers import jsonHeaders
+from Otto_API.Common.JsonRpc import buildJsonRpcPayload
+from Otto_API.Common.JsonRpc import interpretJsonRpcMutationResponse
+from Otto_API.Common.JsonRpc import parseJsonRpcResponse
 from Otto_API.Common.JsonRpc import postJsonRpcPayload
 from Otto_API.Common.ParseHelpers import parseListPayload
 from Otto_API.Models.Containers import ContainerCreateFields
@@ -18,23 +18,11 @@ def _containerFieldsPayload(containerFields):
     return dict(containerFields or {})
 
 
-def _jsonRpcPayload(method, params, nowEpoch=None):
-    if nowEpoch is None:
-        nowEpoch = time.time()
-
-    return {
-        "id": int(nowEpoch),
-        "jsonrpc": "2.0",
-        "method": method,
-        "params": dict(params or {}),
-    }
-
-
 def buildCreateContainerPayload(containerFields, nowEpoch=None):
     """
     Build the JSON-RPC payload for createContainer.
     """
-    return _jsonRpcPayload(
+    return buildJsonRpcPayload(
         "createContainer",
         {
             "container": _containerFieldsPayload(containerFields)
@@ -47,7 +35,7 @@ def buildUpdateContainerPlacePayload(containerId, placeId, nowEpoch=None):
     """
     Build the JSON-RPC payload for updateContainer(place=<placeId>).
     """
-    return _jsonRpcPayload(
+    return buildJsonRpcPayload(
         "updateContainer",
         {
             "fields": {
@@ -63,7 +51,7 @@ def buildUpdateContainerRobotPayload(containerId, robotId, nowEpoch=None):
     """
     Build the JSON-RPC payload for updateContainer(robot=<robotId>).
     """
-    return _jsonRpcPayload(
+    return buildJsonRpcPayload(
         "updateContainer",
         {
             "fields": {
@@ -79,7 +67,7 @@ def buildDeleteContainerPayload(containerId, nowEpoch=None):
     """
     Build the JSON-RPC payload for deleteContainer.
     """
-    return _jsonRpcPayload(
+    return buildJsonRpcPayload(
         "deleteContainer",
         {
             "id": containerId
@@ -92,13 +80,12 @@ def interpretCreateContainerResponse(responseText):
     """
     Parse a createContainer response and return (logLevel, message, containerId).
     """
-    try:
-        respJson = json.loads(responseText)
-    except Exception as e:
-        return ("error", "Non-JSON response while creating container: {}".format(str(e)), None)
+    response = parseJsonRpcResponse(responseText)
+    if response.parse_error:
+        return ("error", "Non-JSON response while creating container: {}".format(response.parse_error), None)
 
-    if "result" in respJson:
-        resultPayload = respJson.get("result") or {}
+    if response.has_result:
+        resultPayload = response.result or {}
         if isinstance(resultPayload, dict):
             containerId = resultPayload.get("id") or resultPayload.get("uuid")
         else:
@@ -108,8 +95,8 @@ def interpretCreateContainerResponse(responseText):
             message += " - ID: {}".format(containerId)
         return ("info", message, containerId)
 
-    if "error" in respJson:
-        return ("warn", "API Error while creating container: {}".format(json.dumps(respJson["error"])), None)
+    if response.has_error:
+        return ("warn", "API Error while creating container: {}".format(response.errorText()), None)
 
     return ("warn", "Unexpected response while creating container: {}".format(responseText), None)
 
@@ -118,41 +105,12 @@ def interpretUpdateContainerPlaceResponse(responseText, containerId, placeId):
     """
     Parse an updateContainer response and return (logLevel, message).
     """
-    try:
-        respJson = json.loads(responseText)
-    except Exception as e:
-        return (
-            "error",
-            "Non-JSON response while updating container [{}] place to [{}]: {}".format(
-                containerId,
-                placeId,
-                str(e)
-            )
-        )
-
-    if "result" in respJson:
-        return (
-            "info",
-            "Container [{}] place updated to [{}] successfully".format(containerId, placeId)
-        )
-
-    if "error" in respJson:
-        return (
-            "warn",
-            "API Error while updating container [{}] place to [{}]: {}".format(
-                containerId,
-                placeId,
-                json.dumps(respJson["error"])
-            )
-        )
-
-    return (
-        "warn",
-        "Unexpected response while updating container [{}] place to [{}]: {}".format(
-            containerId,
-            placeId,
-            responseText
-        )
+    return interpretJsonRpcMutationResponse(
+        responseText,
+        "Container [{}] place updated to [{}] successfully".format(containerId, placeId),
+        "Non-JSON response while updating container [{}] place to [{}]".format(containerId, placeId),
+        "API Error while updating container [{}] place to [{}]".format(containerId, placeId),
+        "Unexpected response while updating container [{}] place to [{}]".format(containerId, placeId),
     )
 
 
@@ -160,41 +118,12 @@ def interpretUpdateContainerRobotResponse(responseText, containerId, robotId):
     """
     Parse an updateContainer(robot=<robotId>) response and return (logLevel, message).
     """
-    try:
-        respJson = json.loads(responseText)
-    except Exception as e:
-        return (
-            "error",
-            "Non-JSON response while updating container [{}] robot to [{}]: {}".format(
-                containerId,
-                robotId,
-                str(e)
-            )
-        )
-
-    if "result" in respJson:
-        return (
-            "info",
-            "Container [{}] robot updated to [{}] successfully".format(containerId, robotId)
-        )
-
-    if "error" in respJson:
-        return (
-            "warn",
-            "API Error while updating container [{}] robot to [{}]: {}".format(
-                containerId,
-                robotId,
-                json.dumps(respJson["error"])
-            )
-        )
-
-    return (
-        "warn",
-        "Unexpected response while updating container [{}] robot to [{}]: {}".format(
-            containerId,
-            robotId,
-            responseText
-        )
+    return interpretJsonRpcMutationResponse(
+        responseText,
+        "Container [{}] robot updated to [{}] successfully".format(containerId, robotId),
+        "Non-JSON response while updating container [{}] robot to [{}]".format(containerId, robotId),
+        "API Error while updating container [{}] robot to [{}]".format(containerId, robotId),
+        "Unexpected response while updating container [{}] robot to [{}]".format(containerId, robotId),
     )
 
 
@@ -202,38 +131,12 @@ def interpretDeleteContainerResponse(responseText, containerId):
     """
     Parse a deleteContainer response and return (logLevel, message).
     """
-    try:
-        respJson = json.loads(responseText)
-    except Exception as e:
-        return (
-            "error",
-            "Non-JSON response while deleting container [{}]: {}".format(
-                containerId,
-                str(e)
-            )
-        )
-
-    if "result" in respJson:
-        return (
-            "info",
-            "Container [{}] deleted successfully".format(containerId)
-        )
-
-    if "error" in respJson:
-        return (
-            "warn",
-            "API Error while deleting container [{}]: {}".format(
-                containerId,
-                json.dumps(respJson["error"])
-            )
-        )
-
-    return (
-        "warn",
-        "Unexpected response while deleting container [{}]: {}".format(
-            containerId,
-            responseText
-        )
+    return interpretJsonRpcMutationResponse(
+        responseText,
+        "Container [{}] deleted successfully".format(containerId),
+        "Non-JSON response while deleting container [{}]".format(containerId),
+        "API Error while deleting container [{}]".format(containerId),
+        "Unexpected response while deleting container [{}]".format(containerId),
     )
 
 

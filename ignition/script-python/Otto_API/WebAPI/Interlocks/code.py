@@ -3,6 +3,8 @@ import time
 from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.HttpHelpers import jsonHeaders
+from Otto_API.Common.JsonRpc import buildJsonRpcPayload
+from Otto_API.Common.JsonRpc import parseJsonRpcResponse
 from Otto_API.Common.JsonRpc import postJsonRpcPayload
 from Otto_API.Common.ParseHelpers import parseJsonResponse
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
@@ -267,16 +269,15 @@ def fetchInterlocks(apiBaseUrl, getFunc=httpGet):
 
 
 def _buildRpcPayload(interlockId, state, mask):
-    return {
-        "id": int(time.time() * 1000),
-        "jsonrpc": "2.0",
-        "method": "setInterlockState",
-        "params": {
+    return buildJsonRpcPayload(
+        "setInterlockState",
+        {
             "id": str(interlockId),
             "mask": int(mask),
             "state": int(state),
         },
-    }
+        nowEpoch=(time.time() * 1000),
+    )
 
 
 def postInterlockState(
@@ -304,13 +305,25 @@ def postInterlockState(
     try:
         payload = _buildRpcPayload(interlockId, state, mask)
         response = postJsonRpcPayload(operationsUrl, payload, postFunc)
-        responsePayload = system.util.jsonDecode(response)
-        if isinstance(responsePayload, dict) and responsePayload.get("error") is not None:
-            errorText = responsePayload.get("error")
+        responsePayload = parseJsonRpcResponse(response)
+        if responsePayload.parse_error:
             return OperationalResult(
                 False,
                 "error",
-                "setInterlockState failed for [{}]: {}".format(interlockId, errorText),
+                "setInterlockState failed for [{}]: {}".format(interlockId, responsePayload.parse_error),
+                dataFields={
+                    "interlock_id": interlockId,
+                    "state": int(state),
+                    "mask": int(mask),
+                    "response_text": response,
+                    "payload": payload,
+                },
+            )
+        if responsePayload.has_error and responsePayload.error is not None:
+            return OperationalResult(
+                False,
+                "error",
+                "setInterlockState failed for [{}]: {}".format(interlockId, responsePayload.errorText()),
                 dataFields={
                     "interlock_id": interlockId,
                     "state": int(state),

@@ -69,6 +69,45 @@ MISSION_STATE_HISTORY_MAX_ROWS = 100
 ROBOT_STATE_HISTORY_MAX_ROWS = 100
 HTTP_HISTORY_MAX_ROWS = 500
 
+_RUNTIME_TAG_SPECS = [
+    ("loop_is_running", "LoopIsRunning", "Boolean", False),
+    ("loop_last_start_ts", "LoopLastStartTs", "String", ""),
+    ("loop_retry_after_ts", "LoopRetryAfterTs", "String", ""),
+    ("loop_last_end_ts", "LoopLastEndTs", "String", ""),
+    ("loop_last_duration_ms", "LoopLastDurationMs", "Int4", 0),
+    ("loop_last_result", "LoopLastResult", "String", ""),
+    ("loop_overlap_count", "LoopOverlapCount", "Int4", 0),
+    ("interlock_sync_is_running", "InterlockSyncIsRunning", "Boolean", False),
+    ("interlock_sync_last_start_ts", "InterlockSyncLastStartTs", "String", ""),
+    ("interlock_sync_last_end_ts", "InterlockSyncLastEndTs", "String", ""),
+    ("interlock_sync_last_duration_ms", "InterlockSyncLastDurationMs", "Int4", 0),
+    ("interlock_sync_last_result", "InterlockSyncLastResult", "String", ""),
+    ("interlock_sync_status", "InterlockSyncStatus", "String", ""),
+    ("interlock_sync_message", "InterlockSyncMessage", "String", ""),
+    ("runtime_issues", "RuntimeIssues", "DataSet", RUNTIME_ISSUES_HEADERS),
+    ("server_status_status", "ServerStatusStatus", "String", ""),
+    ("server_status_message", "ServerStatusMessage", "String", ""),
+    ("robot_state_status", "RobotStateStatus", "String", ""),
+    ("robot_state_message", "RobotStateMessage", "String", ""),
+    ("container_state_status", "ContainerStateStatus", "String", ""),
+    ("container_state_message", "ContainerStateMessage", "String", ""),
+    ("plc_robot_fleet_sync_status", "PLCRobotFleetSyncStatus", "String", ""),
+    ("plc_robot_fleet_sync_message", "PLCRobotFleetSyncMessage", "String", ""),
+    ("plc_place_fleet_sync_status", "PLCPlaceFleetSyncStatus", "String", ""),
+    ("plc_place_fleet_sync_message", "PLCPlaceFleetSyncMessage", "String", ""),
+    ("mission_sorting_status", "MissionSortingStatus", "String", ""),
+    ("mission_sorting_message", "MissionSortingMessage", "String", ""),
+    ("workflow_cycles_status", "WorkflowCyclesStatus", "String", ""),
+    ("workflow_cycles_message", "WorkflowCyclesMessage", "String", ""),
+    ("controller_fault_summary", "ControllerFaultSummary", "String", ""),
+    ("command_history", "CommandHistory", "DataSet", COMMAND_HISTORY_HEADERS),
+    ("mission_state_history", "MissionStateHistory", "DataSet", MISSION_STATE_HISTORY_HEADERS),
+    ("robot_state_history", "RobotStateHistory", "DataSet", ROBOT_STATE_HISTORY_HEADERS),
+    ("http_history", "HttpHistory", "DataSet", HTTP_HISTORY_HEADERS),
+    ("http_get_history", "HttpGetHistory", "DataSet", HTTP_HISTORY_HEADERS),
+    ("http_post_history", "HttpPostHistory", "DataSet", HTTP_HISTORY_HEADERS),
+]
+
 
 def _log():
     return system.util.getLogger("Otto_API.Common.RuntimeHistory")
@@ -98,115 +137,28 @@ class RuntimeIssue(MappingRecordBase):
 
 def runtimePaths():
     """Shared runtime telemetry and history tags for the main loop and OTTO history helpers."""
-    return {
-        "base": RUNTIME_BASE,
-        "loop_is_running": RUNTIME_BASE + "/LoopIsRunning",
-        "loop_last_start_ts": RUNTIME_BASE + "/LoopLastStartTs",
-        "loop_retry_after_ts": RUNTIME_BASE + "/LoopRetryAfterTs",
-        "loop_last_end_ts": RUNTIME_BASE + "/LoopLastEndTs",
-        "loop_last_duration_ms": RUNTIME_BASE + "/LoopLastDurationMs",
-        "loop_last_result": RUNTIME_BASE + "/LoopLastResult",
-        "loop_overlap_count": RUNTIME_BASE + "/LoopOverlapCount",
-        "interlock_sync_is_running": RUNTIME_BASE + "/InterlockSyncIsRunning",
-        "interlock_sync_last_start_ts": RUNTIME_BASE + "/InterlockSyncLastStartTs",
-        "interlock_sync_last_end_ts": RUNTIME_BASE + "/InterlockSyncLastEndTs",
-        "interlock_sync_last_duration_ms": RUNTIME_BASE + "/InterlockSyncLastDurationMs",
-        "interlock_sync_last_result": RUNTIME_BASE + "/InterlockSyncLastResult",
-        "interlock_sync_status": RUNTIME_BASE + "/InterlockSyncStatus",
-        "interlock_sync_message": RUNTIME_BASE + "/InterlockSyncMessage",
-        "runtime_issues": RUNTIME_BASE + "/RuntimeIssues",
-        "server_status_status": RUNTIME_BASE + "/ServerStatusStatus",
-        "server_status_message": RUNTIME_BASE + "/ServerStatusMessage",
-        "robot_state_status": RUNTIME_BASE + "/RobotStateStatus",
-        "robot_state_message": RUNTIME_BASE + "/RobotStateMessage",
-        "container_state_status": RUNTIME_BASE + "/ContainerStateStatus",
-        "container_state_message": RUNTIME_BASE + "/ContainerStateMessage",
-        "plc_robot_fleet_sync_status": RUNTIME_BASE + "/PLCRobotFleetSyncStatus",
-        "plc_robot_fleet_sync_message": RUNTIME_BASE + "/PLCRobotFleetSyncMessage",
-        "plc_place_fleet_sync_status": RUNTIME_BASE + "/PLCPlaceFleetSyncStatus",
-        "plc_place_fleet_sync_message": RUNTIME_BASE + "/PLCPlaceFleetSyncMessage",
-        "mission_sorting_status": RUNTIME_BASE + "/MissionSortingStatus",
-        "mission_sorting_message": RUNTIME_BASE + "/MissionSortingMessage",
-        "workflow_cycles_status": RUNTIME_BASE + "/WorkflowCyclesStatus",
-        "workflow_cycles_message": RUNTIME_BASE + "/WorkflowCyclesMessage",
-        "controller_fault_summary": RUNTIME_BASE + "/ControllerFaultSummary",
-        "command_history": RUNTIME_BASE + "/CommandHistory",
-        "mission_state_history": RUNTIME_BASE + "/MissionStateHistory",
-        "robot_state_history": RUNTIME_BASE + "/RobotStateHistory",
-        "http_history": RUNTIME_BASE + "/HttpHistory",
-        "http_get_history": RUNTIME_BASE + "/HttpGetHistory",
-        "http_post_history": RUNTIME_BASE + "/HttpPostHistory",
-    }
+    paths = {"base": RUNTIME_BASE}
+    for key, leafName, _dataType, _defaultValue in _RUNTIME_TAG_SPECS:
+        paths[key] = RUNTIME_BASE + "/" + leafName
+    return paths
+
+
+def _runtimeTagDefault(dataType, defaultValue):
+    if dataType == "DataSet":
+        return system.dataset.toDataSet(defaultValue, [])
+    return defaultValue
 
 
 def ensureRuntimeTags():
     """Create runtime telemetry and history dataset tags for the main loop."""
     paths = runtimePaths()
     ensureFolder(RUNTIME_BASE)
-    ensureMemoryTag(paths["loop_is_running"], "Boolean", False)
-    ensureMemoryTag(paths["loop_last_start_ts"], "String", "")
-    ensureMemoryTag(paths["loop_retry_after_ts"], "String", "")
-    ensureMemoryTag(paths["loop_last_end_ts"], "String", "")
-    ensureMemoryTag(paths["loop_last_duration_ms"], "Int4", 0)
-    ensureMemoryTag(paths["loop_last_result"], "String", "")
-    ensureMemoryTag(paths["loop_overlap_count"], "Int4", 0)
-    ensureMemoryTag(paths["interlock_sync_is_running"], "Boolean", False)
-    ensureMemoryTag(paths["interlock_sync_last_start_ts"], "String", "")
-    ensureMemoryTag(paths["interlock_sync_last_end_ts"], "String", "")
-    ensureMemoryTag(paths["interlock_sync_last_duration_ms"], "Int4", 0)
-    ensureMemoryTag(paths["interlock_sync_last_result"], "String", "")
-    ensureMemoryTag(paths["interlock_sync_status"], "String", "")
-    ensureMemoryTag(paths["interlock_sync_message"], "String", "")
-    ensureMemoryTag(
-        paths["runtime_issues"],
-        "DataSet",
-        system.dataset.toDataSet(RUNTIME_ISSUES_HEADERS, [])
-    )
-    ensureMemoryTag(paths["server_status_status"], "String", "")
-    ensureMemoryTag(paths["server_status_message"], "String", "")
-    ensureMemoryTag(paths["robot_state_status"], "String", "")
-    ensureMemoryTag(paths["robot_state_message"], "String", "")
-    ensureMemoryTag(paths["container_state_status"], "String", "")
-    ensureMemoryTag(paths["container_state_message"], "String", "")
-    ensureMemoryTag(paths["plc_robot_fleet_sync_status"], "String", "")
-    ensureMemoryTag(paths["plc_robot_fleet_sync_message"], "String", "")
-    ensureMemoryTag(paths["plc_place_fleet_sync_status"], "String", "")
-    ensureMemoryTag(paths["plc_place_fleet_sync_message"], "String", "")
-    ensureMemoryTag(paths["mission_sorting_status"], "String", "")
-    ensureMemoryTag(paths["mission_sorting_message"], "String", "")
-    ensureMemoryTag(paths["workflow_cycles_status"], "String", "")
-    ensureMemoryTag(paths["workflow_cycles_message"], "String", "")
-    ensureMemoryTag(paths["controller_fault_summary"], "String", "")
-    ensureMemoryTag(
-        paths["command_history"],
-        "DataSet",
-        system.dataset.toDataSet(COMMAND_HISTORY_HEADERS, [])
-    )
-    ensureMemoryTag(
-        paths["mission_state_history"],
-        "DataSet",
-        system.dataset.toDataSet(MISSION_STATE_HISTORY_HEADERS, [])
-    )
-    ensureMemoryTag(
-        paths["robot_state_history"],
-        "DataSet",
-        system.dataset.toDataSet(ROBOT_STATE_HISTORY_HEADERS, [])
-    )
-    ensureMemoryTag(
-        paths["http_history"],
-        "DataSet",
-        system.dataset.toDataSet(HTTP_HISTORY_HEADERS, [])
-    )
-    ensureMemoryTag(
-        paths["http_get_history"],
-        "DataSet",
-        system.dataset.toDataSet(HTTP_HISTORY_HEADERS, [])
-    )
-    ensureMemoryTag(
-        paths["http_post_history"],
-        "DataSet",
-        system.dataset.toDataSet(HTTP_HISTORY_HEADERS, [])
-    )
+    for key, _leafName, dataType, defaultValue in _RUNTIME_TAG_SPECS:
+        ensureMemoryTag(
+            paths[key],
+            dataType,
+            _runtimeTagDefault(dataType, defaultValue),
+        )
 
 
 def writeRuntimeFields(fieldValues):

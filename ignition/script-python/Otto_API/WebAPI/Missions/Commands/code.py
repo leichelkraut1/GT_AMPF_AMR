@@ -3,6 +3,9 @@ import time
 import uuid
 
 from Otto_API.Common.HttpHelpers import httpPost
+from Otto_API.Common.JsonRpc import buildJsonRpcPayload
+from Otto_API.Common.JsonRpc import interpretJsonRpcMutationResponse
+from Otto_API.Common.JsonRpc import parseJsonRpcResponse
 from Otto_API.Common.JsonRpc import postJsonRpcPayload
 from Otto_API.Common.SyncHelpers import sanitizeTagName
 from Otto_API.Models.Results import OperationalResult
@@ -34,11 +37,9 @@ def buildCreateMissionPayload(templateDict, robotId, missionName, nowEpoch=None,
     missionPriority = templateDict.get("priority", 100)
     suffix = sanitizeTagName(str(nowEpoch))
 
-    return {
-        "id": int(nowEpoch),
-        "jsonrpc": "2.0",
-        "method": "createMission",
-        "params": {
+    return buildJsonRpcPayload(
+        "createMission",
+        {
             "mission": {
                 "client_reference_id": str(uuidFactory()),
                 "description": missionName + " - " + suffix,
@@ -52,25 +53,25 @@ def buildCreateMissionPayload(templateDict, robotId, missionName, nowEpoch=None,
                 "priority": missionPriority
             },
             "tasks": tasks
-        }
-    }
+        },
+        nowEpoch=nowEpoch,
+    )
 
 
 def interpretCreateMissionResponse(responseText):
-    try:
-        respJson = json.loads(responseText)
-    except Exception as e:
-        return ("error", "Fleet Manager returned non-JSON response: {}".format(str(e)), None)
+    response = parseJsonRpcResponse(responseText)
+    if response.parse_error:
+        return ("error", "Fleet Manager returned non-JSON response: {}".format(response.parse_error), None)
 
-    if "result" in respJson:
-        result = respJson["result"]
+    if response.has_result:
+        result = response.result
         missionId = result.get("uuid") or result.get("id")
         if missionId:
             return ("info", "Mission created successfully - ID: {}".format(missionId), missionId)
         return ("warn", "Mission created, but no mission ID found: {}".format(json.dumps(result)), None)
 
-    if "error" in respJson:
-        return ("warn", "API Error: {}".format(json.dumps(respJson["error"])), None)
+    if response.has_error:
+        return ("warn", "API Error: {}".format(response.errorText()), None)
 
     return ("warn", "Unexpected response: {}".format(responseText), None)
 
@@ -79,62 +80,50 @@ def buildFinalizeMissionPayload(missionId, nowEpoch=None):
     if nowEpoch is None:
         nowEpoch = time.time()
 
-    return {
-        "id": int(nowEpoch),
-        "jsonrpc": "2.0",
-        "method": "updateMission",
-        "params": {
+    return buildJsonRpcPayload(
+        "updateMission",
+        {
             "append_tasks": [],
             "fields": {
                 "finalized": True
             },
             "id": missionId
-        }
-    }
+        },
+        nowEpoch=nowEpoch,
+    )
 
 
 def buildCancelMissionPayload(missionId, nowEpoch=None):
     if nowEpoch is None:
         nowEpoch = time.time()
 
-    return {
-        "id": int(nowEpoch),
-        "jsonrpc": "2.0",
-        "method": "cancelMission",
-        "params": {
+    return buildJsonRpcPayload(
+        "cancelMission",
+        {
             "id": missionId
-        }
-    }
+        },
+        nowEpoch=nowEpoch,
+    )
 
 
 def interpretFinalizeMissionResponse(responseText, missionId):
-    try:
-        respJson = json.loads(responseText)
-    except Exception as e:
-        return ("error", "Non-JSON response while finalizing mission: {}".format(str(e)))
-
-    if "result" in respJson:
-        return ("info", "Mission [{}] finalized successfully".format(missionId))
-
-    if "error" in respJson:
-        return ("warn", "API Error while finalizing mission: {}".format(json.dumps(respJson["error"])))
-
-    return ("warn", "Unexpected response while finalizing mission: {}".format(responseText))
+    return interpretJsonRpcMutationResponse(
+        responseText,
+        "Mission [{}] finalized successfully".format(missionId),
+        "Non-JSON response while finalizing mission",
+        "API Error while finalizing mission",
+        "Unexpected response while finalizing mission",
+    )
 
 
 def interpretCancelMissionResponse(responseText, missionId):
-    try:
-        respJson = json.loads(responseText)
-    except Exception as e:
-        return ("error", "Non-JSON response while canceling mission: {}".format(str(e)))
-
-    if "result" in respJson:
-        return ("info", "Mission [{}] canceled successfully".format(missionId))
-
-    if "error" in respJson:
-        return ("warn", "API Error while canceling mission: {}".format(json.dumps(respJson["error"])))
-
-    return ("warn", "Unexpected response while canceling mission: {}".format(responseText))
+    return interpretJsonRpcMutationResponse(
+        responseText,
+        "Mission [{}] canceled successfully".format(missionId),
+        "Non-JSON response while canceling mission",
+        "API Error while canceling mission",
+        "Unexpected response while canceling mission",
+    )
 
 
 class MissionCommandResult(OperationalResult):
