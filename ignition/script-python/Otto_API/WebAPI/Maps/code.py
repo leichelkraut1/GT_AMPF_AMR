@@ -2,8 +2,30 @@ from Otto_API.Common.HttpHelpers import httpGet
 from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ParseHelpers import parseJsonResponse
 from Otto_API.Common.ParseHelpers import parseListPayload
-from Otto_API.Maps.Normalize import extractLiveMapReference
 from Otto_API.Models.Results import RecordSyncResult
+
+
+def extractLiveMapReference(payload):
+    """
+    Extract the active map reference/id from the live_map endpoint payload.
+    """
+    if isinstance(payload, dict):
+        if payload.get("reference"):
+            return payload.get("reference")
+
+        results = payload.get("results", [])
+        if isinstance(results, list):
+            for item in results:
+                if isinstance(item, dict) and item.get("reference"):
+                    return item.get("reference")
+        return None
+
+    if isinstance(payload, list):
+        for item in payload:
+            if isinstance(item, dict) and item.get("reference"):
+                return item.get("reference")
+
+    return None
 
 
 def fetchMaps(apiBaseUrl, getFunc=httpGet):
