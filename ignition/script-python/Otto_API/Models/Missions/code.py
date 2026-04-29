@@ -96,8 +96,8 @@ class MissionRecord(RawBackedRecordBase):
             or mission.get("Force_Robot")
             or mission.get("Forced_Robot"),
             mission.get("workflow_number"),
-            mission.get("instance_path"),
-            mission.get("path"),
+            mission.get("instance_path", ""),
+            mission.get("path", ""),
             rawData=mission,
         )
 
@@ -124,7 +124,8 @@ class MissionRecord(RawBackedRecordBase):
         return self.assignedRobotId() == normalizedRobotId
 
     def activeStatusPriority(self):
-        return ACTIVE_MISSION_STATUS_PRIORITY.get(self.mission_status, 90)
+        missionStatus = str(self.mission_status or "")
+        return ACTIVE_MISSION_STATUS_PRIORITY.get(missionStatus, 90)
 
     def activeSortKey(self):
         return (
@@ -226,7 +227,8 @@ class RobotMissionSummary(MappingRecordBase):
 
     def recordActiveMission(self, missionRecord, attachmentState=None):
         self.active_mission_count += 1
-        attachmentState = dict(attachmentState or {})
+        if attachmentState is None:
+            attachmentState = {}
         if attachmentState.get("mission_starved") is True:
             self.mission_starved = True
         if attachmentState.get("ready_for_attachment") is True:

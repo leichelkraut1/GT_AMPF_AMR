@@ -63,7 +63,7 @@ class ContainerLocationTarget(MappingRecordBase):
     FIELDS = ("kind", "value")
 
     def __init__(self, kind, value):
-        self.kind = coerceText(kind).lower()
+        self.kind = str(coerceText(kind) or "").lower()
         self.value = coerceText(value, None)
 
     @classmethod
