@@ -3,7 +3,7 @@ from Otto_API.Common.RuntimeHistory import buildRobotStateLogSignature
 from Otto_API.Common.TagIO import browseTagResults
 from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagIO import writeObservedTagValues
-from Otto_API.Models.Results import OperationalResult
+from Otto_API.Models.Results import RecordSyncResult
 
 
 ROBOT_STATE_LOG_SIGNATURE_MEMBER = "LastRobotStateLogSignature"
@@ -30,21 +30,16 @@ def buildRobotSyncResult(ok, level, message, records=None, writes=None, data=Non
     records = list(records or [])
     writes = list(writes or [])
     issues = list(issues or [])
-    payload = OperationalResult(
+    return RecordSyncResult(
         ok,
         level,
         message,
-        dataFields={
-            "records": records,
-            "writes": writes,
-            "value": data,
-            "issues": issues,
-        },
+        records=records,
+        recordsByName={},
+        writes=writes,
+        value=data,
+        sharedFields={"issues": issues},
     ).toDict()
-    payload["records"] = records
-    payload["writes"] = writes
-    payload["issues"] = issues
-    return payload
 
 
 def writeObservedPairs(writes, label, logger):

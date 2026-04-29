@@ -16,15 +16,13 @@ def _log():
 
 def _statusResult(ok, level, message, value=None, issues=None):
     issues = list(issues or [])
-    result = OperationalResult(
+    return OperationalResult(
         ok,
         level,
         message,
         typedFields={"value": value},
-        dataFields={"issues": issues},
+        sharedFields={"issues": issues},
     ).toDict()
-    result["issues"] = issues
-    return result
 
 
 def getServerStatus():

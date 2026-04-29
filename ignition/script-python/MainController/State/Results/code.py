@@ -25,7 +25,10 @@ class RobotCycleResult(OperationHealth):
     def fromDict(cls, result):
         if isinstance(result, cls):
             return result
-        result = dict(result or {})
+        if isinstance(result, OperationHealth):
+            result = result.toDict()
+        else:
+            result = dict(result or {})
         data = dict(result.get("data") or {})
         return cls(
             result.get("ok"),
@@ -42,9 +45,8 @@ class RobotCycleResult(OperationHealth):
         data["robot_name"] = self.robot_name
         data["state"] = self.state
         data["action"] = self.action
-        return {
-            "ok": self.ok,
-            "level": self.level,
-            "message": self.message,
-            "data": data,
-        }
+        result = self.healthDict()
+        result.pop("warnings", None)
+        result.pop("issues", None)
+        result["data"] = data
+        return result

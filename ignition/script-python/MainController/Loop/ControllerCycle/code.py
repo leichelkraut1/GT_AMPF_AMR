@@ -1,5 +1,6 @@
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.RuntimeHistory import recordRuntimeIssues
+from Otto_API.Models.Results import OperationHealth
 from Otto_API.Models.Results import OperationalResult
 from Otto_API.Services.Missions import Sync as MissionSync
 from Otto_API.Services import Containers as ContainerServices
@@ -20,18 +21,17 @@ from MainController.State.RuntimeStore import writeRuntimeFields
 
 
 def _phaseStatus(result):
-    result = dict(result or {})
-    if result.get("ok"):
+    health = OperationHealth.fromDict(result)
+    if health.ok:
         return "Healthy"
 
-    level = str(result.get("level") or "").lower()
-    if level == "error":
+    if health.isError():
         return "Error"
     return "Warn"
 
 
 def _phaseMessage(result):
-    return str(dict(result or {}).get("message") or "")
+    return str(OperationHealth.fromDict(result).message or "")
 
 
 def _controllerRuntimeFields(
@@ -58,7 +58,7 @@ def _controllerRuntimeFields(
     for fieldPrefix, label, result in phaseResults:
         fields[fieldPrefix + "_status"] = _phaseStatus(result)
         fields[fieldPrefix + "_message"] = _phaseMessage(result)
-        if not dict(result or {}).get("ok"):
+        if not OperationHealth.fromDict(result).ok:
             unhealthyMessages.append(
                 "{}: {}".format(label, _phaseMessage(result) or "unhealthy")
             )
@@ -87,7 +87,8 @@ def _mergeResults(label, *results):
             dataFields={"results": []},
         ).toDict()
 
-    unhealthy = [result for result in normalizedResults if not result.get("ok", False)]
+    healthResults = [OperationHealth.fromDict(result) for result in normalizedResults]
+    unhealthy = [result for result in healthResults if not result.ok]
     if not unhealthy:
         return OperationalResult(
             True,
@@ -96,9 +97,9 @@ def _mergeResults(label, *results):
             dataFields={"results": normalizedResults},
         ).toDict()
 
-    level = "error" if any(str(result.get("level") or "").lower() == "error" for result in unhealthy) else "warn"
+    level = "error" if any(result.isError() for result in unhealthy) else "warn"
     message = "; ".join([
-        str(result.get("message") or "unhealthy")
+        str(result.message or "unhealthy")
         for result in unhealthy
     ]) or "{} degraded".format(label)
     return OperationalResult(
@@ -226,14 +227,14 @@ def _mainCycleResults(
 
 def _mainCycleOk(results):
     return all([
-        results["server_status"].get("ok", False),
-        results["mission_sorting"].get("ok", False),
-        results["mission_summary_mirror"].get("ok", False),
-        results["robot_state"].get("ok", False),
-        results["container_state"].get("ok", False),
-        results["plc_place_sync"].get("ok", False),
-        results["plc_robot_sync"].get("ok", False),
-        results["workflow_cycles"].get("ok", False),
+        OperationHealth.fromDict(results["server_status"]).ok,
+        OperationHealth.fromDict(results["mission_sorting"]).ok,
+        OperationHealth.fromDict(results["mission_summary_mirror"]).ok,
+        OperationHealth.fromDict(results["robot_state"]).ok,
+        OperationHealth.fromDict(results["container_state"]).ok,
+        OperationHealth.fromDict(results["plc_place_sync"]).ok,
+        OperationHealth.fromDict(results["plc_robot_sync"]).ok,
+        OperationHealth.fromDict(results["workflow_cycles"]).ok,
     ])
 
 

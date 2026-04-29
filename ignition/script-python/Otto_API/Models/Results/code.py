@@ -28,6 +28,19 @@ class OperationHealth(object):
     def isHealthy(self):
         return bool(self.ok)
 
+    @classmethod
+    def fromDict(cls, result):
+        if isinstance(result, cls):
+            return result
+        result = dict(result or {})
+        return cls(
+            result.get("ok"),
+            result.get("level"),
+            result.get("message"),
+            warnings=result.get("warnings"),
+            issues=result.get("issues"),
+        )
+
     def healthDict(self):
         return {
             "ok": self.ok,
@@ -36,6 +49,9 @@ class OperationHealth(object):
             "warnings": _typedValueToData(self.warnings),
             "issues": _typedValueToData(self.issues),
         }
+
+    def toDict(self):
+        return self.healthDict()
 
 
 class OperationalResult(OperationHealth):
@@ -106,12 +122,12 @@ class OperationalResult(OperationHealth):
         return fields
 
     def toDict(self):
-        result = {
-            "ok": self.ok,
-            "level": self.level,
-            "message": self.message,
-            "data": _typedValueToData(self.data),
-        }
+        result = self.healthDict()
+        if "warnings" not in dict(self._shared_fields or {}):
+            result.pop("warnings", None)
+        if "issues" not in dict(self._shared_fields or {}):
+            result.pop("issues", None)
+        result["data"] = _typedValueToData(self.data)
         result.update(self._serializedSharedFields())
         return result
 
