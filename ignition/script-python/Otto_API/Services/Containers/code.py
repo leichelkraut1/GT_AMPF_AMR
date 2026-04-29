@@ -1,17 +1,14 @@
-import uuid
-
 from Otto_API.Common.OperationHelpers import logOperationResult
 from Otto_API.Common.SyncHelpers import buildSyncResult
-from Otto_API.Common.TagIO import browseUdtInstancePaths
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Common.TagIO import getOttoOperationsUrl
-from Otto_API.Common.TagIO import readOptionalTagValue
-from Otto_API.Common.TagIO import readRequiredTagValues
-from Otto_API.Common.TagPaths import getFleetContainersPath
-from Otto_API.Common.TagPaths import getFleetContainersVerboseCleanupLoggingPath
-from Otto_API.Containers.Apply import applyContainerSync
-from Otto_API.Models.Containers import ContainerCreateFields
 from Otto_API.Models.Results import OperationalResult
+from Otto_API.TagSync.Containers import applyContainerSync
+from Otto_API.TagSync.Containers import findAllContainerIds
+from Otto_API.TagSync.Containers import findContainerIdsAtPlace
+from Otto_API.TagSync.Containers import findContainerIdsWithoutLocation
+from Otto_API.TagSync.Containers import isVerboseCleanupLoggingEnabled
+from Otto_API.TagSync.Containers import readCreateContainerBaseFields
 from Otto_API.WebAPI.Containers import fetchContainers
 from Otto_API.WebAPI.Containers import postCreateContainerAtPlace
 from Otto_API.WebAPI.Containers import postCreateContainerAtRobot
@@ -57,7 +54,7 @@ def _runCreateFromTagPath(containerTagPath, targetLabel, targetId, createFunc):
     ottoLogger.info("Creating container from tag path [{}] at {} [{}]".format(containerTagPath, targetLabel, targetId))
 
     try:
-        containerFields = _readCreateContainerBaseFields(containerTagPath)
+        containerFields = readCreateContainerBaseFields(containerTagPath)
     except Exception as e:
         msg = "Error reading container fields from [{}]: {}".format(containerTagPath, str(e))
         ottoLogger.error(msg)
@@ -74,74 +71,6 @@ def _runDirectOperation(logMessage, operationFunc, *args):
     ottoLogger.info(logMessage)
     result = operationFunc(*(args + (operationsUrl,)))
     return _writeResponseAndLogResult(result, ottoLogger)
-
-
-def _isVerboseCleanupLoggingEnabled():
-    return bool(
-        readOptionalTagValue(
-            getFleetContainersVerboseCleanupLoggingPath(),
-            False,
-            allowEmptyString=False
-        )
-    )
-
-
-def _hasLocationValue(value):
-    """
-    Return True when a location field is meaningfully populated.
-    """
-    if value is None:
-        return False
-
-    text = str(value).strip()
-    if not text:
-        return False
-
-    if text.lower() in ["none", "null"]:
-        return False
-
-    return True
-
-
-def _buildContainerCreateId(uuidFactory=None):
-    """
-    Build a generated container id as a UUID string.
-    """
-    if uuidFactory is None:
-        uuidFactory = uuid.uuid4
-
-    return str(uuidFactory())
-
-
-def _readCreateContainerBaseFields(containerTagPath, uuidFactory=None):
-    """
-    Read the common createContainer fields from one container UDT instance path.
-    """
-    requiredFieldSpecs = [
-        ("container_type", containerTagPath + "/ContainerType", "Container type"),
-        ("empty", containerTagPath + "/Empty", "Container empty"),
-    ]
-    requiredValues = readRequiredTagValues(
-        [path for _, path, _ in requiredFieldSpecs],
-        labels=[label for _, _, label in requiredFieldSpecs],
-        allowEmptyString=False,
-    )
-
-    containerFields = {}
-    containerFields["id"] = _buildContainerCreateId(uuidFactory)
-    for (fieldName, _path, _label), value in zip(requiredFieldSpecs, requiredValues):
-        containerFields[fieldName] = value
-
-    optionalFieldSpecs = [
-        ("description", containerTagPath + "/Description"),
-        ("name", containerTagPath + "/Name"),
-    ]
-    for fieldName, path in optionalFieldSpecs:
-        value = readOptionalTagValue(path, None, allowEmptyString=True)
-        if value in [None, ""]:
-            continue
-        containerFields[fieldName] = value
-    return ContainerCreateFields.fromDict(containerFields)
 
 
 def _deleteMatchedContainerIds(
@@ -227,17 +156,7 @@ def deleteContainersAtPlaceFromInputs(placeId, operationsUrl):
     if not placeId:
         return _containerResult(False, "warn", "No place id supplied for delete-at-place")
 
-    containersBase = getFleetContainersPath()
-    matchedContainerIds = []
-
-    for instancePath in browseUdtInstancePaths(containersBase):
-        if readOptionalTagValue(instancePath + "/Place", None) != placeId:
-            continue
-
-        containerId = readOptionalTagValue(instancePath + "/ID", None)
-        if not containerId:
-            continue
-        matchedContainerIds.append(containerId)
+    matchedContainerIds = findContainerIdsAtPlace(placeId)
 
     return _deleteMatchedContainerIds(
         matchedContainerIds,
@@ -260,14 +179,7 @@ def deleteAllContainersFromInputs(operationsUrl):
     """
     Delete every synced container currently present under Fleet/Containers.
     """
-    containersBase = getFleetContainersPath()
-    matchedContainerIds = []
-
-    for instancePath in browseUdtInstancePaths(containersBase):
-        containerId = readOptionalTagValue(instancePath + "/ID", None)
-        if not containerId:
-            continue
-        matchedContainerIds.append(containerId)
+    matchedContainerIds = findAllContainerIds()
 
     return _deleteMatchedContainerIds(
         matchedContainerIds,
@@ -285,18 +197,7 @@ def deleteContainersWithoutLocationFromInputs(operationsUrl):
     """
     Delete every synced container that has neither a Robot nor Place id.
     """
-    containersBase = getFleetContainersPath()
-    matchedContainerIds = []
-
-    for instancePath in browseUdtInstancePaths(containersBase):
-        containerId = readOptionalTagValue(instancePath + "/ID", None)
-        placeId = readOptionalTagValue(instancePath + "/Place", None)
-        robotId = readOptionalTagValue(instancePath + "/Robot", None)
-        if not containerId:
-            continue
-        if _hasLocationValue(placeId) or _hasLocationValue(robotId):
-            continue
-        matchedContainerIds.append(containerId)
+    matchedContainerIds = findContainerIdsWithoutLocation()
 
     return _deleteMatchedContainerIds(
         matchedContainerIds,
@@ -398,7 +299,7 @@ def cleanupContainersWithoutLocation():
     """
     operationsUrl = getOttoOperationsUrl()
     ottoLogger = _log()
-    verboseLogging = _isVerboseCleanupLoggingEnabled()
+    verboseLogging = isVerboseCleanupLoggingEnabled()
 
     if verboseLogging:
         ottoLogger.info("Deleting containers without robot or place")
