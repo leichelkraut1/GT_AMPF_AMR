@@ -5,8 +5,33 @@ from Otto_API.Models.Results import OperationalResult
 
 
 class ServerStatusResult(OperationalResult):
-    value = None
-    response_text = None
+    def __init__(
+        self,
+        ok,
+        level,
+        message,
+        value=None,
+        responseText=None,
+        topLevelValue=False,
+    ):
+        self.value = value
+        self.response_text = responseText
+
+        dataFields = {"response_text": responseText}
+        typedFields = {}
+        if topLevelValue:
+            typedFields["value"] = value
+        else:
+            dataFields["value"] = value
+
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            typedFields=typedFields,
+            dataFields=dataFields,
+        )
 
 
 def fetchServerStatus(apiBaseUrl, getFunc=httpGet):
@@ -21,10 +46,8 @@ def fetchServerStatus(apiBaseUrl, getFunc=httpGet):
             False,
             "warn",
             "Otto Fleet Manager did not respond",
-            dataFields={
-                "value": None,
-                "response_text": response,
-            },
+            value=None,
+            responseText=response,
         )
 
     try:
@@ -34,16 +57,15 @@ def fetchServerStatus(apiBaseUrl, getFunc=httpGet):
             False,
             "error",
             "Status update failed - {}".format(str(exc)),
-            dataFields={
-                "value": None,
-                "response_text": response,
-            },
+            value=None,
+            responseText=response,
         )
 
     return ServerStatusResult(
         True,
         "info",
         "Server status fetched",
-        typedFields={"value": status},
-        dataFields={"response_text": response},
+        value=status,
+        responseText=response,
+        topLevelValue=True,
     )

@@ -4,7 +4,7 @@ from Otto_API.Common.TagIO import writeObservedTagValues
 from Otto_API.Common.TagPaths import getFleetInterlocksPath
 from Otto_API.Common.TagProvisioning import ensureMemoryTag
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
-from Otto_API.Interlocks.Helpers import childRowNames
+from Otto_API.TagSync.Interlocks.Helpers import childRowNames
 from Otto_API.Models.Results import OperationalResult
 
 
@@ -46,7 +46,7 @@ def applyInterlockSync(records, instanceNameByRawName=None, logger=None):
     """
     Mirror normalized interlock rows into Fleet/Interlocks/<Name>.
     """
-    logger = logger or system.util.getLogger("Otto_API.Interlocks.Apply")
+    logger = logger or system.util.getLogger("Otto_API.TagSync.Interlocks.Apply")
     basePath = getFleetInterlocksPath()
     if not tagExists(basePath):
         return OperationalResult(

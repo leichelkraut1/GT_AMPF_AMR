@@ -5,7 +5,7 @@ from Otto_API.Common.HttpHelpers import httpPost
 from Otto_API.Common.HttpHelpers import jsonHeaders
 from Otto_API.Common.ParseHelpers import parseJsonResponse
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
-from Otto_API.Interlocks.Helpers import buildInterlockInstanceMap
+from Otto_API.Models.Interlocks import buildInterlockInstanceMap
 from Otto_API.Models.Interlocks import InterlockRecord
 from Otto_API.Models.Results import OperationalResult
 from Otto_API.Models.Results import RecordSyncResult
@@ -13,6 +13,47 @@ from Otto_API.Models.Results import RecordSyncResult
 
 INTERLOCK_FETCH_LIMIT = 100
 ISSUE_SOURCE = "Otto_API.WebAPI.Interlocks"
+
+
+class InterlockFetchResult(RecordSyncResult):
+    def __init__(
+        self,
+        ok,
+        level,
+        message,
+        records=None,
+        recordsByName=None,
+        responseText=None,
+        warnings=None,
+        issues=None,
+        instanceNameByRawName=None,
+        errors=None,
+    ):
+        self.warnings = list(warnings or [])
+        self.issues = list(issues or [])
+        self.response_text = responseText
+        self.instance_name_by_name = dict(instanceNameByRawName or {})
+        self.errors = list(errors or [])
+
+        sharedFields = {}
+        sharedFields["warnings"] = self.warnings
+        sharedFields["issues"] = self.issues
+        if responseText is not None:
+            sharedFields["response_text"] = self.response_text
+        if instanceNameByRawName is not None:
+            sharedFields["instance_name_by_name"] = self.instance_name_by_name
+        if errors is not None:
+            sharedFields["errors"] = self.errors
+
+        RecordSyncResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            records=records,
+            recordsByName=recordsByName,
+            sharedFields=sharedFields,
+        )
 
 
 def _log():
@@ -71,23 +112,20 @@ def fetchInterlocks(apiBaseUrl, getFunc=httpGet):
         response = getFunc(url=url, headerValues=jsonHeaders())
         if not response:
             logger.error("Otto API - HTTP GET failed for /Interlocks/")
-            return RecordSyncResult(
+            return InterlockFetchResult(
                 False,
                 "error",
                 "HTTP GET failed for /Interlocks/",
                 records=[],
                 recordsByName={},
-                sharedFields={
-                    "warnings": [],
-                    "issues": [
-                        buildRuntimeIssue(
-                            "interlocks.get.http_get_failed",
-                            ISSUE_SOURCE,
-                            "error",
-                            "HTTP GET failed for /Interlocks/",
-                        )
-                    ],
-                },
+                issues=[
+                    buildRuntimeIssue(
+                        "interlocks.get.http_get_failed",
+                        ISSUE_SOURCE,
+                        "error",
+                        "HTTP GET failed for /Interlocks/",
+                    )
+                ],
             )
 
         payload = parseJsonResponse(response)
@@ -99,23 +137,20 @@ def fetchInterlocks(apiBaseUrl, getFunc=httpGet):
 
         if not isinstance(data, list):
             logger.error("Otto API - Interlocks JSON decode error: results was not a list")
-            return RecordSyncResult(
+            return InterlockFetchResult(
                 False,
                 "error",
                 "Interlocks JSON decode error - results was not a list",
                 records=[],
                 recordsByName={},
-                sharedFields={
-                    "warnings": [],
-                    "issues": [
-                        buildRuntimeIssue(
-                            "interlocks.get.results_not_list",
-                            ISSUE_SOURCE,
-                            "error",
-                            "Interlocks JSON decode error - results was not a list",
-                        )
-                    ],
-                },
+                issues=[
+                    buildRuntimeIssue(
+                        "interlocks.get.results_not_list",
+                        ISSUE_SOURCE,
+                        "error",
+                        "Interlocks JSON decode error - results was not a list",
+                    )
+                ],
             )
 
         warnings = []
@@ -178,19 +213,17 @@ def fetchInterlocks(apiBaseUrl, getFunc=httpGet):
                     "error",
                     str(errorText),
                 ))
-            return RecordSyncResult(
+            return InterlockFetchResult(
                 False,
                 "error",
                 "Interlock instance-name collision detected",
                 records=records,
                 recordsByName=recordsByName,
-                sharedFields={
-                    "response_text": response,
-                    "warnings": warnings,
-                    "instance_name_by_name": instanceNameByRawName,
-                    "errors": instanceErrors,
-                    "issues": list(issues or []) + errorIssues,
-                },
+                responseText=response,
+                warnings=warnings,
+                instanceNameByRawName=instanceNameByRawName,
+                errors=instanceErrors,
+                issues=list(issues or []) + errorIssues,
             )
 
         ok = not warnings
@@ -202,38 +235,33 @@ def fetchInterlocks(apiBaseUrl, getFunc=httpGet):
                 len(warnings),
             )
 
-        return RecordSyncResult(
+        return InterlockFetchResult(
             ok,
             level,
             message,
             records=records,
             recordsByName=recordsByName,
-            sharedFields={
-                "response_text": response,
-                "warnings": warnings,
-                "instance_name_by_name": instanceNameByRawName,
-                "issues": issues,
-            },
+            responseText=response,
+            warnings=warnings,
+            instanceNameByRawName=instanceNameByRawName,
+            issues=issues,
         )
     except Exception as exc:
         logger.error("Otto API - /Interlocks/ fetch failed - " + str(exc))
-        return RecordSyncResult(
+        return InterlockFetchResult(
             False,
             "error",
             "Interlocks fetch failed - " + str(exc),
             records=[],
             recordsByName={},
-            sharedFields={
-                "warnings": [],
-                "issues": [
-                    buildRuntimeIssue(
-                        "interlocks.get.fetch_exception",
-                        ISSUE_SOURCE,
-                        "error",
-                        "Interlocks fetch failed - " + str(exc),
-                    )
-                ],
-            },
+            issues=[
+                buildRuntimeIssue(
+                    "interlocks.get.fetch_exception",
+                    ISSUE_SOURCE,
+                    "error",
+                    "Interlocks fetch failed - " + str(exc),
+                )
+            ],
         )
 
 

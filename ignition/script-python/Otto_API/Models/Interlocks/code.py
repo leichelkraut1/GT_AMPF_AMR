@@ -3,6 +3,48 @@ from Otto_API.Common.RecordHelpers import coerceBool
 from Otto_API.Common.RecordHelpers import coerceInt
 from Otto_API.Common.RecordHelpers import coerceIntOrNone
 from Otto_API.Common.RecordHelpers import coerceText
+from Otto_API.Common.SyncHelpers import sanitizeTagName
+
+
+def buildInterlockInstanceName(rawName):
+    """
+    Convert an OTTO interlock name into a safe Ignition tag instance name.
+    """
+    return sanitizeTagName(rawName)
+
+
+def buildInterlockInstanceMap(records):
+    """
+    Build a raw-name -> sanitized-instance-name map and detect collisions.
+    """
+    instanceNameByRawName = {}
+    rawNameByInstanceName = {}
+    errors = []
+
+    for record in list(records or []):
+        if isinstance(record, dict):
+            rawName = str(record.get("name") or "").strip()
+        else:
+            rawName = str(getattr(record, "name", "") or "").strip()
+        if not rawName:
+            continue
+
+        instanceName = buildInterlockInstanceName(rawName)
+        existingRawName = rawNameByInstanceName.get(instanceName)
+        if existingRawName is not None and existingRawName != rawName:
+            errors.append(
+                "Interlock names [{}] and [{}] both map to Fleet/Interlocks/[{}]".format(
+                    existingRawName,
+                    rawName,
+                    instanceName,
+                )
+            )
+            continue
+
+        rawNameByInstanceName[instanceName] = rawName
+        instanceNameByRawName[rawName] = instanceName
+
+    return instanceNameByRawName, rawNameByInstanceName, errors
 
 
 class InterlockRecord(MappingRecordBase):

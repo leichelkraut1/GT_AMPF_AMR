@@ -7,9 +7,39 @@ from Otto_API.Models.Robots import RobotSystemStateEntry
 
 
 class RobotFetchResult(OperationalResult):
-    records = None
-    response_text = None
-    endpoint = ""
+    def __init__(
+        self,
+        ok,
+        level,
+        message,
+        records=None,
+        responseText=None,
+        endpoint="",
+        topLevelRecords=False,
+    ):
+        records = list(records or [])
+        self.records = records
+        self.response_text = responseText
+        self.endpoint = str(endpoint or "").strip()
+
+        dataFields = {
+            "response_text": responseText,
+            "endpoint": self.endpoint,
+        }
+        typedFields = {}
+        if topLevelRecords:
+            typedFields["records"] = records
+        else:
+            dataFields["records"] = records
+
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            typedFields=typedFields,
+            dataFields=dataFields,
+        )
 
 
 def _resultsUrl(apiBaseUrl, pathAndQuery):
@@ -26,11 +56,9 @@ def _fetchJsonResults(apiBaseUrl, pathAndQuery, endpoint, getFunc=httpGet):
             False,
             "error",
             "HTTP GET failed for {}".format(endpoint),
-            dataFields={
-                "records": [],
-                "response_text": response,
-                "endpoint": endpoint,
-            },
+            records=[],
+            responseText=response,
+            endpoint=endpoint,
         )
 
     try:
@@ -40,22 +68,19 @@ def _fetchJsonResults(apiBaseUrl, pathAndQuery, endpoint, getFunc=httpGet):
             False,
             "error",
             "JSON decode error - {}".format(exc),
-            dataFields={
-                "records": [],
-                "response_text": response,
-                "endpoint": endpoint,
-            },
+            records=[],
+            responseText=response,
+            endpoint=endpoint,
         )
 
     return RobotFetchResult(
         True,
         "info",
         "{} fetched".format(endpoint),
-        typedFields={"records": list(data.get("results", []) or [])},
-        dataFields={
-            "response_text": response,
-            "endpoint": endpoint,
-        },
+        records=list(data.get("results", []) or []),
+        responseText=response,
+        endpoint=endpoint,
+        topLevelRecords=True,
     )
 
 
@@ -81,16 +106,13 @@ def fetchRobotSystemStates(apiBaseUrl, getFunc=httpGet):
         True,
         "info",
         result.message,
-        typedFields={
-            "records": [
-                RobotSystemStateEntry.fromDict(record)
-                for record in list(result.records or [])
-            ],
-        },
-        dataFields={
-            "response_text": result.response_text,
-            "endpoint": result.endpoint,
-        },
+        records=[
+            RobotSystemStateEntry.fromDict(record)
+            for record in list(result.records or [])
+        ],
+        responseText=result.response_text,
+        endpoint=result.endpoint,
+        topLevelRecords=True,
     )
 
 

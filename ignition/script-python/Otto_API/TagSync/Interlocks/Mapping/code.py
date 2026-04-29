@@ -1,4 +1,5 @@
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
+from Otto_API.Common.RecordHelpers import coerceBool
 from Otto_API.Common.TagIO import normalizeTagValue
 from Otto_API.Common.TagIO import readTagValues
 from Otto_API.Common.TagPaths import getFleetInterlocksPath
@@ -10,7 +11,6 @@ from Otto_API.Common.TagProvisioning import ensureFolder
 from Otto_API.Common.TagProvisioning import ensureMemoryTag
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
 from Otto_API.Models.Interlocks import DuplicateInterlockMappingInfo
-from Otto_API.Interlocks.Helpers import normalizeBool
 from Otto_API.Models.Interlocks import InterlockMappingRow
 from Otto_API.Models.Results import OperationalResult
 
@@ -21,8 +21,43 @@ DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS = 30000
 INTERLOCK_MAPPING_HEADERS = ["FleetName", "PlcTagName", "Direction", "WriteEnable"]
 
 
+class InterlockMappingResult(OperationalResult):
+    def __init__(
+        self,
+        ok,
+        level,
+        message,
+        rows=None,
+        mappingByName=None,
+        duplicateInfoByName=None,
+        warnings=None,
+        issues=None,
+    ):
+        self.rows = list(rows or [])
+        self.mapping_by_name = dict(mappingByName or {})
+        self.duplicate_info_by_name = dict(duplicateInfoByName or {})
+        self.warnings = list(warnings or [])
+        self.issues = list(issues or [])
+
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            typedFields={
+                "rows": self.rows,
+                "mapping_by_name": self.mapping_by_name,
+                "duplicate_info_by_name": self.duplicate_info_by_name,
+            },
+            sharedFields={
+                "warnings": self.warnings,
+                "issues": self.issues,
+            },
+        )
+
+
 def _log():
-    return system.util.getLogger("Otto_API.Interlocks.Mapping")
+    return system.util.getLogger("Otto_API.TagSync.Interlocks.Mapping")
 
 
 def _datasetWithHeaders(headers, rows=None):
@@ -87,7 +122,7 @@ def _normalizeMappingRows(configRows):
         fleetName = normalizeTagValue(row.get("FleetName"))
         plcTagName = normalizeTagValue(row.get("PlcTagName"))
         direction = normalizeTagValue(row.get("Direction"))
-        writeEnable = normalizeBool(row.get("WriteEnable"), True)
+        writeEnable = coerceBool(row.get("WriteEnable"), True)
 
         if not fleetName or not plcTagName or not direction:
             warning = (
@@ -96,7 +131,7 @@ def _normalizeMappingRows(configRows):
             warnings.append(warning)
             issues.append(buildRuntimeIssue(
                 "interlocks.mapping.blank_config.{}".format(plcTagName or "unknown"),
-                "Otto_API.Interlocks.Mapping",
+                "Otto_API.TagSync.Interlocks.Mapping",
                 "warn",
                 warning,
             ))
@@ -111,7 +146,7 @@ def _normalizeMappingRows(configRows):
             warnings.append(warning)
             issues.append(buildRuntimeIssue(
                 "interlocks.mapping.invalid_direction.{}".format(plcTagName),
-                "Otto_API.Interlocks.Mapping",
+                "Otto_API.TagSync.Interlocks.Mapping",
                 "warn",
                 warning,
             ))
@@ -139,7 +174,7 @@ def _normalizeMappingRows(configRows):
             warnings.append(warning)
             issues.append(buildRuntimeIssue(
                 "interlocks.mapping.duplicate_fleet_name.{}".format(fleetName),
-                "Otto_API.Interlocks.Mapping",
+                "Otto_API.TagSync.Interlocks.Mapping",
                 "warn",
                 warning,
             ))
@@ -172,7 +207,7 @@ def readInterlockMappings():
         warnings.append(warning)
         issues.append(buildRuntimeIssue(
             "interlocks.mapping.dataset_unreadable",
-            "Otto_API.Interlocks.Mapping",
+            "Otto_API.TagSync.Interlocks.Mapping",
             "warn",
             warning,
         ))
@@ -183,7 +218,7 @@ def readInterlockMappings():
             warnings.append(warning)
             issues.append(buildRuntimeIssue(
                 "interlocks.mapping.dataset_invalid",
-                "Otto_API.Interlocks.Mapping",
+                "Otto_API.TagSync.Interlocks.Mapping",
                 "warn",
                 warning,
             ))
@@ -202,19 +237,15 @@ def readInterlockMappings():
     if warnings:
         message = "Interlock mapping loaded with {} issue(s)".format(len(warnings))
 
-    return OperationalResult(
+    return InterlockMappingResult(
         ok,
         level,
         message,
-        typedFields={
-            "rows": normalizedRows,
-            "mapping_by_name": mappingByName,
-            "duplicate_info_by_name": duplicateInfoByName,
-        },
-        sharedFields={
-            "warnings": warnings,
-            "issues": issues,
-        },
+        rows=normalizedRows,
+        mappingByName=mappingByName,
+        duplicateInfoByName=duplicateInfoByName,
+        warnings=warnings,
+        issues=issues,
     )
 
 

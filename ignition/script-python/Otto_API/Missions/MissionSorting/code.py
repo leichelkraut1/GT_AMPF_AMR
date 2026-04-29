@@ -1,4 +1,4 @@
-from Otto_API.AttachmentPhaseHelpers import deriveMissionAttachmentState
+from Otto_API.AttachmentPhase import deriveMissionAttachmentState
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.TagIO import getApiBaseUrl

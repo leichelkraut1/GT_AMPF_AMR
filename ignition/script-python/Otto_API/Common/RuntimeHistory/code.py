@@ -196,6 +196,31 @@ def ensureRuntimeTags():
     )
 
 
+def writeRuntimeFields(fieldValues):
+    """
+    Write shared runtime telemetry without importing MainController.
+
+    Otto_API TagSync modules publish status into MainControl/Runtime, but
+    Otto_API must not depend on MainController. Keep this small boundary helper
+    here so TagSync code can report telemetry without weakening that dependency
+    rule.
+    """
+    paths = runtimePaths()
+    writePaths = []
+    writeValues = []
+    for fieldName, value in list(dict(fieldValues or {}).items()):
+        path = paths.get(fieldName)
+        if not path:
+            continue
+        writePaths.append(path)
+        writeValues.append(value)
+    if writePaths:
+        writeTagValues(
+            writePaths,
+            writeValues,
+        )
+
+
 def timestampString(nowEpochMs=None):
     """Return a stable local timestamp string for tag writes and history rows."""
     if nowEpochMs is None:

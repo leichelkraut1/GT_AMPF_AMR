@@ -1,6 +1,6 @@
 import time
 
-from Otto_API.AttachmentPhaseHelpers import buildMissionControlFlags
+from Otto_API.AttachmentPhase import buildMissionControlFlags
 from MainController.State.MissionStore import readActiveMissionSummary
 from MainController.State.MissionStore import readRobotMirrorInputs
 from MainController.State.PlcMappingStore import readPlcMappings

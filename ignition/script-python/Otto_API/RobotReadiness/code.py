@@ -3,11 +3,11 @@ from Otto_API.Models.Fleet import RobotReadinessResult
 from Otto_API.Models.Robots import RobotSnapshot
 
 
-DEFAULT_ALLOWED_ACTIVITY_STATES = set([
+DEFAULT_ALLOWED_ACTIVITY_STATES = [
     "PARKING",
     "IDLE",
     "WAITING"
-])
+]
 
 
 def _coerceRobotSnapshot(snapshot):

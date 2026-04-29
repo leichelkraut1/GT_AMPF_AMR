@@ -16,7 +16,7 @@ from Otto_API.Common.TagPaths import getMissionLastUpdateTsPath
 from Otto_API.Common.TagPaths import getMissionMinChargePath
 from Otto_API.Common.TagPaths import getRobotChargingDelayMsPath
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
-from Otto_API.Fleet.RobotReadiness import buildReadinessResultsAndWrites
+from Otto_API.RobotReadiness import buildReadinessResultsAndWrites
 from Otto_API.Models.Robots import RobotPlace
 from Otto_API.Models.Robots import RobotSnapshot
 from Otto_API.Models.Robots import groupRecordsByRobot

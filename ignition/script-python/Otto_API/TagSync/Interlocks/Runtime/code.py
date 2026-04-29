@@ -1,15 +1,15 @@
 import time
 
-from MainController.State.RuntimeStore import writeRuntimeFields
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.RuntimeHistory import recordRuntimeIssues
 from Otto_API.Common.RuntimeHistory import timestampString
-from Otto_API.Interlocks.Sync import updateInterlocks
+from Otto_API.Common.RuntimeHistory import writeRuntimeFields
+from Otto_API.TagSync.Interlocks.Sync import updateInterlocks
 from Otto_API.Models.Results import OperationalResult
 
 
 def _log():
-    return system.util.getLogger("Otto_API.Interlocks.Runtime")
+    return system.util.getLogger("Otto_API.TagSync.Interlocks.Runtime")
 
 
 def _statusFromResult(result):
@@ -58,7 +58,7 @@ def runInterlockSyncCycle(nowEpochMs=None):
                 "issues": [
                     buildRuntimeIssue(
                         "interlocks.runtime.wrapper_exception",
-                        "Otto_API.Interlocks.Runtime",
+                        "Otto_API.TagSync.Interlocks.Runtime",
                         "error",
                         message,
                     )
@@ -87,5 +87,22 @@ def runInterlockSyncCycle(nowEpochMs=None):
             })
         except Exception as exc:
             logger.error("Interlock sync runtime end telemetry failed: {}".format(str(exc)))
+
+    if result is None:
+        result = OperationalResult(
+            False,
+            "error",
+            "Interlock sync did not produce a result",
+            sharedFields={
+                "issues": [
+                    buildRuntimeIssue(
+                        "interlocks.runtime.missing_result",
+                        "Otto_API.TagSync.Interlocks.Runtime",
+                        "error",
+                        "Interlock sync did not produce a result",
+                    )
+                ],
+            },
+        )
 
     return result.toDict()

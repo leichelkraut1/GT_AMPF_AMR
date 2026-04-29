@@ -12,9 +12,9 @@ from Otto_API.Common.TagIO import writeObservedTagValues
 from Otto_API.Common.TagPaths import getFleetInterlocksPath
 from Otto_API.Common.TagPaths import getInterlockWritebackRetryMsPath
 from Otto_API.Common.TagPaths import getPlcInterlocksPath
-from Otto_API.Interlocks.Apply import applyInterlockSync
-from Otto_API.Interlocks.Mapping import DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS
-from Otto_API.Interlocks.Mapping import readInterlockMappings
+from Otto_API.TagSync.Interlocks.Apply import applyInterlockSync
+from Otto_API.TagSync.Interlocks.Mapping import DEFAULT_INTERLOCK_WRITEBACK_RETRY_MS
+from Otto_API.TagSync.Interlocks.Mapping import readInterlockMappings
 from Otto_API.Models.Interlocks import DuplicateInterlockMappingInfo
 from Otto_API.Models.Interlocks import InterlockMappingRow
 from Otto_API.Models.Interlocks import InterlockRecord
@@ -26,7 +26,7 @@ from Otto_API.WebAPI.Interlocks import postInterlockState
 
 
 def _log():
-    return system.util.getLogger("Otto_API.Interlocks.Sync")
+    return system.util.getLogger("Otto_API.TagSync.Interlocks.Sync")
 
 
 def _toIntOrNone(value):
@@ -279,6 +279,15 @@ def _extendIssues(targetIssues, result):
     targetIssues.extend(list(getattr(result, "issues", []) or []))
 
 
+def _syncIssue(issueId, level, message):
+    return buildRuntimeIssue(
+        issueId,
+        "Otto_API.TagSync.Interlocks.Sync",
+        level,
+        message,
+    )
+
+
 def _syncIssueResult(issueId, level, message, postResult=None):
     typedFields = {}
     if postResult is not None:
@@ -289,14 +298,7 @@ def _syncIssueResult(issueId, level, message, postResult=None):
         message,
         typedFields=typedFields,
         sharedFields={
-            "issues": [
-                buildRuntimeIssue(
-                    issueId,
-                    "Otto_API.Interlocks.Sync",
-                    level,
-                    message,
-                )
-            ],
+            "issues": [_syncIssue(issueId, level, message)],
         },
     )
 
@@ -453,12 +455,11 @@ def _applyToFleet(
     message = postResult.message or "{} posted [{}]".format(actionLabel, fleetName)
     issues = []
     if not postResult.ok:
-        issues = _syncIssueResult(
+        issues = [_syncIssue(
             "interlocks.sync.{}.post_failed.{}".format(actionKey, fleetName),
             postResult.level,
             message,
-            postResult=postResult,
-        ).issues
+        )]
     return OperationalResult(
         bool(postResult.ok),
         postResult.level,
@@ -510,7 +511,7 @@ def updateInterlocks():
         warnings.append(applyResult.message)
         issues.append(buildRuntimeIssue(
             "interlocks.sync.apply_result",
-            "Otto_API.Interlocks.Sync",
+            "Otto_API.TagSync.Interlocks.Sync",
             applyResult.level,
             applyResult.message,
         ))
