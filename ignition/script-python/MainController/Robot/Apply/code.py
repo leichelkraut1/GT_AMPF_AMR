@@ -4,7 +4,7 @@ from Otto_API.Common.RuntimeHistory import COMMAND_HISTORY_MAX_ROWS
 from Otto_API.Common.RuntimeHistory import timestampString
 from MainController.State.PlcStore import writePlcHealthOutputs
 from MainController.State.PlcStore import writePlcOutputs
-from MainController.State.Results import buildCycleResult
+from MainController.State.Results import RobotCycleResult
 from MainController.State.RobotStore import readRobotState
 from MainController.State.RobotStore import writeRobotState
 from MainController.Robot.Records import _coerceRobotCycleSnapshot
@@ -160,7 +160,7 @@ def applyRobotOutcome(snapshot, outcome):
                 else syncResult["message"]
             )
 
-    result = buildCycleResult(
+    result = RobotCycleResult(
         resultOk,
         resultLevel,
         resultMessage,

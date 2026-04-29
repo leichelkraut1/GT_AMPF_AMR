@@ -5,6 +5,7 @@ from MainController.Robot.Decision import resolveRobotWorkflowDecision
 from MainController.Robot.Records import _coerceRobotCycleSnapshot
 from MainController.Robot.Reservations import buildReservedWorkflowsFromSnapshots
 from MainController.Robot.Snapshot import readRobotCycleSnapshot
+from MainController.State.Results import RobotCycleResult
 
 
 def _attachLocalReservations(snapshot):
@@ -53,4 +54,5 @@ def runRobotWorkflowCycle(
         finalizeMissionId=finalizeMissionId,
         cancelMissionIds=cancelMissionIds,
     )
-    return runRobotWorkflowCycleSnapshot(snapshot)
+    result = runRobotWorkflowCycleSnapshot(snapshot)
+    return RobotCycleResult.fromDict(result).toDict()

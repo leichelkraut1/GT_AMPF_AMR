@@ -15,6 +15,7 @@ from MainController.State.ContainerMirror import mirrorPlcPlaces
 from MainController.State.MissionMirror import writeMissionSortingRobotMirror
 from MainController.State.PlcMappingStore import readPlcMappings
 from MainController.State.Paths import ROBOT_NAMES
+from MainController.State.Results import RobotCycleResult
 from MainController.State.RuntimeStore import writeRuntimeFields
 
 
@@ -111,16 +112,14 @@ def _mergeResults(label, *results):
 def _robotCycleExceptionResult(robotName, exc):
     message = "Robot [{}] workflow cycle failed: {}".format(robotName, str(exc))
     _log().error(message)
-    return OperationalResult(
+    return RobotCycleResult(
         False,
         "error",
         message,
-        dataFields={
-            "robot_name": robotName,
-            "state": "fault",
-            "action": "robot_cycle_exception",
-        },
-    ).toDict()
+        robotName=robotName,
+        state="fault",
+        action="robot_cycle_exception",
+    )
 
 
 def _missionMirrorResult(missionSortResult):
@@ -269,14 +268,12 @@ def runAllRobotWorkflowCycles(
             cycleResult = runRobotWorkflowCycleSnapshot(snapshot)
         except Exception as exc:
             cycleResult = _robotCycleExceptionResult(snapshot.robot_name, exc)
+        cycleResult = RobotCycleResult.fromDict(cycleResult)
         results.append(cycleResult)
-        cycleData = cycleResult.get("data") or {}
-        if isinstance(cycleData, dict):
-            syncResult = cycleData.get("plc_sync_result")
-            if isinstance(syncResult, dict) and syncResult:
-                plcSyncResults.append(syncResult)
+        if cycleResult.plc_sync_result:
+            plcSyncResults.append(cycleResult.plc_sync_result)
 
-    ok = all(result.get("ok", False) or result.get("level") == "warn" for result in results)
+    ok = all(result.ok or result.level == "warn" for result in results)
     level = "info" if ok else "error"
     plcRobotSyncResult = _mergeResults("PLC robot sync", *plcSyncResults)
     return OperationalResult(

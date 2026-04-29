@@ -1,19 +1,50 @@
-from Otto_API.Models.Results import OperationalResult
+from Otto_API.Models.Results import OperationHealth
 
 
-def buildCycleResult(ok, level, message, robotName=None, state=None, action=None, data=None):
-    """Wrap one robot-cycle decision in a consistent result payload."""
-    payload = {
-        "robot_name": robotName,
-        "state": state,
-        "action": action,
-    }
-    if data:
-        payload.update(data)
+class RobotCycleResult(OperationHealth):
+    """Typed result for one robot workflow decision and apply pass."""
 
-    return OperationalResult(
+    def __init__(
+        self,
         ok,
         level,
         message,
-        dataFields=payload,
-    ).toDict()
+        robotName=None,
+        state=None,
+        action=None,
+        data=None,
+    ):
+        OperationHealth.__init__(self, ok, level, message)
+        self.robot_name = robotName
+        self.state = state
+        self.action = action
+        self.data = dict(data or {})
+        self.plc_sync_result = dict(self.data.get("plc_sync_result") or {})
+
+    @classmethod
+    def fromDict(cls, result):
+        if isinstance(result, cls):
+            return result
+        result = dict(result or {})
+        data = dict(result.get("data") or {})
+        return cls(
+            result.get("ok"),
+            result.get("level"),
+            result.get("message"),
+            robotName=data.get("robot_name", result.get("robot_name")),
+            state=data.get("state", result.get("state")),
+            action=data.get("action", result.get("action")),
+            data=data,
+        )
+
+    def toDict(self):
+        data = dict(self.data or {})
+        data["robot_name"] = self.robot_name
+        data["state"] = self.state
+        data["action"] = self.action
+        return {
+            "ok": self.ok,
+            "level": self.level,
+            "message": self.message,
+            "data": data,
+        }
