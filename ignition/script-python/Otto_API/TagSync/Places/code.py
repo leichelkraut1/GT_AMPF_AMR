@@ -2,10 +2,10 @@ from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagIO import writeTagValueAsync
 from Otto_API.Common.TagPaths import getFleetPlacesPath
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
-from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import cleanupStaleUdtInstances
 from Otto_API.Common.SyncHelpers import sanitizeTagName
 from Otto_API.Common.SyncHelpers import writeObservedTagDict
+from Otto_API.Models.Results import RecordSyncResult
 
 
 def buildPlaceInstanceName(placeRecord):
@@ -118,13 +118,13 @@ def applyPlaceSync(placeRecords, responseText, logger):
             logger,
             "Otto API - Removed place tag instance due to duplicate sanitized place names: ",
         )
-        return buildSyncResult(
+        return RecordSyncResult(
             False,
             "error",
             message,
             records=placeRecords,
             writes=[],
-            duplicate_instance_names=list(sorted(duplicateNames)),
+            sharedFields={"duplicate_instance_names": list(sorted(duplicateNames))},
         )
 
     apiPlaces = []
@@ -175,7 +175,7 @@ def applyPlaceSync(placeRecords, responseText, logger):
         "Otto API - Removed stale place tag instance: ",
     )
 
-    return buildSyncResult(
+    return RecordSyncResult(
         True,
         "info",
         "Places updated for {} instance(s)".format(len(apiPlaces)),

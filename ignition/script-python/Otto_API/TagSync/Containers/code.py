@@ -15,10 +15,10 @@ from Otto_API.Common.TagPaths import getFleetPlacesPath
 from Otto_API.Common.TagPaths import getFleetRobotsPath
 from Otto_API.Common.TagProvisioning import ensureFolder
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
-from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import cleanupStaleUdtInstances
 from Otto_API.Common.SyncHelpers import writeObservedTagDict
 from Otto_API.Models.Containers import ContainerCreateFields
+from Otto_API.Models.Results import RecordSyncResult
 
 
 def buildContainerCreateId(uuidFactory=None):
@@ -287,7 +287,7 @@ def recomputeFleetOccupancy(logger):
     """
     writeMap = _buildOccupancyWriteMap(logger)
     if not writeMap:
-        return buildSyncResult(
+        return RecordSyncResult(
             True,
             "info",
             "Fleet occupancy recomputed for 0 locations",
@@ -321,15 +321,15 @@ def recomputeFleetOccupancy(logger):
         )
 
     if failedPaths:
-        return buildSyncResult(
+        return RecordSyncResult(
             False,
             "warn",
             "Fleet occupancy recompute degraded for {} tag(s)".format(len(failedPaths)),
             writes=list(zip(writePaths, writeValues)),
-            failed_paths=failedPaths,
+            sharedFields={"failed_paths": failedPaths},
         )
 
-    return buildSyncResult(
+    return RecordSyncResult(
         True,
         "info",
         "Fleet occupancy recomputed for {} location(s)".format(len(writeMap)),
@@ -376,20 +376,20 @@ def applyContainerSync(containerRecords, logger):
     )
 
     occupancyResult = recomputeFleetOccupancy(logger)
-    finalOk = bool(occupancyResult.get("ok", False))
-    finalLevel = "info" if finalOk else str(occupancyResult.get("level") or "warn")
+    finalOk = bool(occupancyResult.ok)
+    finalLevel = "info" if finalOk else str(occupancyResult.level or "warn")
     finalMessage = "Containers updated for {} instance(s)".format(len(apiContainers))
     if not finalOk:
         finalMessage = "{}; {}".format(
             finalMessage,
-            occupancyResult.get("message") or "occupancy degraded"
+            occupancyResult.message or "occupancy degraded"
         )
 
-    return buildSyncResult(
+    return RecordSyncResult(
         finalOk,
         finalLevel,
         finalMessage,
         records=containerRecords,
-        writes=writes + list(occupancyResult.get("writes") or []),
-        occupancy=occupancyResult,
+        writes=writes + list(occupancyResult.writes or []),
+        sharedFields={"occupancy": occupancyResult},
     )

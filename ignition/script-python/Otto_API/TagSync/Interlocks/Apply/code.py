@@ -25,12 +25,6 @@ INTERLOCK_METADATA_FIELD_SPECS = [
 INTERLOCK_TYPE_ID = "api_Interlock"
 
 
-def _recordField(record, fieldName, defaultValue=None):
-    if isinstance(record, dict):
-        return record.get(fieldName, defaultValue)
-    return getattr(record, fieldName, defaultValue)
-
-
 def _ensureInterlockRow(rowPath):
     ensureUdtInstancePath(rowPath, INTERLOCK_TYPE_ID)
     # Keep child members explicit so the local test shim and gateway both expose
@@ -62,7 +56,7 @@ def applyInterlockSync(records, instanceNameByRawName=None, logger=None):
     labels = []
 
     for record in list(records or []):
-        rawName = str(_recordField(record, "name") or "").strip()
+        rawName = str(record.name or "").strip()
         instanceName = str(dict(instanceNameByRawName or {}).get(rawName) or "").strip()
         if not rawName or not instanceName:
             continue
@@ -72,10 +66,15 @@ def applyInterlockSync(records, instanceNameByRawName=None, logger=None):
         if not tagExists(rowPath):
             _ensureInterlockRow(rowPath)
 
-        for fieldName, _dataType in list(INTERLOCK_FIELD_SPECS or []):
-            key = fieldName.lower()
+        fieldValues = [
+            ("ID", record.id),
+            ("Created", record.created),
+            ("Name", record.name),
+            ("State", record.state),
+        ]
+        for fieldName, value in fieldValues:
             tagPaths.append(rowPath + "/" + fieldName)
-            values.append(_recordField(record, key))
+            values.append(value)
             labels.append("Interlock sync")
 
     if tagPaths:

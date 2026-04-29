@@ -4,9 +4,9 @@ from Otto_API.Common.TagIO import writeTagValue
 from Otto_API.Common.TagIO import writeTagValueAsync
 from Otto_API.Common.TagPaths import getFleetMapsPath
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
-from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import cleanupStaleUdtInstances
 from Otto_API.Common.SyncHelpers import writeObservedTagDict
+from Otto_API.Models.Results import RecordSyncResult
 
 
 def buildMapInstanceName(mapItem):
@@ -82,7 +82,7 @@ def applyMapSync(mapItems, responseText, activeMapId, logger):
         skipNames=["ActiveMapID"],
     )
 
-    return buildSyncResult(
+    return RecordSyncResult(
         True,
         "info",
         "Maps updated for {} instance(s)".format(len(apiMaps)),

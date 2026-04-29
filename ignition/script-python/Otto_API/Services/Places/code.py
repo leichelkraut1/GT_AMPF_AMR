@@ -1,5 +1,5 @@
 from Otto_API.Common.TagIO import getApiBaseUrl
-from Otto_API.Common.SyncHelpers import buildSyncResult
+from Otto_API.Models.Results import OperationalResult
 from Otto_API.TagSync.Places import applyPlaceSync
 from Otto_API.WebAPI.Places import fetchPlaces
 
@@ -22,8 +22,12 @@ def updatePlaces():
             return fetchResult.toDict()
 
         responseText = str(fetchResult.data.get("response_text") or "")
-        return applyPlaceSync(fetchResult.records, responseText, ottoLogger)
+        return applyPlaceSync(fetchResult.records, responseText, ottoLogger).toDict()
 
     except Exception as e:
         ottoLogger.error("Otto API - /Places/ Tag Update Failed - " + str(e))
-        return buildSyncResult(False, "error", "Places tag update failed - " + str(e))
+        return OperationalResult(
+            False,
+            "error",
+            "Places tag update failed - " + str(e),
+        ).toDict()

@@ -1,5 +1,4 @@
 from Otto_API.Common.OperationHelpers import logOperationResult
-from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Common.TagIO import getOttoOperationsUrl
 from Otto_API.Models.Results import OperationalResult
@@ -142,11 +141,15 @@ def updateContainers():
         if not fetchResult.ok:
             return fetchResult.toDict()
 
-        return applyContainerSync(fetchResult.records, ottoLogger)
+        return applyContainerSync(fetchResult.records, ottoLogger).toDict()
 
     except Exception as e:
         ottoLogger.error("Otto API - Containers tag update failed: {}".format(str(e)))
-        return buildSyncResult(False, "error", "Containers tag update failed: {}".format(str(e)))
+        return OperationalResult(
+            False,
+            "error",
+            "Containers tag update failed: {}".format(str(e)),
+        ).toDict()
 
 
 def deleteContainersAtPlaceFromInputs(placeId, operationsUrl):

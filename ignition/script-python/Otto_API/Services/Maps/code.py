@@ -1,5 +1,5 @@
 from Otto_API.Common.TagIO import getApiBaseUrl
-from Otto_API.Common.SyncHelpers import buildSyncResult
+from Otto_API.Models.Results import OperationalResult
 from Otto_API.TagSync.Maps import applyMapSync
 from Otto_API.WebAPI.Maps import fetchLiveMapReference
 from Otto_API.WebAPI.Maps import fetchMaps
@@ -56,8 +56,12 @@ def updateMaps():
                 ottoLogger.warn("Otto API - Failed to determine fallback active map: " + str(sortErr))
 
         responseText = str(fetchResult.data.get("response_text") or "")
-        return applyMapSync(fetchResult.records, responseText, activeMapId, ottoLogger)
+        return applyMapSync(fetchResult.records, responseText, activeMapId, ottoLogger).toDict()
 
     except Exception as e:
         ottoLogger.error("Otto API - /Maps/ Tag Update Failed - " + str(e))
-        return buildSyncResult(False, "error", "Maps tag update failed - " + str(e))
+        return OperationalResult(
+            False,
+            "error",
+            "Maps tag update failed - " + str(e),
+        ).toDict()

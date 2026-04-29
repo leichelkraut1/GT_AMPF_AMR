@@ -84,7 +84,7 @@ def _dlog(logger, debug, msg):
         logger.info(msg)
 
 
-def _buildSyncResult(
+def _missionSyncResult(
     ok,
     level,
     message,
@@ -379,7 +379,7 @@ def run():
             )
         )
         _writeMissionUpdateStatus(True, nowTimestamp, logger)
-        result = _buildSyncResult(
+        result = _missionSyncResult(
             True,
             "info",
             "Mission sorting completed for {} mission(s)".format(len(missions)),
@@ -400,7 +400,7 @@ def run():
         except Exception:
             logger.error("Missions.Sync.run also failed to write failure status tags")
         logger.error("Missions.Sync.run FAILED: {}".format(e))
-        result = _buildSyncResult(
+        result = _missionSyncResult(
             False,
             "error",
             "Mission sorting failed: {}".format(e),
@@ -481,7 +481,7 @@ def runTerminalMaintenance():
             )
         )
 
-        result = _buildSyncResult(
+        result = _missionSyncResult(
             True,
             "info",
             "Completed mission maintenance processed {} mission(s)".format(len(missions)),
@@ -490,7 +490,7 @@ def runTerminalMaintenance():
         )
     except Exception as exc:
         logger.error("Missions.Sync.runTerminalMaintenance FAILED: {}".format(exc))
-        result = _buildSyncResult(
+        result = _missionSyncResult(
             False,
             "error",
             "Completed mission maintenance failed: {}".format(exc),

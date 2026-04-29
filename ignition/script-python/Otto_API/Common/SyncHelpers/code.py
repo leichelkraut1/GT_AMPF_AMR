@@ -1,30 +1,6 @@
-from Otto_API.Common.HttpHelpers import httpGet
-from Otto_API.Common.HttpHelpers import jsonHeaders
-from Otto_API.Common.ParseHelpers import parseListPayload
 from Otto_API.Common.TagIO import browseTagResults
 from Otto_API.Common.TagIO import deleteTagPath
 from Otto_API.Common.TagIO import writeObservedTagValues
-from Otto_API.Models.Results import OperationalResult
-
-
-def buildSyncResult(ok, level, message, records=None, writes=None, value=None, **extra):
-    records = list(records or [])
-    writes = list(writes or [])
-    result = OperationalResult(
-        ok,
-        level,
-        message,
-        dataFields={
-            "records": records,
-            "writes": writes,
-            "value": value,
-        },
-    )
-    payload = result.toDict()
-    payload["records"] = records
-    payload["writes"] = writes
-    payload.update(dict(extra or {}))
-    return payload
 
 
 def listUdtInstanceNames(browseResults):
@@ -105,35 +81,3 @@ def cleanupStaleUdtInstances(
             logger.info(staleMessagePrefix + str(instanceName))
     except Exception as e:
         logger.warn(cleanupWarnPrefix + str(e))
-
-
-def fetchListResource(url, logger, resourceLabel, parseErrorLabel=None):
-    """
-    Fetch and parse a standard OTTO list payload.
-
-    Returns:
-    - (responseText, parsedList, None) on success
-    - (responseTextOrNone, None, errorResult) on failure
-    """
-    response = httpGet(url=url, headerValues=jsonHeaders())
-
-    if not response:
-        logger.error("Otto API - HTTP GET failed for /{}/".format(resourceLabel))
-        return None, None, buildSyncResult(
-            False,
-            "error",
-            "HTTP GET failed for /{}/".format(resourceLabel)
-        )
-
-    try:
-        data = parseListPayload(response)
-    except Exception as jsonErr:
-        parseErrorLabel = parseErrorLabel or resourceLabel
-        logger.error("Otto API - {} JSON decode error: {}".format(parseErrorLabel, jsonErr))
-        return response, None, buildSyncResult(
-            False,
-            "error",
-            "{} JSON decode error - {}".format(parseErrorLabel, jsonErr)
-        )
-
-    return response, data, None

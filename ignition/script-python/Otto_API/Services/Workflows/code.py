@@ -1,7 +1,7 @@
 from Otto_API.Common.TagIO import getApiBaseUrl
 from Otto_API.Common.TagIO import readRequiredTagValue
 from Otto_API.Common.TagPaths import getFleetMapsPath
-from Otto_API.Common.SyncHelpers import buildSyncResult
+from Otto_API.Models.Results import OperationalResult
 from Otto_API.TagSync.Workflows import applyWorkflowSync
 from Otto_API.WebAPI.Workflows import fetchWorkflows
 
@@ -23,8 +23,12 @@ def updateWorkflows():
         if not fetchResult.ok:
             return fetchResult.toDict()
 
-        return applyWorkflowSync(fetchResult.records, ottoLogger)
+        return applyWorkflowSync(fetchResult.records, ottoLogger).toDict()
 
     except Exception as e:
         ottoLogger.error("Otto API - Workflows tag update failed: {}".format(str(e)))
-        return buildSyncResult(False, "error", "Workflow tag update failed: {}".format(str(e)))
+        return OperationalResult(
+            False,
+            "error",
+            "Workflow tag update failed: {}".format(str(e)),
+        ).toDict()

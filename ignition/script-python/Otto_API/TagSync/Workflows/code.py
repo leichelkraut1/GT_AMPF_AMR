@@ -3,9 +3,9 @@ import json
 from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagPaths import getFleetWorkflowsPath
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
-from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import cleanupStaleUdtInstances
 from Otto_API.Common.SyncHelpers import writeObservedTagDict
+from Otto_API.Models.Results import RecordSyncResult
 
 
 def buildWorkflowTagValues(basePath, templateItem):
@@ -61,7 +61,7 @@ def applyWorkflowSync(templateItems, logger):
         cleanupWarnPrefix="Otto API - Workflow cleanup skipped: ",
     )
 
-    return buildSyncResult(
+    return RecordSyncResult(
         True,
         "info",
         "Workflows updated for {} instance(s)".format(len(apiTemplates)),
