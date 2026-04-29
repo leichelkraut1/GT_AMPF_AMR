@@ -10,19 +10,26 @@ from Otto_API.WebAPI.System import fetchServerStatus
 SYSTEM_BASE_PATH = getFleetSystemPath()
 
 
+class SystemStatusResult(OperationalResult):
+    def __init__(self, ok, level, message, value=None, issues=None):
+        self.value = value
+        self.issues = list(issues or [])
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            typedFields={"value": self.value},
+            sharedFields={"issues": self.issues},
+        )
+
+
 def _log():
     return system.util.getLogger("Otto_API.Services.System")
 
 
 def _statusResult(ok, level, message, value=None, issues=None):
-    issues = list(issues or [])
-    return OperationalResult(
-        ok,
-        level,
-        message,
-        typedFields={"value": value},
-        sharedFields={"issues": issues},
-    ).toDict()
+    return SystemStatusResult(ok, level, message, value=value, issues=issues).toDict()
 
 
 def getServerStatus():
