@@ -1,113 +1,139 @@
-from Otto_API.Common.HttpHelpers import httpGet
+import json
+import time
+import uuid
+
 from Otto_API.Common.HttpHelpers import httpPost
-from Otto_API.Common.HttpHelpers import jsonHeaders
-from Otto_API.Common.ParseHelpers import parseMissionResults
-from Otto_API.Missions.MissionActions import buildCancelMissionPayload
-from Otto_API.Missions.MissionActions import buildCreateMissionPayload
-from Otto_API.Missions.MissionActions import buildFinalizeMissionPayload
-from Otto_API.Missions.MissionActions import interpretCancelMissionResponse
-from Otto_API.Missions.MissionActions import interpretCreateMissionResponse
-from Otto_API.Missions.MissionActions import interpretFinalizeMissionResponse
-from Otto_API.Missions.QueryHelpers import buildMissionsUrl
-from Otto_API.Models.Missions import MissionRecord
+from Otto_API.Common.SyncHelpers import sanitizeTagName
 from Otto_API.Models.Results import OperationalResult
-from Otto_API.Models.Results import RecordSyncResult
 
 
-def _log():
-    return system.util.getLogger("Otto_API.WebAPI.Missions")
-
-
-def _missionRecordsById(missionRecords):
-    recordsById = {}
-    for missionRecord in list(missionRecords or []):
-        missionId = str(missionRecord.id or "").strip()
-        if missionId:
-            recordsById[missionId] = missionRecord
-    return recordsById
-
-
-def fetchMissions(
-    apiBaseUrl,
-    missionStatus=None,
-    limit=None,
-    ordering=None,
-    getFunc=httpGet,
-    logger=None,
-    debug=False,
-):
-    """
-    Fetch OTTO missions for one or more statuses.
-    """
-    logger = logger or _log()
-    if not missionStatus:
-        message = "fetchMissions called with no missionStatus"
-        if debug:
-            logger.warn(message)
-        return RecordSyncResult(
-            True,
-            "warn",
-            message,
-            records=[],
-            recordsByName={},
-            sharedFields={
-                "warnings": [message],
-                "issues": [],
-            },
-        )
-
+def parseTemplateJson(templateJsonStr):
     try:
-        url = buildMissionsUrl(apiBaseUrl, missionStatus, limit, ordering=ordering)
-        if isinstance(missionStatus, (list, tuple)):
-            statusLabel = ",".join([str(status) for status in missionStatus])
-        else:
-            statusLabel = str(missionStatus)
+        template = json.loads(templateJsonStr)
+    except Exception as e:
+        raise ValueError("Invalid template JSON: {}".format(str(e)))
 
-        if debug:
-            logger.debug(
-                "Otto API - Requesting missions status={} url={}".format(
-                    statusLabel,
-                    url,
-                )
-            )
+    if not isinstance(template, dict):
+        raise ValueError("Template JSON was returned as invalid")
 
-        response = getFunc(url=url, headerValues=jsonHeaders())
-        missionRecords = MissionRecord.listFromDicts(parseMissionResults(response))
+    return template
 
-        if debug:
-            logger.debug(
-                "Otto API - Received {} missions for status {}".format(
-                    len(missionRecords),
-                    statusLabel,
-                )
-            )
 
-        return RecordSyncResult(
-            True,
-            "info",
-            "Fetched {} mission(s)".format(len(missionRecords)),
-            records=missionRecords,
-            recordsByName=_missionRecordsById(missionRecords),
-            dataFields={"response_text": response},
-            sharedFields={
-                "warnings": [],
-                "issues": [],
+def buildCreateMissionPayload(templateDict, robotId, missionName, nowEpoch=None, uuidFactory=None):
+    if nowEpoch is None:
+        nowEpoch = time.time()
+
+    if uuidFactory is None:
+        uuidFactory = uuid.uuid4
+
+    tasks = templateDict.get("tasks", [])
+    if not isinstance(tasks, list):
+        tasks = []
+
+    missionPriority = templateDict.get("priority", 100)
+    suffix = sanitizeTagName(str(nowEpoch))
+
+    return {
+        "id": int(nowEpoch),
+        "jsonrpc": "2.0",
+        "method": "createMission",
+        "params": {
+            "mission": {
+                "client_reference_id": str(uuidFactory()),
+                "description": missionName + " - " + suffix,
+                "finalized": False,
+                "force_robot": robotId,
+                "force_team": None,
+                "max_duration": "0",
+                "metadata": "",
+                "name": missionName + " - " + suffix,
+                "nominal_duration": "0",
+                "priority": missionPriority
             },
-        )
-    except Exception as exc:
-        message = "Error fetching missions (status={}): {}".format(missionStatus, exc)
-        logger.error("Otto API - " + message)
-        return RecordSyncResult(
-            False,
-            "error",
-            message,
-            records=[],
-            recordsByName={},
-            sharedFields={
-                "warnings": [],
-                "issues": [],
+            "tasks": tasks
+        }
+    }
+
+
+def interpretCreateMissionResponse(responseText):
+    try:
+        respJson = json.loads(responseText)
+    except Exception as e:
+        return ("error", "Fleet Manager returned non-JSON response: {}".format(str(e)))
+
+    if "result" in respJson:
+        result = respJson["result"]
+        missionId = result.get("uuid") or result.get("id")
+        if missionId:
+            return ("info", "Mission created successfully - ID: {}".format(missionId))
+        return ("warn", "Mission created, but no mission ID found: {}".format(json.dumps(result)))
+
+    if "error" in respJson:
+        return ("warn", "API Error: {}".format(json.dumps(respJson["error"])))
+
+    return ("warn", "Unexpected response: {}".format(responseText))
+
+
+def buildFinalizeMissionPayload(missionId, nowEpoch=None):
+    if nowEpoch is None:
+        nowEpoch = time.time()
+
+    return {
+        "id": int(nowEpoch),
+        "jsonrpc": "2.0",
+        "method": "updateMission",
+        "params": {
+            "append_tasks": [],
+            "fields": {
+                "finalized": True
             },
-        )
+            "id": missionId
+        }
+    }
+
+
+def buildCancelMissionPayload(missionId, nowEpoch=None):
+    if nowEpoch is None:
+        nowEpoch = time.time()
+
+    return {
+        "id": int(nowEpoch),
+        "jsonrpc": "2.0",
+        "method": "cancelMission",
+        "params": {
+            "id": missionId
+        }
+    }
+
+
+def interpretFinalizeMissionResponse(responseText, missionId):
+    try:
+        respJson = json.loads(responseText)
+    except Exception as e:
+        return ("error", "Non-JSON response while finalizing mission: {}".format(str(e)))
+
+    if "result" in respJson:
+        return ("info", "Mission [{}] finalized successfully".format(missionId))
+
+    if "error" in respJson:
+        return ("warn", "API Error while finalizing mission: {}".format(json.dumps(respJson["error"])))
+
+    return ("warn", "Unexpected response while finalizing mission: {}".format(responseText))
+
+
+def interpretCancelMissionResponse(responseText, missionId):
+    try:
+        respJson = json.loads(responseText)
+    except Exception as e:
+        return ("error", "Non-JSON response while canceling mission: {}".format(str(e)))
+
+    if "result" in respJson:
+        return ("info", "Mission [{}] canceled successfully".format(missionId))
+
+    if "error" in respJson:
+        return ("warn", "API Error while canceling mission: {}".format(json.dumps(respJson["error"])))
+
+    return ("warn", "Unexpected response while canceling mission: {}".format(responseText))
 
 
 def _missionResult(ok, level, message, missionId=None, responseText=None, payload=None):
@@ -152,9 +178,6 @@ def postCreateMission(
     missionName,
     postFunc=httpPost,
 ):
-    """
-    Create one mission through the OTTO operations endpoint.
-    """
     try:
         missionPayload = buildCreateMissionPayload(templateDict, robotId, missionName)
         response = postFunc(
@@ -185,9 +208,6 @@ def postCreateMission(
 
 
 def postFinalizeMission(operationsUrl, missionId, postFunc=httpPost):
-    """
-    Finalize one mission through the OTTO operations endpoint.
-    """
     missionId = str(missionId or "").strip()
     if not missionId:
         return _missionResult(
@@ -263,9 +283,6 @@ def postCancelMissions(
     successMessage="Canceled {} mission(s)",
     errorMessage="Error canceling missions: {}",
 ):
-    """
-    Cancel an explicit mission-id list through the OTTO operations endpoint.
-    """
     targetMissionIds = [
         str(missionId)
         for missionId in list(missionIds or [])

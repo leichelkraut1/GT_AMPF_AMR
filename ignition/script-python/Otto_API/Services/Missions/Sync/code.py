@@ -10,8 +10,8 @@ from Otto_API.Common.TagPaths import getFleetRobotsPath
 from Otto_API.Common.TagPaths import getMissionLastUpdateSuccessPath
 from Otto_API.Common.TagPaths import getMissionLastUpdateTsPath
 from Otto_API.Common.TagPaths import getMissionMaxCompletedCountPath
-from Otto_API.Missions.MissionActions import selectCurrentActiveMissionRecord
 from Otto_API.Models.Missions import RobotMissionSummary
+from Otto_API.Models.Missions import selectCurrentActiveMissionRecord
 from Otto_API.TagSync.Missions.Buckets import classify_mission_bucket
 from Otto_API.TagSync.Missions.Buckets import readRobotFolderMappings
 from Otto_API.TagSync.Missions.Buckets import resolve_mission_robot_folder
@@ -20,7 +20,7 @@ from Otto_API.TagSync.Missions.Maintenance import cleanup_terminal_folder
 from Otto_API.TagSync.Missions.Sync import mission_to_tag_values
 from Otto_API.TagSync.Missions.Sync import sync_mission_into_bucket
 from Otto_API.TagSync.Missions.Tree import browseMissionInstances
-from Otto_API.WebAPI.Missions import fetchMissions
+from Otto_API.WebAPI.Missions.Fetch import fetchMissions
 
 
 BASE = getFleetMissionsPath()
@@ -63,7 +63,7 @@ def _log():
     """
     Returns the module logger.
     """
-    return system.util.getLogger("Otto_API.Missions.MissionSorting")
+    return system.util.getLogger("Otto_API.Services.Missions.Sync")
 
 
 def _debug_enabled():
@@ -148,7 +148,7 @@ def _fetchMissionRecords(logger, debug, missionStatus=None, limit=None, ordering
     return list(result.records or [])
 
 
-class _MissionSortingFailure(RuntimeError):
+class _MissionSyncFailure(RuntimeError):
     def __init__(self, issueId, message):
         RuntimeError.__init__(self, message)
         self.issue_id = str(issueId or "").strip()
@@ -163,7 +163,7 @@ def _buildRunFailureIssues(exc):
         return [
             buildRuntimeIssue(
                 "mission_sorting.update_status_write_failed",
-                "Otto_API.Missions.MissionSorting",
+                "Otto_API.Services.Missions.Sync",
                 "error",
                 errorText,
             )
@@ -172,7 +172,7 @@ def _buildRunFailureIssues(exc):
         return [
             buildRuntimeIssue(
                 "mission_sorting.robot_counts_write_failed",
-                "Otto_API.Missions.MissionSorting",
+                "Otto_API.Services.Missions.Sync",
                 "error",
                 errorText,
             )
@@ -180,7 +180,7 @@ def _buildRunFailureIssues(exc):
     return [
         buildRuntimeIssue(
             "mission_sorting.run_failed",
-            "Otto_API.Missions.MissionSorting",
+            "Otto_API.Services.Missions.Sync",
             "error",
             "Mission sorting failed: {}".format(errorText),
         )
@@ -198,7 +198,7 @@ def _writeMissionUpdateStatus(success, timestampValue, logger=None):
         message = "Failed to write mission update status: {}".format(str(exc))
         if logger is not None:
             logger.error(message)
-        raise _MissionSortingFailure("mission_sorting.update_status_write_failed", message)
+        raise _MissionSyncFailure("mission_sorting.update_status_write_failed", message)
 
 
 def _writeFleetRobotMissionCounts(robotSummaryByFolder, robotMappings, logger=None):
@@ -225,7 +225,7 @@ def _writeFleetRobotMissionCounts(robotSummaryByFolder, robotMappings, logger=No
         message = "Failed to write Fleet robot mission counts: {}".format(str(exc))
         if logger is not None:
             logger.error(message)
-        raise _MissionSortingFailure("mission_sorting.robot_counts_write_failed", message)
+        raise _MissionSyncFailure("mission_sorting.robot_counts_write_failed", message)
 
 
 def _summaryForRobot(robotSummaryByFolder, robotFolder):
@@ -278,7 +278,7 @@ def run():
     logger = _log()
     debug = _debug_enabled()
 
-    _dlog(logger, debug, "MissionSorting.run START")
+    _dlog(logger, debug, "Missions.Sync.run START")
 
     result = None
 
@@ -404,8 +404,8 @@ def run():
                 logger
             )
         except Exception:
-            logger.error("MissionSorting.run also failed to write failure status tags")
-        logger.error("MissionSorting.run FAILED: {}".format(e))
+            logger.error("Missions.Sync.run also failed to write failure status tags")
+        logger.error("Missions.Sync.run FAILED: {}".format(e))
         result = _buildSyncResult(
             False,
             "error",
@@ -413,7 +413,7 @@ def run():
             issues=_buildRunFailureIssues(e),
         )
 
-    _dlog(logger, debug, "MissionSorting.run END")
+    _dlog(logger, debug, "Missions.Sync.run END")
     return result
 
 
@@ -424,7 +424,7 @@ def runTerminalMaintenance():
     logger = _log()
     debug = _debug_enabled()
 
-    _dlog(logger, debug, "MissionSorting.runTerminalMaintenance START")
+    _dlog(logger, debug, "Missions.Sync.runTerminalMaintenance START")
 
     try:
         maxCompleted = _readMaxCompletedCount()
@@ -495,7 +495,7 @@ def runTerminalMaintenance():
             removed=removed
         )
     except Exception as exc:
-        logger.error("MissionSorting.runTerminalMaintenance FAILED: {}".format(exc))
+        logger.error("Missions.Sync.runTerminalMaintenance FAILED: {}".format(exc))
         result = _buildSyncResult(
             False,
             "error",
@@ -503,12 +503,12 @@ def runTerminalMaintenance():
             issues=[
                 buildRuntimeIssue(
                     "mission_sorting.terminal_maintenance_failed",
-                    "Otto_API.Missions.MissionSorting",
+                    "Otto_API.Services.Missions.Sync",
                     "error",
                     "Completed mission maintenance failed: {}".format(exc),
                 )
             ],
         )
 
-    _dlog(logger, debug, "MissionSorting.runTerminalMaintenance END")
+    _dlog(logger, debug, "Missions.Sync.runTerminalMaintenance END")
     return result

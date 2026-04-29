@@ -1,7 +1,7 @@
 from Otto_API.Common.ResultHelpers import buildOperationResult
 from Otto_API.Common.RuntimeHistory import buildRuntimeIssue
 from Otto_API.Common.RuntimeHistory import recordRuntimeIssues
-from Otto_API.Missions import MissionSorting
+from Otto_API.Services.Missions import Sync as MissionSync
 from Otto_API.Services import Containers as ContainerServices
 from Otto_API.Services import Robots as RobotServices
 from Otto_API.Services import System as SystemServices
@@ -205,7 +205,7 @@ def _mainCycleResults(
 ):
     """Run the ordered shared phases and return the normalized cycle result bundle."""
     serverStatusResult = SystemServices.readCachedServerStatus()
-    missionSortResult = MissionSorting.run()
+    missionSortResult = MissionSync.run()
     missionSummaryResult = _missionMirrorResult(missionSortResult)
     robotStateResult = RobotServices.updateRobotOperationalState()
     containerStateResult = ContainerServices.updateContainers()

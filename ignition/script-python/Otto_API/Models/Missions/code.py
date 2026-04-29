@@ -142,6 +142,68 @@ class MissionRecord(RawBackedRecordBase):
         }
 
 
+def _matchingMissionRecordsForRobot(robotId, missionRecords):
+    return [
+        missionRecord
+        for missionRecord in MissionRecord.listFromDicts(missionRecords)
+        if missionRecord.matchesRobotId(robotId)
+    ]
+
+
+def resolveMissionRobotId(missionRecord):
+    missionRecord = MissionRecord.fromDict(missionRecord)
+    return missionRecord.assignedRobotId()
+
+
+def activeMissionStatusPriority(missionStatus):
+    missionRecord = MissionRecord.fromDict({"mission_status": missionStatus})
+    return missionRecord.activeStatusPriority()
+
+
+def sortActiveMissionRecords(missionRecords):
+    return sorted(
+        MissionRecord.listFromDicts(missionRecords),
+        key=lambda missionRecord: missionRecord.activeSortKey(),
+    )
+
+
+def selectCurrentActiveMissionRecord(missionRecords):
+    ordered = sortActiveMissionRecords(missionRecords)
+    if not ordered:
+        return None
+    return ordered[0]
+
+
+def findActiveMissionIdForRobot(robotId, missionRecords):
+    for missionRecord in sortActiveMissionRecords(_matchingMissionRecordsForRobot(robotId, missionRecords)):
+        missionId = missionRecord.id
+        if missionId:
+            return (str(missionId), None)
+
+        return (
+            None,
+            "Matched mission for robot ID [{}], but no mission id found".format(robotId)
+        )
+
+    return (None, None)
+
+
+def findActiveMissionIdsForRobot(robotId, missionRecords):
+    missionIds = []
+    warnings = []
+
+    for missionRecord in _matchingMissionRecordsForRobot(robotId, missionRecords):
+        missionId = missionRecord.id
+        if missionId:
+            missionIds.append(str(missionId))
+        else:
+            warnings.append(
+                "Matched mission for robot ID [{}], but no mission id found".format(robotId)
+            )
+
+    return (missionIds, warnings)
+
+
 class RobotMissionSummary(MappingRecordBase):
     FIELDS = (
         "active_mission_count",

@@ -30,7 +30,7 @@ The cycle order is intentional:
 1. `SystemServices.readCachedServerStatus()`
 2. `RobotServices.updateRobotOperationalState()`
 3. `ContainerServices.updateContainers()`
-4. `MissionSorting.run()`
+4. `MissionSync.run()`
 5. `runAllRobotWorkflowCycles(...)`
 
 The important rule is:
@@ -298,7 +298,7 @@ same row even if the runtime dataset is cleared.
 
 Mission sorting is now intentionally split into:
 
-- `MissionSorting.run()`
+- `Otto_API.Services.Missions.Sync.run()`
   - fast path
   - fetches `ACTIVE` and `FAILED`
   - updates active/failed mission tags
@@ -307,7 +307,7 @@ Mission sorting is now intentionally split into:
   - keeps failed cleanup/retention in the fast path because `FailedMissionCount`
     is part of robot readiness
 
-- `MissionSorting.runTerminalMaintenance()`
+- `Otto_API.Services.Missions.Sync.runTerminalMaintenance()`
   - slow path
   - fetches `COMPLETED`
   - updates completed mission tags
