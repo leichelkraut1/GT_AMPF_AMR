@@ -1,16 +1,3 @@
-from Otto_API.Models.Results import OperationalResult
-
-
-def buildDataResult(ok, level, message, **data):
-    """Build a lightweight standard result shape with module-specific fields under data."""
-    return OperationalResult(
-        ok,
-        level,
-        message,
-        dataFields=dict(data or {}),
-    ).toDict()
-
-
 def logOperationResult(result, logger):
     """Log one operation result and return it unchanged."""
     result = dict(result or {})
