@@ -13,7 +13,7 @@ from MainController.State.FleetStatusStore import phaseHealthRows
 from MainController.State.Paths import plcRobotPaths
 from MainController.State.Paths import runtimePaths
 from MainController.State.PlcMappingStore import readPlcMappings
-from MainController.WorkflowConfig import ROBOT_NAMES
+from Otto_API.Models.Fleet import ROBOT_NAMES
 
 
 def _statusTone(status):

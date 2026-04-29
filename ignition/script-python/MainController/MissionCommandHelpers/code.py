@@ -6,7 +6,7 @@ from Otto_API.Common.TagIO import readOptionalTagValue
 from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagIO import writeRequiredTagValues
 from MainController.Robot.Actions import callMissionCommand
-from MainController.WorkflowConfig import normalizeWorkflowNumber
+from Otto_API.Models.Fleet import normalizeWorkflowNumber
 
 
 MISSION_LAST_ISSUED_COMMAND_SIGNATURE_MEMBER = "_LastIssuedCommandSignature"

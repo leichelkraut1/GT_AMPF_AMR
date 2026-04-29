@@ -1,5 +1,5 @@
 from MainController.Robot.Records import _coerceRobotCycleSnapshot
-from MainController.WorkflowConfig import normalizeWorkflowNumber
+from Otto_API.Models.Fleet import normalizeWorkflowNumber
 
 
 def reserveWorkflow(reservedWorkflows, workflowNumber, robotName):

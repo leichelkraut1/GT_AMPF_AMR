@@ -10,7 +10,7 @@ from MainController.State.Coerce import toBool
 from MainController.State.Paths import FLEET_ROBOTS_BASE
 from MainController.State.Paths import MISSIONS_ACTIVE_BASE
 from MainController.State.Paths import WORKFLOW_NAME_RE
-from MainController.WorkflowConfig import normalizeWorkflowNumber
+from Otto_API.Models.Fleet import normalizeWorkflowNumber
 
 
 def readRobotMirrorInputs(robotName):

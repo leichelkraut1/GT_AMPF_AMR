@@ -11,7 +11,7 @@
         },
         "transforms": [
           {
-            "code": "\tfrom MainController.WorkflowConfig import ROBOT_NAMES\n\treturn [{\"label\": str(name), \"value\": str(name)} for name in list(ROBOT_NAMES or [])]",
+            "code": "\tfrom Otto_API.Models.Fleet import ROBOT_NAMES\n\treturn [{\"label\": str(name), \"value\": str(name)} for name in list(ROBOT_NAMES or [])]",
             "type": "script"
           }
         ],

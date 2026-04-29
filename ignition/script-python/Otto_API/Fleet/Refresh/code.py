@@ -5,9 +5,8 @@ from Otto_API.Services.Robots import updateRobotOperationalState
 from Otto_API.Services.Robots import updateRobots
 from Otto_API.Services.Workflows import updateWorkflows
 from Otto_API.TriggerHelpers import ensureMissionTriggerTags
-
-from MainController.WorkflowConfig import getWorkflowDefs
-from MainController.WorkflowConfig import ROBOT_NAMES
+from Otto_API.Models.Fleet import ROBOT_NAMES
+from Otto_API.TagSync.WorkflowConfig import getWorkflowDefs
 
 
 def _log():

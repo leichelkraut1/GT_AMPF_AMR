@@ -1,8 +1,8 @@
 from Otto_API.Services.Missions import Operations as MissionOperations
 
-from MainController.WorkflowConfig import buildMissionName
-from MainController.WorkflowConfig import robotIdTagPath
-from MainController.WorkflowConfig import workflowTemplateTagPath
+from Otto_API.TagSync.WorkflowConfig import buildMissionName
+from Otto_API.TagSync.WorkflowConfig import robotIdTagPath
+from Otto_API.TagSync.WorkflowConfig import workflowTemplateTagPath
 
 
 def callCreateMission(robotName, workflowNumber, createMission=None):

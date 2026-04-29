@@ -6,7 +6,7 @@ from Otto_API.Common.TagPaths import getMainControlRobotsPath
 from Otto_API.Common.TagPaths import getMainControlRuntimePath
 from Otto_API.Common.TagPaths import getPlcRootPath
 
-from MainController.WorkflowConfig import ROBOT_NAMES
+from Otto_API.Models.Fleet import ROBOT_NAMES
 
 
 FLEET_ROBOTS_BASE = getFleetRobotsPath()

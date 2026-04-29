@@ -2,9 +2,9 @@ from MainController.Robot.PlcMirror import buildOutputs
 from MainController.Robot.Records import _coerceRobotCycleSnapshot
 from MainController.State.Paths import RETRY_DELAY_MS
 from MainController.State.RobotStore import normalizeRobotState
-from MainController.WorkflowConfig import getWorkflowDef
-from MainController.WorkflowConfig import isWorkflowAllowedForRobot
-from MainController.WorkflowConfig import normalizeWorkflowNumber
+from Otto_API.Models.Fleet import normalizeWorkflowNumber
+from Otto_API.TagSync.WorkflowConfig import getWorkflowDef
+from Otto_API.TagSync.WorkflowConfig import isWorkflowAllowedForRobot
 from Otto_API.Common.RuntimeHistory import timestampString
 
 

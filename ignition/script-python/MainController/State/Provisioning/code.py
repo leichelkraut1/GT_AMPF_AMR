@@ -1,18 +1,15 @@
 from Otto_API.Common.HttpLogPolicy import ensureHttpLogConfigTags
 from Otto_API.Common.RuntimeHistory import ensureRuntimeTags as ensureSharedRuntimeTags
-from Otto_API.Common.TagPaths import getWorkflowConfigPath
 from Otto_API.Common.TagProvisioning import ensureBaseFleetConfigTags
 from Otto_API.Common.TagProvisioning import ensureFolder
-from Otto_API.Common.TagProvisioning import ensureMemoryTag
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
+from Otto_API.TagSync.WorkflowConfig import ensureWorkflowConfigTag
 
 from MainController.State.Paths import MAINCONTROL_ROBOTS_BASE
 from MainController.State.Paths import PLC_BASE
 from MainController.State.Paths import internalStatePaths
 from MainController.State.Paths import plcPlacesPath
 from MainController.State.Paths import ROBOT_NAMES
-from MainController.WorkflowConfigSeed import getWorkflowConfigHeaders
-from MainController.WorkflowConfigSeed import getWorkflowConfigRows
 
 
 def ensureRobotRunnerTags(robotName):
@@ -50,14 +47,7 @@ def ensureRuntimeTags():
 
 
 def ensureFleetConfigTags():
-    """Provision the Fleet config surface explicitly from MainController-owned defaults."""
+    """Provision the Fleet config surface explicitly from OTTO-owned defaults."""
     ensureBaseFleetConfigTags()
     ensureHttpLogConfigTags()
-    ensureMemoryTag(
-        getWorkflowConfigPath(),
-        "DataSet",
-        system.dataset.toDataSet(
-            getWorkflowConfigHeaders(),
-            getWorkflowConfigRows(),
-        ),
-    )
+    ensureWorkflowConfigTag()

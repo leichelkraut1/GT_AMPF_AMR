@@ -3,7 +3,7 @@ from Otto_API.Common.TagIO import writeRequiredTagValues
 
 from MainController.State.Coerce import toBool
 from MainController.State.Paths import internalStatePaths
-from MainController.WorkflowConfig import normalizeWorkflowNumber
+from Otto_API.Models.Fleet import normalizeWorkflowNumber
 
 
 def _normalizeControllerStateName(stateName):

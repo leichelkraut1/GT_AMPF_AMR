@@ -5,7 +5,7 @@ from Otto_API.Common.RecordHelpers import coerceText
 from Otto_API.Models.Missions import MissionRecord
 
 from MainController.State.RobotStore import normalizeRobotState
-from MainController.WorkflowConfig import normalizeWorkflowNumber
+from Otto_API.Models.Fleet import normalizeWorkflowNumber
 
 
 def _coerceWorkflowNumber(value):

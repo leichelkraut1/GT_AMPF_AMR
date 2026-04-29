@@ -8,7 +8,7 @@ from MainController.State.Results import buildCycleResult
 from MainController.State.RobotStore import readRobotState
 from MainController.State.RobotStore import writeRobotState
 from MainController.Robot.Records import _coerceRobotCycleSnapshot
-from MainController.WorkflowConfig import normalizeWorkflowNumber
+from Otto_API.Models.Fleet import normalizeWorkflowNumber
 
 
 def _plcSyncResult(ok, level="info", message="PLC robot sync healthy"):
