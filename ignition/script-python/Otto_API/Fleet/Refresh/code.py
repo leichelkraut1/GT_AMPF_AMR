@@ -13,6 +13,30 @@ def _log():
     return system.util.getLogger("Otto_API.Fleet.Refresh")
 
 
+class FleetTriggerRefreshResult(OperationalResult):
+    def __init__(self, createdPaths=None):
+        self.created_paths = list(createdPaths or [])
+        OperationalResult.__init__(
+            self,
+            True,
+            "info",
+            "Mission and container triggers refreshed",
+            sharedFields={"created_paths": self.created_paths},
+        )
+
+
+class FleetRefreshResult(OperationalResult):
+    def __init__(self, ok, level, message, results=None):
+        self.results = dict(results or {})
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            sharedFields={"results": self.results},
+        )
+
+
 def _robotIds():
     ids = []
     for robotName in list(ROBOT_NAMES or []):
@@ -65,12 +89,7 @@ def refreshFleetData():
         workflowIds=workflowIds or None,
         robotIds=robotIds or None,
     )
-    triggerResult = OperationalResult(
-        True,
-        "info",
-        "Mission and container triggers refreshed",
-        sharedFields={"created_paths": list(triggerPaths or [])},
-    ).toDict()
+    triggerResult = FleetTriggerRefreshResult(triggerPaths).toDict()
 
     mapResult = updateMaps()
     placeResult = updatePlaces()
@@ -110,9 +129,9 @@ def refreshFleetData():
     elif hasWarn:
         message = "Fleet data refresh completed with warnings"
 
-    return OperationalResult(
+    return FleetRefreshResult(
         ok,
         level,
         message,
-        sharedFields={"results": dict(orderedResults)},
+        results=dict(orderedResults),
     ).toDict()

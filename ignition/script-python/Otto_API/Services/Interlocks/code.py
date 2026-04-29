@@ -322,6 +322,35 @@ class InterlockSyncResult(OperationalResult):
         )
 
 
+class InterlockDirectionalResult(OperationalResult):
+    def __init__(self, ok, level, message, postResult=None, issues=None):
+        self.post_result = postResult
+        self.issues = list(issues or [])
+        typedFields = {}
+        if self.post_result is not None:
+            typedFields["post_result"] = self.post_result
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            typedFields=typedFields,
+            sharedFields={"issues": self.issues},
+        )
+
+
+class InterlockRuntimeResult(OperationalResult):
+    def __init__(self, ok, level, message, issues=None):
+        self.issues = list(issues or [])
+        OperationalResult.__init__(
+            self,
+            ok,
+            level,
+            message,
+            sharedFields={"issues": self.issues},
+        )
+
+
 def _syncIssue(issueId, level, message):
     return buildRuntimeIssue(
         issueId,
@@ -332,17 +361,12 @@ def _syncIssue(issueId, level, message):
 
 
 def _syncIssueResult(issueId, level, message, postResult=None):
-    typedFields = {}
-    if postResult is not None:
-        typedFields["post_result"] = postResult
-    return OperationalResult(
+    return InterlockDirectionalResult(
         False,
         level,
         message,
-        typedFields=typedFields,
-        sharedFields={
-            "issues": [_syncIssue(issueId, level, message)],
-        },
+        postResult=postResult,
+        issues=[_syncIssue(issueId, level, message)],
     )
 
 
@@ -387,11 +411,11 @@ def _applyFromFleet(resolved, logger=None):
         return _syncIssueResult("interlocks.sync.fromfleet.unreadable_state.{}".format(fleetName), "warn", message)
 
     writeObservedTagValue(resolved.plc_state_path, fleetState, label="Interlock FromFleet sync", logger=logger)
-    return OperationalResult(
+    return InterlockDirectionalResult(
         True,
         "info",
         "FromFleet synced [{}] -> [{}]".format(fleetName, resolved.plc_tag_name),
-        sharedFields={"issues": []},
+        issues=[],
     )
 
 
@@ -407,11 +431,11 @@ def _applyToFleet(
 ):
     fleetName = resolved.fleet_name
     if not resolved.shouldWriteToFleet(ignoreWriteEnable):
-        return OperationalResult(
+        return InterlockDirectionalResult(
             True,
             "info",
             "{} disabled [{}] because WriteEnable is false".format(actionLabel, fleetName),
-            sharedFields={"issues": []},
+            issues=[],
         )
 
     fleetState = resolved.fleetState()
@@ -460,19 +484,19 @@ def _applyToFleet(
 
     if targetState == resolved.remoteState():
         _clearPendingState(resolved.fleet_row_path, logger)
-        return OperationalResult(
+        return InterlockDirectionalResult(
             True,
             "info",
             "{} no-op [{}]; target already matches Fleet".format(actionLabel, fleetName),
-            sharedFields={"issues": []},
+            issues=[],
         )
 
     if pendingWrite and pendingWriteState == targetState and (nowEpochMs - lastWriteAttemptMs) < retryMs:
-        return OperationalResult(
+        return InterlockDirectionalResult(
             True,
             "info",
             "{} waiting [{}] for retry backoff".format(actionLabel, fleetName),
-            sharedFields={"issues": []},
+            issues=[],
         )
 
     if not pendingWrite or pendingWriteState != targetState:
@@ -503,12 +527,12 @@ def _applyToFleet(
             postResult.level,
             message,
         )]
-    return OperationalResult(
+    return InterlockDirectionalResult(
         bool(postResult.ok),
         postResult.level,
         message,
-        typedFields={"post_result": postResult},
-        sharedFields={"issues": issues},
+        postResult=postResult,
+        issues=issues,
     )
 
 
@@ -638,20 +662,18 @@ def runInterlockSyncCycle(nowEpochMs=None):
     except Exception as exc:
         message = "Interlock sync runtime wrapper failed: {}".format(str(exc))
         logger.error(message)
-        result = OperationalResult(
+        result = InterlockRuntimeResult(
             False,
             "error",
             message,
-            sharedFields={
-                "issues": [
-                    buildRuntimeIssue(
-                        "interlocks.runtime.wrapper_exception",
-                        "Otto_API.Services.Interlocks",
-                        "error",
-                        message,
-                    )
-                ],
-            },
+            issues=[
+                buildRuntimeIssue(
+                    "interlocks.runtime.wrapper_exception",
+                    "Otto_API.Services.Interlocks",
+                    "error",
+                    message,
+                )
+            ],
         )
     finally:
         endEpochMs = int(time.time() * 1000)
@@ -677,20 +699,18 @@ def runInterlockSyncCycle(nowEpochMs=None):
             logger.error("Interlock sync runtime end telemetry failed: {}".format(str(exc)))
 
     if result is None:
-        result = OperationalResult(
+        result = InterlockRuntimeResult(
             False,
             "error",
             "Interlock sync did not produce a result",
-            sharedFields={
-                "issues": [
-                    buildRuntimeIssue(
-                        "interlocks.runtime.missing_result",
-                        "Otto_API.Services.Interlocks",
-                        "error",
-                        "Interlock sync did not produce a result",
-                    )
-                ],
-            },
+            issues=[
+                buildRuntimeIssue(
+                    "interlocks.runtime.missing_result",
+                    "Otto_API.Services.Interlocks",
+                    "error",
+                    "Interlock sync did not produce a result",
+                )
+            ],
         )
 
     return result.toDict()
