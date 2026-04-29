@@ -269,10 +269,7 @@ class RobotReadinessResult(MappingRecordBase):
             context.mission_last_update_success,
         )
 
-    def isReady(self):
-        return bool(self.available)
-
     def notReadyReason(self):
-        if self.isReady():
+        if self.available:
             return ""
         return str(self.reason or "")

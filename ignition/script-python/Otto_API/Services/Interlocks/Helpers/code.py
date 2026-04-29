@@ -27,7 +27,7 @@ def fleetInterlockRowPath(interlockName, instanceNameByRawName):
     return getFleetInterlocksPath() + "/" + instanceName
 
 
-class ResolvedInterlockSyncRow(object):
+class InterlockSyncDefinition(object):
     def __init__(self, row, record, duplicateInfo, snapshot, fleetRowPath):
         self.row = InterlockMappingRow.fromDict(row)
         self.record = None if record is None else InterlockRecord.fromDict(record)
@@ -49,51 +49,24 @@ class ResolvedInterlockSyncRow(object):
         self.fleet_row_path = str(fleetRowPath or "").strip()
         self.fleet_name = self.row.FleetName
         self.plc_tag_name = self.row.PlcTagName
+        self.direction = self.row.Direction
+        self.from_fleet = self.row.isFromFleet()
+        self.to_fleet = self.row.isToFleet()
+        self.write_enabled = self.row.isWritable()
+        self.has_fleet_row = bool(self.fleet_row_path)
+        self.interlock_id = "" if self.record is None else str(self.record.id or "").strip()
+        self.fleet_state = None if self.record is None else toIntOrNone(self.record.state)
+        self.plc_state = None if self.snapshot is None else toIntOrNone(self.snapshot.state)
+        self.force_zero_active = False if self.snapshot is None else self.snapshot.forceZeroActive()
         self.fleet_state_path = self.fleet_row_path + "/State" if self.fleet_row_path else ""
         self.plc_state_path = getPlcInterlocksPath() + "/" + self.plc_tag_name + "/State"
-
-    def direction(self):
-        return self.row.Direction
-
-    def isFromFleet(self):
-        return self.row.isFromFleet()
-
-    def isToFleet(self):
-        return self.row.isToFleet()
-
-    def remoteState(self):
-        return None if self.record is None else toIntOrNone(self.record.state)
-
-    def fleetState(self):
-        return self.remoteState()
-
-    def hasFleetRow(self):
-        return bool(self.fleet_row_path)
-
-    def interlockId(self):
-        return "" if self.record is None else str(self.record.id or "").strip()
-
-    def hasInterlockId(self):
-        return bool(self.interlockId())
-
-    def plcState(self):
-        return None if self.snapshot is None else toIntOrNone(self.snapshot.state)
 
     def targetState(self, desiredState=None, plcStateOverride=None):
         if desiredState is not None:
             return desiredState
         if plcStateOverride is not None:
             return plcStateOverride
-        return self.plcState()
-
-    def forceZeroActive(self):
-        return False if self.snapshot is None else self.snapshot.forceZeroActive()
-
-    def writeEnabled(self):
-        return self.row.isWritable()
-
-    def shouldWriteToFleet(self, ignoreWriteEnable=False):
-        return bool(ignoreWriteEnable or self.writeEnabled())
+        return self.plc_state
 
     def duplicateWinnerMessage(self):
         if self.duplicate_info is None:
@@ -107,18 +80,18 @@ class ResolvedInterlockSyncRow(object):
         return self.fleet_row_path + "/" + str(leafName or "").strip()
 
 
-def buildResolvedSyncRow(
-    rowOrResolved,
+def buildInterlockSyncDefinition(
+    rowOrDefinition,
     recordsByName=None,
     instanceNameByRawName=None,
     duplicateInfoByName=None,
     plcSnapshotByTagName=None,
 ):
     """
-    Build one resolved interlock sync row from typed or raw inputs.
+    Build one complete interlock sync definition from typed or raw inputs.
     """
-    return coerceResolvedSyncRow(
-        rowOrResolved,
+    return coerceInterlockSyncDefinition(
+        rowOrDefinition,
         recordsByName=recordsByName,
         instanceNameByRawName=instanceNameByRawName,
         duplicateInfoByName=duplicateInfoByName,
@@ -126,24 +99,24 @@ def buildResolvedSyncRow(
     )
 
 
-def coerceResolvedSyncRow(
-    rowOrResolved,
+def coerceInterlockSyncDefinition(
+    rowOrDefinition,
     recordsByName=None,
     instanceNameByRawName=None,
     duplicateInfoByName=None,
     plcSnapshotByTagName=None,
 ):
-    if isinstance(rowOrResolved, ResolvedInterlockSyncRow):
-        return rowOrResolved
+    if isinstance(rowOrDefinition, InterlockSyncDefinition):
+        return rowOrDefinition
 
-    row = InterlockMappingRow.fromDict(rowOrResolved)
+    row = InterlockMappingRow.fromDict(rowOrDefinition)
     fleetName = row.FleetName
     plcTagName = row.PlcTagName
     record = None if recordsByName is None else (recordsByName or {}).get(fleetName)
     duplicateInfo = None if duplicateInfoByName is None else (duplicateInfoByName or {}).get(fleetName)
     snapshot = None if plcSnapshotByTagName is None else (plcSnapshotByTagName or {}).get(plcTagName)
     fleetRowPath = fleetInterlockRowPath(fleetName, instanceNameByRawName)
-    return ResolvedInterlockSyncRow(
+    return InterlockSyncDefinition(
         row,
         record,
         duplicateInfo,

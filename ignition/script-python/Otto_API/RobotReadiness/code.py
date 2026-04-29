@@ -99,7 +99,7 @@ def isRobotAvailable(snapshot, context):
     """
     Convenience helper for callers that only need the final availability flag.
     """
-    return evaluateRobotReadiness(snapshot, context).isReady()
+    return evaluateRobotReadiness(snapshot, context).available
 
 
 def buildReadinessResultsAndWrites(
@@ -135,7 +135,7 @@ def buildReadinessResultsAndWrites(
                 robotPath + "/NotReadyReason",
             ])
             writeValues.extend([
-                readiness.isReady(),
+                readiness.available,
                 readiness.notReadyReason(),
             ])
 
