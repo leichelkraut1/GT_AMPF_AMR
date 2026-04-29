@@ -84,7 +84,8 @@ def runMainControllerCycle(
         runtimeState["loop_is_running"] = False
 
     if runtimeState["loop_is_running"]:
-        overlapCount = runtimeState["loop_overlap_count"] + 1
+        rawOverlapCount = runtimeState.get("loop_overlap_count")
+        overlapCount = rawOverlapCount + 1 if isinstance(rawOverlapCount, int) else 1
         writeRuntimeFields({
             "loop_overlap_count": overlapCount,
             "loop_last_result": "overlap_skipped",

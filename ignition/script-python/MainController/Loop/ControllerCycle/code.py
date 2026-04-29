@@ -276,9 +276,11 @@ def runAllRobotWorkflowCycles(
         except Exception as exc:
             cycleResult = _robotCycleExceptionResult(snapshot.robot_name, exc)
         results.append(cycleResult)
-        syncResult = dict(dict(cycleResult.get("data") or {}).get("plc_sync_result") or {})
-        if syncResult:
-            plcSyncResults.append(syncResult)
+        cycleData = cycleResult.get("data") or {}
+        if isinstance(cycleData, dict):
+            syncResult = cycleData.get("plc_sync_result")
+            if isinstance(syncResult, dict) and syncResult:
+                plcSyncResults.append(syncResult)
 
     ok = all(result.get("ok", False) or result.get("level") == "warn" for result in results)
     level = "info" if ok else "error"

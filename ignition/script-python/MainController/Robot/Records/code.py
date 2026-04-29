@@ -24,7 +24,7 @@ def _coerceFloat(value):
 
 
 def _coerceUpperText(value):
-    return coerceText(value).upper()
+    return str(coerceText(value) or "").upper()
 
 
 def _coerceTimeoutMs(value, defaultValue=30000):
@@ -66,6 +66,11 @@ class _SpecRecord(MappingRecordBase):
 
 
 class RobotPlcInputs(_SpecRecord):
+    requested_workflow_number = 0
+    finalize_ok = False
+    healthy = True
+    fault_reason = ""
+
     FIELDS = (
         "requested_workflow_number",
         "finalize_ok",
@@ -81,6 +86,19 @@ class RobotPlcInputs(_SpecRecord):
 
 
 class RobotMirrorInputs(_SpecRecord):
+    available_for_work = False
+    active_mission_count = 0
+    charge_level = 0.0
+    system_state = ""
+    sub_system_state = ""
+    activity_state = ""
+    place_id = ""
+    place_name = ""
+    container_present = False
+    container_id = ""
+    mission_starved = False
+    mission_ready_for_attachment = False
+
     FIELDS = (
         "available_for_work",
         "active_mission_count",
@@ -143,6 +161,15 @@ class RobotControllerState(MappingRecordBase):
 
 
 class ActiveMissionSummary(_SpecRecord):
+    count = 0
+    missions = ()
+    current_mission = None
+    current_mission_status = ""
+    current_mission_id = ""
+    current_mission_path = ""
+    mission_name = ""
+    workflow_number = None
+
     FIELDS = (
         "count",
         "missions",
@@ -243,10 +270,10 @@ class RobotCycleSnapshot(MappingRecordBase):
     def fromDict(cls, snapshot):
         snapshot = _sourceDict(snapshot)
         return cls(
-            snapshot.get("robot_name"),
-            snapshot.get("plc_tag_name"),
+            snapshot.get("robot_name", ""),
+            snapshot.get("plc_tag_name", ""),
             snapshot.get("reserved_workflows"),
-            snapshot.get("now_epoch_ms"),
+            snapshot.get("now_epoch_ms", 0),
             snapshot.get("create_mission"),
             snapshot.get("finalize_mission_id"),
             snapshot.get("cancel_mission_ids"),
@@ -256,8 +283,8 @@ class RobotCycleSnapshot(MappingRecordBase):
             snapshot.get("active_summary"),
             snapshot.get("active_workflow_number"),
             snapshot.get("selected_workflow_number"),
-            snapshot.get("controller_available_for_work"),
-            snapshot.get("pending_create_timeout_ms"),
+            snapshot.get("controller_available_for_work", False),
+            snapshot.get("pending_create_timeout_ms", 30000),
         )
 
     def toDict(self):

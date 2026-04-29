@@ -28,7 +28,7 @@ def runRobotWorkflowCycleSnapshot(snapshot):
     plan = planRobotWorkflowCycleSnapshot(snapshot)
     commandResults = executeRobotCommandRequests(
         snapshot,
-        plan.get("command_requests"),
+        plan.get("command_requests") or [],
     )
     outcome = resolveRobotWorkflowDecision(snapshot, plan, commandResults)
     return applyRobotOutcome(snapshot, outcome)
