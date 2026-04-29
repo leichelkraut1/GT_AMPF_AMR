@@ -1,10 +1,32 @@
+import json
+
 from Otto_API.Common.TagIO import tagExists
 from Otto_API.Common.TagPaths import getFleetWorkflowsPath
 from Otto_API.Common.TagProvisioning import ensureUdtInstancePath
 from Otto_API.Common.SyncHelpers import buildSyncResult
 from Otto_API.Common.SyncHelpers import cleanupStaleUdtInstances
 from Otto_API.Common.SyncHelpers import writeObservedTagDict
-from Otto_API.Workflows.Normalize import buildWorkflowTagValues
+
+
+def buildWorkflowTagValues(basePath, templateItem):
+    """
+    Build the tag value map for a workflow / mission template record.
+    """
+    instanceName = templateItem.get("name")
+    if not instanceName:
+        return None, {}
+
+    instancePath = basePath + "/" + instanceName
+    return instanceName, {
+        instancePath + "/ID": templateItem.get("id"),
+        instancePath + "/Description": templateItem.get("description", ""),
+        instancePath + "/Priority": templateItem.get("priority", 0),
+        instancePath + "/NominalDuration": templateItem.get("nominal_duration"),
+        instancePath + "/MaxDuration": templateItem.get("max_duration"),
+        instancePath + "/RobotTeam": templateItem.get("robot_team"),
+        instancePath + "/OverridePrompts": templateItem.get("override_prompts_json"),
+        instancePath + "/jsonString": json.dumps(templateItem)
+    }
 
 
 def applyWorkflowSync(templateItems, logger):
@@ -28,7 +50,7 @@ def applyWorkflowSync(templateItems, logger):
             ensureUdtInstancePath(instancePath, "api_Mission")
             logger.info("Otto API - Created Workflow: " + instanceName)
 
-        writeObservedTagDict(missionDict, "Otto_API.Workflows.Apply workflow sync", logger)
+        writeObservedTagDict(missionDict, "Otto_API.TagSync.Workflows workflow sync", logger)
         writes.extend(missionDict.items())
 
     cleanupStaleUdtInstances(
